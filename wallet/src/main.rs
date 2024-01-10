@@ -20,7 +20,6 @@ mod timestamp;
 
 use cli::{Cli, Command};
 
-// Om Test git submission
 /// The default RPC endpoint for the wallet to connect to
 const DEFAULT_ENDPOINT: &str = "http://localhost:9944";
 
@@ -44,6 +43,8 @@ async fn main() -> anyhow::Result<()> {
 
     // Setup the keystore
     let keystore = sc_keystore::LocalKeystore::open(keystore_path.clone(), None)?;
+
+    crate::keystore::insert_development_key_for_this_session(&keystore)?;
 
     if cli.dev {
         // Insert the example Shawn key so example transactions can be signed.
@@ -98,6 +99,18 @@ async fn main() -> anyhow::Result<()> {
 
     // Dispatch to proper subcommand
     match cli.command {
+        Some(Command::getBlock { block_height }) => {
+            let node_hash = rpc::node_get_block_hash(block_height.unwrap(), &client)
+                .await?
+                .expect("node should be able to return some  hash");
+            let node_block = rpc::node_get_block(node_hash, &client)
+                .await?
+                .expect("node should be able to return some genesis block");
+            log::info!("Node's  block hash ::{:?}", node_hash);
+            log::info!("Node's  block::{:?}", node_block);
+            Ok(())
+        }
+
         Some(Command::AmoebaDemo) => amoeba::amoeba_demo(&client).await,
         // Command::MultiSigDemo => multi_sig::multi_sig_demo(&client).await,
         Some(Command::VerifyCoin { output_ref }) => {
@@ -122,6 +135,7 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
         Some(Command::SpendCoins(args)) => money::spend_coins(&db, &client, &keystore, args).await,
+
         Some(Command::InsertKey { seed }) => crate::keystore::insert_key(&keystore, &seed),
         Some(Command::GenerateKey { password }) => {
             crate::keystore::generate_key(&keystore, password)?;

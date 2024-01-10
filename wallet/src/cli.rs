@@ -44,6 +44,14 @@ pub struct Cli {
 /// The tasks supported by the wallet
 #[derive(Debug, Subcommand)]
 pub enum Command {
+
+    /// Print the block based on block height.
+    ///get the block hash ad print the block.
+    getBlock{
+        /// Input the blockheight to be retrived.
+        block_height: Option<u32>,
+    },
+
     /// Demonstrate creating an amoeba and performing mitosis on it.
     AmoebaDemo,
 
@@ -55,12 +63,13 @@ pub enum Command {
         #[arg(value_parser = output_ref_from_string)]
         output_ref: OutputRef,
     },
-
+    
     /// Spend some coins.
     /// For now, all outputs in a single transaction go to the same recipient.
     // FixMe: #62
     #[command(verbatim_doc_comment)]
     SpendCoins(SpendArgs),
+
 
     /// Insert a private key into the keystore to later use when signing transactions.
     InsertKey {
