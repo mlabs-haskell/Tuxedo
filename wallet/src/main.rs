@@ -20,6 +20,7 @@ mod timestamp;
 
 use cli::{Cli, Command};
 
+// Om Test git submission
 /// The default RPC endpoint for the wallet to connect to
 const DEFAULT_ENDPOINT: &str = "http://localhost:9944";
 
