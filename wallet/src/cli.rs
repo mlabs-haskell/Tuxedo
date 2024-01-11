@@ -46,14 +46,27 @@ pub struct Cli {
 pub enum Command {
 
     /// Print the block based on block height.
-    ///get the block hash ad print the block.
+    /// get the block hash ad print the block.
     getBlock{
         /// Input the blockheight to be retrived.
         block_height: Option<u32>,
     },
 
+    /*
     /// Demonstrate creating an amoeba and performing mitosis on it.
     AmoebaDemo,
+    */
+
+    /// Mint coins, Amount need to passed from the command line.
+    #[command(verbatim_doc_comment)]
+    MintCoins{
+        /// Pass the amount to be minted.
+        amount: Option<u128>,
+    },
+
+    /// Mint coins, Amount need to passed from the command line.
+    #[command(verbatim_doc_comment)]
+    MintCoinsBasedOnPublickKeyOfOwner(MintCoinArgs),
 
     /// Verify that a particular coin exists.
     /// Show its value and owner from both chain storage and the local database.
@@ -64,12 +77,12 @@ pub enum Command {
         output_ref: OutputRef,
     },
     
+    //Some(Command::MintCoins { amount }) => money::mint_coins(&db, &client, &keystore,amount).await,
     /// Spend some coins.
     /// For now, all outputs in a single transaction go to the same recipient.
     // FixMe: #62
     #[command(verbatim_doc_comment)]
     SpendCoins(SpendArgs),
-
 
     /// Insert a private key into the keystore to later use when signing transactions.
     InsertKey {
@@ -110,6 +123,20 @@ pub enum Command {
 
     /// Show the latest on-chain timestamp.
     ShowTimestamp,
+}
+
+#[derive(Debug, Args)]
+pub struct MintCoinArgs {
+
+    /// Pass the amount to be minted.
+    #[arg(long, short, verbatim_doc_comment, action = Append)]
+    pub amount: Option<u128>,
+
+    // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
+    // shows how to specify a custom parsing function
+    /// Hex encoded address (sr25519 pubkey) of the owner.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
+    pub owner: H256,
 }
 
 #[derive(Debug, Args)]

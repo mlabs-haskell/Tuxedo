@@ -6,10 +6,11 @@ use parity_scale_codec::{Decode, Encode};
 use runtime::OuterVerifier;
 use std::path::PathBuf;
 use tuxedo_core::{types::OutputRef, verifier::*};
+use crate::cli::MintCoinArgs;
 
 use sp_core::H256;
 
-mod amoeba;
+//mod amoeba;
 mod cli;
 mod keystore;
 mod money;
@@ -111,8 +112,10 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
 
-        Some(Command::AmoebaDemo) => amoeba::amoeba_demo(&client).await,
+        // Some(Command::AmoebaDemo) => amoeba::amoeba_demo(&client).await,
         // Command::MultiSigDemo => multi_sig::multi_sig_demo(&client).await,
+        Some(Command::MintCoins { amount }) => money::mint_coins(&db, &client, &keystore,amount).await,
+        Some(Command::MintCoinsBasedOnPublickKeyOfOwner(args)) => money::mint_coins_basedon_public_key_of_owner(&db, &client, &keystore, args).await,
         Some(Command::VerifyCoin { output_ref }) => {
             println!("Details of coin {}:", hex::encode(output_ref.encode()));
 
@@ -135,7 +138,6 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
         Some(Command::SpendCoins(args)) => money::spend_coins(&db, &client, &keystore, args).await,
-
         Some(Command::InsertKey { seed }) => crate::keystore::insert_key(&keystore, &seed),
         Some(Command::GenerateKey { password }) => {
             crate::keystore::generate_key(&keystore, password)?;
