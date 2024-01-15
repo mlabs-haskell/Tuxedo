@@ -31,8 +31,8 @@ pub fn development_genesis_config() -> RuntimeGenesisConfig {
         Coin::<0>::mint(100, Sr25519Signature::new(SHAWN_PUB_KEY_BYTES)),
         Coin::<0>::mint(100, ThresholdMultiSignature::new(1, signatories)),
         // Kitty Transactions
-        KittyData::mint(Parent::mom(), b"mother", UpForGrabs),
-        KittyData::mint(Parent::dad(), b"father", UpForGrabs),
+        KittyData::mint(Parent::mom(), b"mother", *b"tomy", UpForGrabs),
+        KittyData::mint(Parent::dad(), b"father", *b"tomy", UpForGrabs),
         // TODO: Initial Transactions for Existence
     ]);
 

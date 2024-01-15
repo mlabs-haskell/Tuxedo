@@ -84,6 +84,13 @@ pub enum Command {
     #[command(verbatim_doc_comment)]
     SpendCoins(SpendArgs),
 
+    /// Mint kit Kitty without mom and dad.
+    ///New family will be created.
+    MintKitty{
+        /// Initialize a with a name for Dna Generation and storage inside also.
+        name: Option<String>,
+    },
+
     /// Insert a private key into the keystore to later use when signing transactions.
     InsertKey {
         /// Seed phrase of the key to insert.

@@ -11,6 +11,7 @@ use crate::cli::MintCoinArgs;
 use sp_core::H256;
 
 //mod amoeba;
+mod kitty;
 mod cli;
 mod keystore;
 mod money;
@@ -138,6 +139,13 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
         Some(Command::SpendCoins(args)) => money::spend_coins(&db, &client, &keystore, args).await,
+
+        Some(Command::MintKitty { name }) => {
+            println!("###### Mint Kitty is called ###########");
+            let _= kitty::mint_kitty(&client,name,&keystore).await;
+            Ok(())
+        }
+
         Some(Command::InsertKey { seed }) => crate::keystore::insert_key(&keystore, &seed),
         Some(Command::GenerateKey { password }) => {
             crate::keystore::generate_key(&keystore, password)?;

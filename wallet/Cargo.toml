@@ -24,6 +24,8 @@ serde_json = { workspace = true }
 sled = { workspace = true }
 tokio = { features = [ "full" ], workspace = true }
 
+rand = "0.8"
+
 sc-keystore = { workspace = true }
 sp-core = { workspace = true }
 sp-keystore = { workspace = true }

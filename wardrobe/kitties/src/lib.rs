@@ -50,6 +50,29 @@ mod tests;
     Debug,
     TypeInfo,
 )]
+pub enum KittyConstraintChecker {
+    /// A typical Breed transaction where kitties are consumed and new family(Parents(mom,dad) and child) is created.
+    Breed,
+    /// A mint transaction that creates kitties from one parent(either mom or dad).
+    Mint,
+    ///Can buy a new kitty from others 
+    Buy,
+}
+
+#[derive(
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Clone,
+    Encode,
+    Decode,
+    Hash,
+    Debug,
+    TypeInfo,
+)]
 pub struct FreeKittyConstraintChecker;
 
 #[derive(
@@ -165,15 +188,16 @@ pub struct KittyData {
     pub free_breedings: u64, // Ignore in breed for money case
     pub dna: KittyDNA,
     pub num_breedings: u128,
+    pub name: [u8; 4], // Name of kitty is stored in onChain s of now.
 }
 
 impl KittyData {
     /// Create a mint transaction for a single Kitty.
-    pub fn mint<V, OV, OC>(parent: Parent, dna_preimage: &[u8], v: V) -> Transaction<OV, OC>
+    pub fn mint<V, OV, OC>(parent: Parent, dna_preimage: &[u8], kitty_name:[u8; 4], v: V) -> Transaction<OV, OC>
     where
         V: Verifier,
         OV: Verifier + From<V>,
-        OC: tuxedo_core::ConstraintChecker<OV> + From<FreeKittyConstraintChecker>,
+        OC: tuxedo_core::ConstraintChecker<OV> + core::convert::From<KittyConstraintChecker>,
     {
         Transaction {
             inputs: vec![],
@@ -182,12 +206,14 @@ impl KittyData {
                 KittyData {
                     parent,
                     dna: KittyDNA(BlakeTwo256::hash(dna_preimage)),
+                    name:kitty_name,
                     ..Default::default()
                 },
                 v,
             )
                 .into()],
-            checker: FreeKittyConstraintChecker.into(),
+            //checker: FreeKittyConstraintChecker.into(),
+            checker: KittyConstraintChecker::Mint.into(),
         }
     }
 }
@@ -199,6 +225,7 @@ impl Default for KittyData {
             free_breedings: 2,
             dna: KittyDNA(H256::from_slice(b"mom_kitty_1asdfasdfasdfasdfasdfa")),
             num_breedings: 3,
+            name:*b"kty0",
         }
     }
 }
@@ -261,6 +288,8 @@ pub enum ConstraintCheckerError {
     TooManyBreedingsForKitty,
     /// Not enough free breedings available for these parents.
     NotEnoughFreeBreedings,
+    /// No Need of parents to mint.
+    ParentsCannotExistForMinting,
 }
 
 trait Breed {
@@ -498,6 +527,48 @@ impl TryFrom<&DynamicallyTypedData> for KittyData {
     }
 }
 
+impl SimpleConstraintChecker for KittyConstraintChecker {
+    type Error = ConstraintCheckerError;
+
+    fn check(
+        &self,
+        input_data: &[DynamicallyTypedData],
+        _peeks: &[DynamicallyTypedData],
+        new_family: &[DynamicallyTypedData],
+    ) -> Result<TransactionPriority, Self::Error> {
+        log::info!("KittyConstraintChecker check()  called ");
+        match &self {
+            Self::Mint => {
+                // Make sure there are no inputs being consumed
+                log::info!("Self::Mint()  called ");
+                log::info!("KittyCreation new family length = {}",new_family.len());
+                ensure!(input_data.len() == 0, Self::Error::ParentsCannotExistForMinting);
+                ensure!(new_family.len() == 1, Self::Error::NotEnoughFamilyMembers);
+                log::info!("Mint kitty completed");
+                Ok(0)
+            }
+            Self::Breed => {
+                // Check that we are consuming at least one input
+                log::info!("Breed called");
+                ensure!(input_data.len() == 2, Self::Error::TwoParentsDoNotExist);
+
+                let mom = KittyData::try_from(&input_data[0])?;
+                let dad = KittyData::try_from(&input_data[1])?;
+                KittyHelpers::can_breed(&mom, &dad)?;
+                // Output must be Mom, Dad, Child
+                ensure!(new_family.len() == 3, Self::Error::NotEnoughFamilyMembers);
+                KittyHelpers::check_new_family(&mom, &dad, new_family)?;
+                Ok(0)
+            }
+            Self::Buy => {
+                // Ned to implement the buy logic
+                log::info!("Buy called ");
+                Ok(0)
+            }
+        }
+    }
+}
+
 impl SimpleConstraintChecker for FreeKittyConstraintChecker {
     type Error = ConstraintCheckerError;
     /// Checks:
@@ -525,3 +596,4 @@ impl SimpleConstraintChecker for FreeKittyConstraintChecker {
         Ok(0)
     }
 }
+
