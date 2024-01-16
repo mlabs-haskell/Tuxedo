@@ -31,9 +31,12 @@ async fn main() -> anyhow::Result<()> {
 
     // Parse command line args
     let cli = Cli::parse();
-
+    log::info!("cli from cmd args = {:?}",cli);
+    
+    
     // If the user specified --tmp or --dev, then use a temporary directory.
     let tmp = cli.tmp || cli.dev;
+
 
     // Setup the data paths.
     let data_path = match tmp {
@@ -50,6 +53,7 @@ async fn main() -> anyhow::Result<()> {
 
     if cli.dev {
         // Insert the example Shawn key so example transactions can be signed.
+        log::info!("cli is dv");
         crate::keystore::insert_development_key_for_this_session(&keystore)?;
     }
 
@@ -115,8 +119,8 @@ async fn main() -> anyhow::Result<()> {
 
         // Some(Command::AmoebaDemo) => amoeba::amoeba_demo(&client).await,
         // Command::MultiSigDemo => multi_sig::multi_sig_demo(&client).await,
-        Some(Command::MintCoins { amount }) => money::mint_coins(&db, &client, &keystore,amount).await,
-        Some(Command::MintCoinsBasedOnPublickKeyOfOwner(args)) => money::mint_coins_basedon_public_key_of_owner(&db, &client, &keystore, args).await,
+        Some(Command::MintCoins(args)) => money::mint_coins(&db, &client, &keystore,args).await,
+
         Some(Command::VerifyCoin { output_ref }) => {
             println!("Details of coin {}:", hex::encode(output_ref.encode()));
 
@@ -139,12 +143,6 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
         Some(Command::SpendCoins(args)) => money::spend_coins(&db, &client, &keystore, args).await,
-
-        Some(Command::MintKitty { name }) => {
-            println!("###### Mint Kitty is called ###########");
-            let _= kitty::mint_kitty(&client,name,&keystore).await;
-            Ok(())
-        }
 
         Some(Command::InsertKey { seed }) => crate::keystore::insert_key(&keystore, &seed),
         Some(Command::GenerateKey { password }) => {
@@ -196,6 +194,22 @@ async fn main() -> anyhow::Result<()> {
             println!("Timestamp: {}", timestamp::get_timestamp(&db)?);
             Ok(())
         }
+
+        Some(Command::MintKitty(args)) => kitty::mint_kitty(&db, &client, &keystore,args).await,
+
+        Some(Command::ShowAllKitties) => {
+            println!("Kitty Summary");
+            
+            let owned_kitties = sync::get_owned_kitties_from_local_db(&db)?;
+
+            for (account, kitty) in owned_kitties {
+                println!("{account}: {:?}",kitty);
+            }
+            println!("--------------------");
+
+            Ok(())
+        }
+
         None => {
             log::info!("No Wallet Command invoked. Exiting.");
             Ok(())

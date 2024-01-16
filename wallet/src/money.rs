@@ -27,7 +27,7 @@ const SHAWN_PUB_KEY_BYTES: [u8; 32] =
     hex!("d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67");
 
 /// Create and send a transaction that spends coins on the network
-pub async fn mint_coins(
+pub async fn mint_coins_bk(
     db: &Db,
     client: &HttpClient,
     keystore: &LocalKeystore,
@@ -59,21 +59,29 @@ pub async fn mint_coins(
 }
 
 /// Create and send a transaction that spends coins on the network
-pub async fn mint_coins_basedon_public_key_of_owner(
+pub async fn mint_coins(
     db: &Db,
     client: &HttpClient,
     keystore: &LocalKeystore,
     args: MintCoinArgs,
 ) -> anyhow::Result<()> {
+    log::debug!("The args are:: {:?}", args);
+    let amount = match args.amount {
+        Some(amt) => amt,
+        None => 100,// 100 coin is default amount.
+    };
+
+    let owner = args.owner;
 
     let transaction = Transaction {
         inputs: Vec::new(),
         peeks: Vec::new(),
-        outputs: vec![(Coin::<0>::new(args.amount.unwrap()), OuterVerifier::Sr25519Signature(Sr25519Signature {
-            owner_pubkey: args.owner,
+        outputs: vec![(Coin::<0>::new(amount), OuterVerifier::Sr25519Signature(Sr25519Signature {
+            owner_pubkey: owner,
         })).into()],
         checker: OuterConstraintChecker::Money(MoneyConstraintChecker::Mint),
     };
+
 
     let spawn_hex = hex::encode(transaction.encode());
     let params = rpc_params![spawn_hex];

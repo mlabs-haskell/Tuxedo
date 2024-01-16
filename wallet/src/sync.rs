@@ -27,6 +27,12 @@ use tuxedo_core::{
 use jsonrpsee::http_client::HttpClient;
 use runtime::{money::Coin, timestamp::Timestamp, Block, OuterVerifier, Transaction};
 
+//Todo: Do we need all the data of kitty here 
+use runtime::{
+    kitties::{KittyData, Parent,KittyHelpers,MomKittyStatus,DadKittyStatus,
+        KittyDNA,FreeKittyConstraintChecker,KittyConstraintChecker}
+};
+
 /// The identifier for the blocks tree in the db.
 const BLOCKS: &str = "blocks";
 
@@ -38,6 +44,9 @@ const UNSPENT: &str = "unspent";
 
 /// The identifier for the spent tree in the db.
 const SPENT: &str = "spent";
+
+/// The identifier for the owned kitties in the db.
+const OWNED_KITTY: &str = "owned_kitty";
 
 /// Open a database at the given location intended for the given genesis block.
 ///
@@ -270,6 +279,10 @@ async fn apply_transaction<F: Fn(&OuterVerifier) -> bool>(
             Timestamp::TYPE_ID => {
                 crate::timestamp::apply_transaction(db, output)?;
             }
+            KittyData::TYPE_ID => {
+                crate::kitty::apply_transaction(db, tx_hash, index as u32, output)?;
+            } 
+
             _ => continue,
         }
     }
@@ -355,6 +368,7 @@ fn unapply_transaction(db: &Db, tx: &Transaction) -> anyhow::Result<()> {
 
     Ok(())
 }
+
 
 /// Unapply the best block that the wallet currently knows about
 pub(crate) async fn unapply_highest_block(db: &Db) -> anyhow::Result<Block> {
@@ -448,3 +462,51 @@ pub(crate) fn get_balances(db: &Db) -> anyhow::Result<impl Iterator<Item = (H256
 
     Ok(balances.into_iter())
 }
+
+// Kitty related functions 
+/// Add kitties to the database updating all tables.
+pub fn add_owned_kitty_to_db(
+    db: &Db,
+    output_ref: &OutputRef,
+    owner_pubkey: &H256,
+    kitty: &KittyData,
+) -> anyhow::Result<()> {
+    let kitty_owned_tree = db.open_tree(OWNED_KITTY)?;
+    kitty_owned_tree.insert(output_ref.encode(), (owner_pubkey, kitty).encode())?;
+
+    Ok(())
+}
+
+/// Remove an output from the database updating all tables.
+fn remove_un_owned_kitty(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
+    let unowned_tree = db.open_tree(OWNED_KITTY)?;
+
+    unowned_tree.remove(output_ref.encode())?;
+
+    Ok(())
+}
+
+/// Iterate the entire owned kitty 
+/// on a per-address basis.
+pub(crate) fn get_owned_kitties_from_local_db(db: &Db) -> anyhow::Result<impl Iterator<Item = (H256, KittyData)>> {
+
+    let wallet_owned_kitty_tree = db.open_tree(OWNED_KITTY)?;
+    let mut owned_kitties = std::collections::HashMap::<H256, KittyData>::new();
+    //println!(" Total number of kitties  {}",owned_kitties.len());
+    for raw_data in wallet_owned_kitty_tree.iter() {
+        let (_output_ref_ivec, owner_kitty_ivec) = raw_data?;
+        let (owner, kitty) = <(H256, KittyData)>::decode(&mut &owner_kitty_ivec[..])?;
+        println!("owner {owner:?}: , Kitty {:?}",kitty);
+        let kittyName = match crate::kitty::get_kitty_name(&kitty) {
+            Some(name) => name,
+            None => "Error in retriving Kittname".to_string(),
+        };
+        println!("Kitty name = {}",kittyName);
+        owned_kitties
+            .entry(owner)
+            .or_insert(kitty);
+    }
+
+    Ok(owned_kitties.into_iter())
+}
+

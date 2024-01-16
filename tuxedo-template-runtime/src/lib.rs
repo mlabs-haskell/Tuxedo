@@ -170,6 +170,8 @@ pub enum OuterConstraintChecker {
     Money(money::MoneyConstraintChecker<0>),
     /// Checks Free Kitty transactions
     FreeKittyConstraintChecker(kitties::FreeKittyConstraintChecker),
+    /// Checks Free Kitty transactions
+    KittyConstraintChecker(kitties::KittyConstraintChecker),
     /// Checks that an amoeba can split into two new amoebas
     AmoebaMitosis(amoeba::AmoebaMitosis),
     /// Checks that a single amoeba is simply removed from the state
@@ -205,6 +207,8 @@ pub enum OuterConstraintChecker {
     Money(money::MoneyConstraintChecker<0>),
     /// Checks Free Kitty transactions
     FreeKittyConstraintChecker(kitties::FreeKittyConstraintChecker),
+    /// Checks Free Kitty transactions
+    KittyConstraintChecker(kitties::KittyConstraintChecker),
     /// Checks that an amoeba can split into two new amoebas
     AmoebaMitosis(amoeba::AmoebaMitosis),
     /// Checks that a single amoeba is simply removed from the state
@@ -331,14 +335,17 @@ impl_runtime_apis! {
     // https://substrate.dev/rustdocs/master/sc_block_builder/trait.BlockBuilderApi.html
     impl sp_block_builder::BlockBuilder<Block> for Runtime {
         fn apply_extrinsic(extrinsic: <Block as BlockT>::Extrinsic) -> ApplyExtrinsicResult {
+            log::info!("runtime-> apply_extrinsic {:?}",extrinsic);
             Executive::apply_extrinsic(extrinsic)
         }
 
         fn finalize_block() -> <Block as BlockT>::Header {
+            log::info!("runtime-> finalize_block ");
             Executive::close_block()
         }
 
         fn inherent_extrinsics(data: sp_inherents::InherentData) -> Vec<<Block as BlockT>::Extrinsic> {
+            log::info!("runtime-> inherent_extrinsics ");
             Executive::inherent_extrinsics(data)
         }
 
@@ -346,6 +353,7 @@ impl_runtime_apis! {
             block: Block,
             data: InherentData
         ) -> sp_inherents::CheckInherentsResult {
+            log::info!("runtime-> check_inherents ");
             Executive::check_inherents(block, data)
         }
     }
@@ -356,6 +364,13 @@ impl_runtime_apis! {
             tx: <Block as BlockT>::Extrinsic,
             block_hash: <Block as BlockT>::Hash,
         ) -> TransactionValidity {
+
+            log::info!("runtime-> validate_transaction
+            TransactionSource = {:?}
+            tx = {:?}
+            block_hash = {:?}",source,tx,block_hash
+            ,);
+
             Executive::validate_transaction(source, tx, block_hash)
         }
     }
@@ -363,6 +378,7 @@ impl_runtime_apis! {
     // Tuxedo does not yet support metadata
     impl sp_api::Metadata<Block> for Runtime {
         fn metadata() -> OpaqueMetadata {
+            log::info!("runtime-> metadata ");
             OpaqueMetadata::new(Default::default())
         }
 
@@ -377,12 +393,14 @@ impl_runtime_apis! {
 
     impl sp_session::SessionKeys<Block> for Runtime {
         fn generate_session_keys(seed: Option<Vec<u8>>) -> Vec<u8> {
+            log::info!("runtime-> generate_session_key ");
             opaque::SessionKeys::generate(seed)
         }
 
         fn decode_session_keys(
             encoded: Vec<u8>,
         ) -> Option<Vec<(Vec<u8>, sp_core::crypto::KeyTypeId)>> {
+            log::info!("runtime-> decode_session_keys ");
             opaque::SessionKeys::decode_into_raw_public_keys(&encoded)
         }
     }

@@ -59,14 +59,7 @@ pub enum Command {
 
     /// Mint coins, Amount need to passed from the command line.
     #[command(verbatim_doc_comment)]
-    MintCoins{
-        /// Pass the amount to be minted.
-        amount: Option<u128>,
-    },
-
-    /// Mint coins, Amount need to passed from the command line.
-    #[command(verbatim_doc_comment)]
-    MintCoinsBasedOnPublickKeyOfOwner(MintCoinArgs),
+    MintCoins(MintCoinArgs),
 
     /// Verify that a particular coin exists.
     /// Show its value and owner from both chain storage and the local database.
@@ -83,13 +76,6 @@ pub enum Command {
     // FixMe: #62
     #[command(verbatim_doc_comment)]
     SpendCoins(SpendArgs),
-
-    /// Mint kit Kitty without mom and dad.
-    ///New family will be created.
-    MintKitty{
-        /// Initialize a with a name for Dna Generation and storage inside also.
-        name: Option<String>,
-    },
 
     /// Insert a private key into the keystore to later use when signing transactions.
     InsertKey {
@@ -130,6 +116,14 @@ pub enum Command {
 
     /// Show the latest on-chain timestamp.
     ShowTimestamp,
+
+        /// Mint kit Kitty without mom and dad.
+    ///New family will be created.
+    MintKitty(MintKittyArgs),
+
+    /// For each key tracked by the wallet, shows all kitties owned.
+    #[command(verbatim_doc_comment)]
+    ShowAllKitties,
 }
 
 #[derive(Debug, Args)]
@@ -138,6 +132,20 @@ pub struct MintCoinArgs {
     /// Pass the amount to be minted.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
     pub amount: Option<u128>,
+
+    // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
+    // shows how to specify a custom parsing function
+    /// Hex encoded address (sr25519 pubkey) of the owner.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
+    pub owner: H256,
+}
+
+#[derive(Debug, Args)]
+pub struct MintKittyArgs {
+
+    /// Pass the name of the kitty to be minted.
+    #[arg(long, short, verbatim_doc_comment, action = Append)]
+    pub kitty_name: Option<String>,
 
     // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
     // shows how to specify a custom parsing function
