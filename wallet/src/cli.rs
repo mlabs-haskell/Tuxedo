@@ -10,6 +10,9 @@ use tuxedo_core::types::OutputRef;
 
 use crate::{h256_from_string, keystore::SHAWN_PUB_KEY, output_ref_from_string, DEFAULT_ENDPOINT};
 
+/// The default number of coins to be minted.
+pub const DEFAULT_MINT_VALUE: &str = "100";
+
 /// The wallet's main CLI struct
 #[derive(Debug, Parser)]
 #[command(about, version)]
@@ -57,7 +60,9 @@ pub enum Command {
     AmoebaDemo,
     */
 
-    /// Mint coins, Amount need to passed from the command line.
+    /// Mint coins , optionally amount and publicKey of owner can be passed
+    /// if amount is not passed , 100 coins are minted
+    /// If publickKey of owner is not passed , then by default SHAWN_PUB_KEY is used.
     #[command(verbatim_doc_comment)]
     MintCoins(MintCoinArgs),
 
@@ -117,7 +122,7 @@ pub enum Command {
     /// Show the latest on-chain timestamp.
     ShowTimestamp,
 
-        /// Mint kit Kitty without mom and dad.
+    /// Mint Kitty without mom and dad.
     ///New family will be created.
     MintKitty(MintKittyArgs),
 
@@ -128,10 +133,9 @@ pub enum Command {
 
 #[derive(Debug, Args)]
 pub struct MintCoinArgs {
-
     /// Pass the amount to be minted.
-    #[arg(long, short, verbatim_doc_comment, action = Append)]
-    pub amount: Option<u128>,
+    #[arg(long, short, verbatim_doc_comment, action = Append,default_value = DEFAULT_MINT_VALUE)]
+    pub amount: u128,
 
     // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
     // shows how to specify a custom parsing function

@@ -6,7 +6,6 @@ use parity_scale_codec::{Decode, Encode};
 use runtime::OuterVerifier;
 use std::path::PathBuf;
 use tuxedo_core::{types::OutputRef, verifier::*};
-use crate::cli::MintCoinArgs;
 
 use sp_core::H256;
 
@@ -119,7 +118,7 @@ async fn main() -> anyhow::Result<()> {
 
         // Some(Command::AmoebaDemo) => amoeba::amoeba_demo(&client).await,
         // Command::MultiSigDemo => multi_sig::multi_sig_demo(&client).await,
-        Some(Command::MintCoins(args)) => money::mint_coins(&db, &client, &keystore,args).await,
+        Some(Command::MintCoins(args)) => money::mint_coins(&client, args).await,
 
         Some(Command::VerifyCoin { output_ref }) => {
             println!("Details of coin {}:", hex::encode(output_ref.encode()));
