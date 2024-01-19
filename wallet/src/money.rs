@@ -1,6 +1,6 @@
 //! Wallet features related to spending money and checking balances.
 
-use crate::{cli::SpendArgs, cli::MintCoinArgs,rpc::fetch_storage, sync};
+use crate::{cli::MintCoinArgs, cli::SpendArgs, rpc::fetch_storage, sync};
 
 use anyhow::anyhow;
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};

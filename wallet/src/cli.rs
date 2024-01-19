@@ -50,10 +50,9 @@ pub struct Cli {
 /// The tasks supported by the wallet
 #[derive(Debug, Subcommand)]
 pub enum Command {
-
     /// Print the block based on block height.
     /// get the block hash ad print the block.
-    getBlock{
+    getBlock {
         /// Input the blockheight to be retrived.
         block_height: Option<u32>,
     },
@@ -62,7 +61,6 @@ pub enum Command {
     /// Demonstrate creating an amoeba and performing mitosis on it.
     AmoebaDemo,
     */
-
     /// Mint coins , optionally amount and publicKey of owner can be passed
     /// if amount is not passed , 100 coins are minted
     /// If publickKey of owner is not passed , then by default SHAWN_PUB_KEY is used.
@@ -71,7 +69,7 @@ pub enum Command {
 
     /// Verify that a particular kitty exists.
     /// Show its details and owner from both chain storage and the local database.
-    
+
     #[command(verbatim_doc_comment)]
     VerifyKitty {
         /// A hex-encoded output reference
@@ -87,7 +85,7 @@ pub enum Command {
         #[arg(value_parser = output_ref_from_string)]
         output_ref: OutputRef,
     },
-    
+
     //Some(Command::MintCoins { amount }) => money::mint_coins(&db, &client, &keystore,amount).await,
     /// Spend some coins.
     /// For now, all outputs in a single transaction go to the same recipient.
@@ -142,6 +140,13 @@ pub enum Command {
     /// For each key tracked by the wallet, shows all kitties owned.
     #[command(verbatim_doc_comment)]
     ShowAllKitties,
+
+    //Some(Command::MintCoins { amount }) => money::mint_coins(&db, &client, &keystore,amount).await,
+    /// Spend some coins.
+    /// For now, all outputs in a single transaction go to the same recipient.
+    // FixMe: #62
+    #[command(verbatim_doc_comment)]
+    ShowOwnedKitties(ShowOwnedKittyArgs),
 }
 
 #[derive(Debug, Args)]
@@ -159,7 +164,6 @@ pub struct MintCoinArgs {
 
 #[derive(Debug, Args)]
 pub struct MintKittyArgs {
-
     /// Pass the name of the kitty to be minted.
     #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_NAME)]
     pub kitty_name: String,
@@ -194,4 +198,13 @@ pub struct SpendArgs {
     /// The wallet will not enforce this and will gladly send an invalid which will then be rejected by the node.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
     pub output_amount: Vec<u128>,
+}
+
+#[derive(Debug, Args)]
+pub struct ShowOwnedKittyArgs {
+    // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
+    // shows how to specify a custom parsing function
+    /// Hex encoded address (sr25519 pubkey) of the owner.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
+    pub owner: H256,
 }

@@ -55,7 +55,7 @@ pub enum FreeKittyConstraintChecker {
     Breed,
     /// A mint transaction that creates kitties from one parent(either mom or dad).
     Mint,
-    ///Can buy a new kitty from others 
+    ///Can buy a new kitty from others
     Buy,
 }
 
@@ -177,7 +177,12 @@ pub struct KittyData {
 
 impl KittyData {
     /// Create a mint transaction for a single Kitty.
-    pub fn mint<V, OV, OC>(parent: Parent, dna_preimage: &[u8], kitty_name:[u8; 4], v: V) -> Transaction<OV, OC>
+    pub fn mint<V, OV, OC>(
+        parent: Parent,
+        dna_preimage: &[u8],
+        kitty_name: [u8; 4],
+        v: V,
+    ) -> Transaction<OV, OC>
     where
         V: Verifier,
         OV: Verifier + From<V>,
@@ -190,7 +195,7 @@ impl KittyData {
                 KittyData {
                     parent,
                     dna: KittyDNA(BlakeTwo256::hash(dna_preimage)),
-                    name:kitty_name,
+                    name: kitty_name,
                     ..Default::default()
                 },
                 v,
@@ -209,7 +214,7 @@ impl Default for KittyData {
             free_breedings: 2,
             dna: KittyDNA(H256::from_slice(b"mom_kitty_1asdfasdfasdfasdfasdfa")),
             num_breedings: 3,
-            name:*b"kty0",
+            name: *b"kty0",
         }
     }
 }
@@ -525,8 +530,11 @@ impl SimpleConstraintChecker for FreeKittyConstraintChecker {
             Self::Mint => {
                 // Make sure there are no inputs being consumed
                 log::info!("Self::Mint()  called ");
-                log::info!("KittyCreation new family length = {}",new_family.len());
-                ensure!(input_data.len() == 0, Self::Error::ParentsCannotExistForMinting);
+                log::info!("KittyCreation new family length = {}", new_family.len());
+                ensure!(
+                    input_data.len() == 0,
+                    Self::Error::ParentsCannotExistForMinting
+                );
                 ensure!(new_family.len() == 1, Self::Error::NotEnoughFamilyMembers);
                 log::info!("Mint kitty completed");
                 Ok(0)

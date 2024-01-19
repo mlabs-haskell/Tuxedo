@@ -24,14 +24,17 @@ use tuxedo_core::{
     types::{Input, OutputRef},
 };
 
+use crate::cli::ShowOwnedKittyArgs;
 use jsonrpsee::http_client::HttpClient;
+use runtime::kitties::KittyData;
 use runtime::{money::Coin, timestamp::Timestamp, Block, OuterVerifier, Transaction};
 
-//Todo: Do we need all the data of kitty here 
+/*Todo: Do we need all the data of kitty here
 use runtime::{
     kitties::{KittyData, Parent,KittyHelpers,MomKittyStatus,DadKittyStatus,
         KittyDNA,FreeKittyConstraintChecker}
 };
+*/
 
 /// The identifier for the blocks tree in the db.
 const BLOCKS: &str = "blocks";
@@ -281,7 +284,7 @@ async fn apply_transaction<F: Fn(&OuterVerifier) -> bool>(
             }
             KittyData::TYPE_ID => {
                 crate::kitty::apply_transaction(db, tx_hash, index as u32, output)?;
-            } 
+            }
 
             _ => continue,
         }
@@ -369,7 +372,6 @@ fn unapply_transaction(db: &Db, tx: &Transaction) -> anyhow::Result<()> {
     Ok(())
 }
 
-
 /// Unapply the best block that the wallet currently knows about
 pub(crate) async fn unapply_highest_block(db: &Db) -> anyhow::Result<Block> {
     let wallet_blocks_tree = db.open_tree(BLOCKS)?;
@@ -443,6 +445,20 @@ pub(crate) fn print_unspent_tree(db: &Db) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Debugging use. Print the entire unspent outputs tree.
+pub(crate) fn print_owned_kitties(db: &Db) -> anyhow::Result<()> {
+    let wallet_unspent_tree = db.open_tree(UNSPENT)?;
+    for x in wallet_unspent_tree.iter() {
+        let (output_ref_ivec, owner_amount_ivec) = x?;
+        let output_ref = hex::encode(output_ref_ivec);
+        let (owner_pubkey, amount) = <(H256, u128)>::decode(&mut &owner_amount_ivec[..])?;
+
+        println!("{output_ref}: owner {owner_pubkey:?}, amount {amount}");
+    }
+
+    Ok(())
+}
+
 /// Iterate the entire unspent set summing the values of the coins
 /// on a per-address basis.
 pub(crate) fn get_balances(db: &Db) -> anyhow::Result<impl Iterator<Item = (H256, u128)>> {
@@ -463,7 +479,7 @@ pub(crate) fn get_balances(db: &Db) -> anyhow::Result<impl Iterator<Item = (H256
     Ok(balances.into_iter())
 }
 
-// Kitty related functions 
+// Kitty related functions
 /// Add kitties to the database updating all tables.
 pub fn add_owned_kitty_to_db(
     db: &Db,
@@ -486,34 +502,48 @@ fn remove_un_owned_kitty(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> 
     Ok(())
 }
 
-/// Iterate the entire owned kitty 
+/// Iterate the entire owned kitty
 /// on a per-address basis.
-pub(crate) fn get_owned_kitties_from_local_db(db: &Db) -> anyhow::Result<impl Iterator<Item = (H256, KittyData)>> {
-
+pub(crate) fn get_all_kitties_from_local_db(
+    db: &Db,
+) -> anyhow::Result<impl Iterator<Item = (H256, KittyData)>> {
     let wallet_owned_kitty_tree = db.open_tree(OWNED_KITTY)?;
-    let mut owned_kitties = std::collections::HashMap::<H256, KittyData>::new();
-    //println!(" Total number of kitties  {}",owned_kitties.len());
-    for raw_data in wallet_owned_kitty_tree.iter() {
-        let (_output_ref_ivec, owner_kitty_ivec) = raw_data?;
-        let (owner, kitty) = <(H256, KittyData)>::decode(&mut &owner_kitty_ivec[..])?;
-        println!("owner {owner:?}: , Kitty {:?}",kitty);
-        let kittyName = match crate::kitty::get_kitty_name(&kitty) {
-            Some(name) => name,
-            None => "Error in retriving Kittname".to_string(),
-        };
-        println!("Kitty name = {}",kittyName);
-        owned_kitties
-            .entry(owner)
-            .or_insert(kitty);
-    }
 
-    Ok(owned_kitties.into_iter())
+    Ok(wallet_owned_kitty_tree.iter().filter_map(|raw_data| {
+        let (_output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
+        let (owner, kitty) = <(H256, KittyData)>::decode(&mut &owner_kitty_ivec[..]).ok()?;
+
+        Some((owner, kitty))
+    }))
+}
+
+/// Iterate the entire owned kitty
+/// on a per-address basis.
+pub(crate) fn get_owned_kitties_from_local_db(
+    db: &Db,
+    args: ShowOwnedKittyArgs,
+) -> anyhow::Result<impl Iterator<Item = (H256, KittyData)>> {
+    let wallet_owned_kitty_tree = db.open_tree(OWNED_KITTY)?;
+
+    Ok(wallet_owned_kitty_tree.iter().filter_map(move |raw_data| {
+        let (_output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
+        let (owner, kitty) = <(H256, KittyData)>::decode(&mut &owner_kitty_ivec[..]).ok()?;
+
+        if owner == args.owner {
+            Some((owner, kitty))
+        } else {
+            None
+        }
+    }))
 }
 
 /// Gets the owner and amount associated with an output ref from the unspent table
 ///
 /// Some if the output ref exists, None if it doesn't
-pub(crate) fn get_kitty_fromlocaldb(db: &Db, output_ref: &OutputRef) -> anyhow::Result<Option<(H256, u128)>> {
+pub(crate) fn get_kitty_fromlocaldb(
+    db: &Db,
+    output_ref: &OutputRef,
+) -> anyhow::Result<Option<(H256, u128)>> {
     let wallet_owned_kitty_tree = db.open_tree(OWNED_KITTY)?;
     let Some(ivec) = wallet_owned_kitty_tree.get(output_ref.encode())? else {
         return Ok(None);

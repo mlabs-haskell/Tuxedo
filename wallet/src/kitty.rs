@@ -1,27 +1,24 @@
+use crate::rpc::fetch_storage;
 
-use crate::{rpc::fetch_storage, sync};
-use hex_literal::hex;
 //use crate::cli::BreedArgs;
 use tuxedo_core::{
-    types::{Input, Output, OutputRef},
+    types::{Output, OutputRef},
     verifier::Sr25519Signature,
-    verifier::UpForGrabs,
 };
 
 use anyhow::anyhow;
-use std::{thread::sleep, time::Duration};
-
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use parity_scale_codec::Encode;
-use sc_keystore::LocalKeystore;
-use sled::Db;
-use rand::Rng;
 use rand::distributions::Alphanumeric;
+use rand::Rng;
+use sled::Db;
 use sp_runtime::traits::{BlakeTwo256, Hash};
 
 use runtime::{
-    kitties::{KittyData, Parent,KittyHelpers,MomKittyStatus,DadKittyStatus,
-        KittyDNA,FreeKittyConstraintChecker},
+    kitties::{
+        DadKittyStatus, FreeKittyConstraintChecker, KittyDNA, KittyData, KittyHelpers,
+        MomKittyStatus, Parent,
+    },
     OuterVerifier, Transaction,
 };
 
@@ -37,34 +34,33 @@ fn generate_random_string(length: usize) -> String {
     random_string
 }
 
-pub async fn mint_kitty(
-    db: &Db,
-    client: &HttpClient,
-    keystore: &LocalKeystore,
-    args: MintKittyArgs,
-) -> anyhow::Result<()> {
-
-    let parent = Parent::mom();// Selected as 
+pub async fn mint_kitty(client: &HttpClient, args: MintKittyArgs) -> anyhow::Result<()> {
+    // Check the length of the kitty_name
+    if args.kitty_name.len() != 4 {
+        return Err(anyhow!(
+            "Please input a name of length 4 characters. Current length: {}",
+            args.kitty_name.len()
+        ));
+    }
     let mut array = [0; 4];
     let kitty_name: &[u8; 4] = {
         array.copy_from_slice(args.kitty_name.clone().as_bytes());
         &array
     };
 
-    let length = 5; // lets keep the length of random string as 5.
-
-    // Generate a random string of the specified length
-    // For now I can mint as many kitties aas possible.
-    let random_string = generate_random_string(length)+args.kitty_name.as_str(); 
+    // Generate a random string of length 5
+    let random_string = generate_random_string(5) + args.kitty_name.as_str();
     let dna_preimage: &[u8] = random_string.as_bytes();
 
+    // Create the KittyData
     let child_kitty = KittyData {
-        parent,
+        parent: Parent::mom(),
         dna: KittyDNA(BlakeTwo256::hash(dna_preimage)),
-        name:*kitty_name,
+        name: *kitty_name, // Default value for now, as the provided code does not specify a value
         ..Default::default()
     };
 
+    // Create the Output
     let output = Output {
         payload: child_kitty.into(),
         verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
@@ -72,6 +68,7 @@ pub async fn mint_kitty(
         }),
     };
 
+    // Create the Transaction
     let transaction = Transaction {
         inputs: Vec::new(),
         peeks: Vec::new(),
@@ -79,12 +76,16 @@ pub async fn mint_kitty(
         checker: FreeKittyConstraintChecker::Mint.into(),
     };
 
+    // Encode the transaction
     let spawn_hex = hex::encode(transaction.encode());
+
+    // Send the transaction to the node
     let params = rpc_params![spawn_hex];
     let spawn_response: Result<String, _> = client.request("author_submitExtrinsic", params).await;
 
     println!("Node's response to spawn transaction: {:?}", spawn_response);
 
+    // Extract information about the minted kitty
     let minted_kitty_ref = OutputRef {
         tx_hash: <BlakeTwo256 as Hash>::hash_of(&transaction.encode()),
         index: 0,
@@ -92,9 +93,10 @@ pub async fn mint_kitty(
 
     let output = &transaction.outputs[0];
     let minted_kitty = output.payload.extract::<KittyData>()?.dna.0;
-    print!(
-        "Minted kitty referance {:?} with Name {:?}. ",
-        hex::encode(minted_kitty_ref.encode()),minted_kitty
+    println!(
+        "Minted kitty reference {:?} with Name {:?}. ",
+        hex::encode(minted_kitty_ref.encode()),
+        minted_kitty
     );
 
     crate::pretty_print_verifier(&output.verifier);
@@ -109,7 +111,7 @@ pub(crate) fn apply_transaction(
     index: u32,
     output: &Output<OuterVerifier>,
 ) -> anyhow::Result<()> {
-    let mut kitty_detail: KittyData = output.payload.extract()?;
+    let kitty_detail: KittyData = output.payload.extract()?;
 
     let output_ref = OutputRef { tx_hash, index };
     match output.verifier {
@@ -121,9 +123,8 @@ pub(crate) fn apply_transaction(
     }
 }
 
-pub( crate ) fn get_kitty_name(kitty:&KittyData) -> Option<String> {
+pub(crate) fn get_kitty_name(kitty: &KittyData) -> Option<String> {
     if let Ok(kitty_name) = std::str::from_utf8(&kitty.name) {
-        let string_from_array: String = kitty_name.to_string();
         return Some(kitty_name.to_string());
     } else {
         println!("Invalid UTF-8 data in the Kittyname");
@@ -147,7 +148,7 @@ pub async fn get_kitty_from_storage(
 
 pub async fn breed_kitty( db: &Db,client: &HttpClient,keystore: &LocalKeystore,
     args: BreedArgs) -> anyhow::Result<()> {
-    
+
     Ok(())
 }
 */

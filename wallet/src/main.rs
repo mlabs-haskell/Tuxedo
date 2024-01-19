@@ -10,9 +10,9 @@ use tuxedo_core::{types::OutputRef, verifier::*};
 use sp_core::H256;
 
 //mod amoeba;
-mod kitty;
 mod cli;
 mod keystore;
+mod kitty;
 mod money;
 mod output_filter;
 mod rpc;
@@ -30,12 +30,10 @@ async fn main() -> anyhow::Result<()> {
 
     // Parse command line args
     let cli = Cli::parse();
-    log::info!("cli from cmd args = {:?}",cli);
-    
-    
+    log::info!("cli from cmd args = {:?}", cli);
+
     // If the user specified --tmp or --dev, then use a temporary directory.
     let tmp = cli.tmp || cli.dev;
-
 
     // Setup the data paths.
     let data_path = match tmp {
@@ -148,8 +146,11 @@ async fn main() -> anyhow::Result<()> {
             // Print the details from storage
             let (kitty_from_storage, verifier_from_storage) =
                 kitty::get_kitty_from_storage(&output_ref, &client).await?;
-            print!("Found in storage.  Kitty-Name:{:?}  Dna-Value: {}, ", 
-            kitty::get_kitty_name(&kitty_from_storage),kitty_from_storage.dna.0);
+            print!(
+                "Found in storage.  Kitty-Name:{:?}  Dna-Value: {}, ",
+                kitty::get_kitty_name(&kitty_from_storage),
+                kitty_from_storage.dna.0
+            );
             pretty_print_verifier(&verifier_from_storage);
 
             // Print the details from the local db
@@ -217,15 +218,26 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
 
-        Some(Command::MintKitty(args)) => kitty::mint_kitty(&db, &client, &keystore,args).await,
-
+        Some(Command::MintKitty(args)) => kitty::mint_kitty(&client, args).await,
         Some(Command::ShowAllKitties) => {
-            println!("Kitty Summary");
-            
-            let owned_kitties = sync::get_owned_kitties_from_local_db(&db)?;
+            println!("ShowAllKitties Kitty Summary");
+
+            let owned_kitties = sync::get_all_kitties_from_local_db(&db)?;
 
             for (account, kitty) in owned_kitties {
-                println!("{account}: {:?}",kitty);
+                println!("{account}: {:?}", kitty::get_kitty_name(&kitty));
+            }
+            println!("--------------------");
+
+            Ok(())
+        }
+        Some(Command::ShowOwnedKitties(args)) => {
+            println!("ShowOwnedKitties Kitty Summary");
+            let owned_kitties = sync::get_owned_kitties_from_local_db(&db, args)?;
+
+            println!("After number of owned_kitties ");
+            for (account, kitty) in owned_kitties {
+                println!("{account}: {:?}", kitty::get_kitty_name(&kitty));
             }
             println!("--------------------");
 
