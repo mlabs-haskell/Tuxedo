@@ -13,6 +13,9 @@ use crate::{h256_from_string, keystore::SHAWN_PUB_KEY, output_ref_from_string, D
 /// The default number of coins to be minted.
 pub const DEFAULT_MINT_VALUE: &str = "100";
 
+/// The default number of coins to be minted.
+pub const DEFAULT_KITTY_NAME: &str = "kity";
+
 /// The wallet's main CLI struct
 #[derive(Debug, Parser)]
 #[command(about, version)]
@@ -65,6 +68,16 @@ pub enum Command {
     /// If publickKey of owner is not passed , then by default SHAWN_PUB_KEY is used.
     #[command(verbatim_doc_comment)]
     MintCoins(MintCoinArgs),
+
+    /// Verify that a particular kitty exists.
+    /// Show its details and owner from both chain storage and the local database.
+    
+    #[command(verbatim_doc_comment)]
+    VerifyKitty {
+        /// A hex-encoded output reference
+        #[arg(value_parser = output_ref_from_string)]
+        output_ref: OutputRef,
+    },
 
     /// Verify that a particular coin exists.
     /// Show its value and owner from both chain storage and the local database.
@@ -148,8 +161,8 @@ pub struct MintCoinArgs {
 pub struct MintKittyArgs {
 
     /// Pass the name of the kitty to be minted.
-    #[arg(long, short, verbatim_doc_comment, action = Append)]
-    pub kitty_name: Option<String>,
+    #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_NAME)]
+    pub kitty_name: String,
 
     // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
     // shows how to specify a custom parsing function

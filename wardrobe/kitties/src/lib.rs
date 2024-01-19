@@ -50,7 +50,7 @@ mod tests;
     Debug,
     TypeInfo,
 )]
-pub enum KittyConstraintChecker {
+pub enum FreeKittyConstraintChecker {
     /// A typical Breed transaction where kitties are consumed and new family(Parents(mom,dad) and child) is created.
     Breed,
     /// A mint transaction that creates kitties from one parent(either mom or dad).
@@ -58,22 +58,6 @@ pub enum KittyConstraintChecker {
     ///Can buy a new kitty from others 
     Buy,
 }
-
-#[derive(
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Clone,
-    Encode,
-    Decode,
-    Hash,
-    Debug,
-    TypeInfo,
-)]
-pub struct FreeKittyConstraintChecker;
 
 #[derive(
     Serialize,
@@ -197,7 +181,7 @@ impl KittyData {
     where
         V: Verifier,
         OV: Verifier + From<V>,
-        OC: tuxedo_core::ConstraintChecker<OV> + core::convert::From<KittyConstraintChecker>,
+        OC: tuxedo_core::ConstraintChecker<OV> + core::convert::From<FreeKittyConstraintChecker>,
     {
         Transaction {
             inputs: vec![],
@@ -213,7 +197,7 @@ impl KittyData {
             )
                 .into()],
             //checker: FreeKittyConstraintChecker.into(),
-            checker: KittyConstraintChecker::Mint.into(),
+            checker: FreeKittyConstraintChecker::Mint.into(),
         }
     }
 }
@@ -527,7 +511,7 @@ impl TryFrom<&DynamicallyTypedData> for KittyData {
     }
 }
 
-impl SimpleConstraintChecker for KittyConstraintChecker {
+impl SimpleConstraintChecker for FreeKittyConstraintChecker {
     type Error = ConstraintCheckerError;
 
     fn check(
@@ -536,7 +520,7 @@ impl SimpleConstraintChecker for KittyConstraintChecker {
         _peeks: &[DynamicallyTypedData],
         new_family: &[DynamicallyTypedData],
     ) -> Result<TransactionPriority, Self::Error> {
-        log::info!("KittyConstraintChecker check()  called ");
+        log::info!("FreeKittyConstraintChecker check()  called ");
         match &self {
             Self::Mint => {
                 // Make sure there are no inputs being consumed
@@ -568,32 +552,3 @@ impl SimpleConstraintChecker for KittyConstraintChecker {
         }
     }
 }
-
-impl SimpleConstraintChecker for FreeKittyConstraintChecker {
-    type Error = ConstraintCheckerError;
-    /// Checks:
-    ///     - `input_data` is of length 2
-    ///     - `output_data` is of length 3
-    ///
-    fn check(
-        &self,
-        input_data: &[DynamicallyTypedData],
-        _peeks: &[DynamicallyTypedData],
-        output_data: &[DynamicallyTypedData],
-    ) -> Result<TransactionPriority, Self::Error> {
-        // Input must be a Mom and a Dad
-        ensure!(input_data.len() == 2, Self::Error::TwoParentsDoNotExist);
-
-        let mom = KittyData::try_from(&input_data[0])?;
-        let dad = KittyData::try_from(&input_data[1])?;
-        KittyHelpers::can_breed(&mom, &dad)?;
-
-        // Output must be Mom, Dad, Child
-        ensure!(output_data.len() == 3, Self::Error::NotEnoughFamilyMembers);
-
-        KittyHelpers::check_new_family(&mom, &dad, output_data)?;
-
-        Ok(0)
-    }
-}
-

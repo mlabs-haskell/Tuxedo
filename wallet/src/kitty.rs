@@ -21,7 +21,7 @@ use sp_runtime::traits::{BlakeTwo256, Hash};
 
 use runtime::{
     kitties::{KittyData, Parent,KittyHelpers,MomKittyStatus,DadKittyStatus,
-        KittyDNA,FreeKittyConstraintChecker,KittyConstraintChecker},
+        KittyDNA,FreeKittyConstraintChecker},
     OuterVerifier, Transaction,
 };
 
@@ -47,7 +47,7 @@ pub async fn mint_kitty(
     let parent = Parent::mom();// Selected as 
     let mut array = [0; 4];
     let kitty_name: &[u8; 4] = {
-        array.copy_from_slice(args.kitty_name.clone().unwrap().clone().as_bytes());
+        array.copy_from_slice(args.kitty_name.clone().as_bytes());
         &array
     };
 
@@ -55,7 +55,7 @@ pub async fn mint_kitty(
 
     // Generate a random string of the specified length
     // For now I can mint as many kitties aas possible.
-    let random_string = generate_random_string(length)+args.kitty_name.unwrap().as_str(); 
+    let random_string = generate_random_string(length)+args.kitty_name.as_str(); 
     let dna_preimage: &[u8] = random_string.as_bytes();
 
     let child_kitty = KittyData {
@@ -76,12 +76,7 @@ pub async fn mint_kitty(
         inputs: Vec::new(),
         peeks: Vec::new(),
         outputs: vec![output],
-        checker: KittyConstraintChecker::Mint.into(),
-    };
-    
-    let child_kitty_ref = OutputRef {
-        tx_hash: <BlakeTwo256 as Hash>::hash_of(&transaction.encode()),
-        index: 0,
+        checker: FreeKittyConstraintChecker::Mint.into(),
     };
 
     let spawn_hex = hex::encode(transaction.encode());
@@ -90,14 +85,19 @@ pub async fn mint_kitty(
 
     println!("Node's response to spawn transaction: {:?}", spawn_response);
 
-    sleep(Duration::from_secs(3));
+    let minted_kitty_ref = OutputRef {
+        tx_hash: <BlakeTwo256 as Hash>::hash_of(&transaction.encode()),
+        index: 0,
+    };
 
-    let child_kitty_from_storage: KittyData = fetch_storage::<OuterVerifier>(&child_kitty_ref, client)
-        .await?
-        .payload
-        .extract()?;
+    let output = &transaction.outputs[0];
+    let minted_kitty = output.payload.extract::<KittyData>()?.dna.0;
+    print!(
+        "Minted kitty referance {:?} with Name {:?}. ",
+        hex::encode(minted_kitty_ref.encode()),minted_kitty
+    );
 
-    println!("Child kitty retrieved from storage: {:?}", child_kitty_from_storage);
+    crate::pretty_print_verifier(&output.verifier);
 
     Ok(())
 }
@@ -129,6 +129,18 @@ pub( crate ) fn get_kitty_name(kitty:&KittyData) -> Option<String> {
         println!("Invalid UTF-8 data in the Kittyname");
     }
     None
+}
+
+/// Given an output ref, fetch the details about this coin from the node's
+/// storage.
+pub async fn get_kitty_from_storage(
+    output_ref: &OutputRef,
+    client: &HttpClient,
+) -> anyhow::Result<(KittyData, OuterVerifier)> {
+    let utxo = fetch_storage::<OuterVerifier>(output_ref, client).await?;
+    let kitty_in_storage: KittyData = utxo.payload.extract()?;
+
+    Ok((kitty_in_storage, utxo.verifier))
 }
 
 /*

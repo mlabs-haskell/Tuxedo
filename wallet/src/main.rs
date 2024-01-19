@@ -141,8 +141,31 @@ async fn main() -> anyhow::Result<()> {
 
             Ok(())
         }
-        Some(Command::SpendCoins(args)) => money::spend_coins(&db, &client, &keystore, args).await,
 
+        Some(Command::VerifyKitty { output_ref }) => {
+            println!("Details of Kitty {}:", hex::encode(output_ref.encode()));
+
+            // Print the details from storage
+            let (kitty_from_storage, verifier_from_storage) =
+                kitty::get_kitty_from_storage(&output_ref, &client).await?;
+            print!("Found in storage.  Kitty-Name:{:?}  Dna-Value: {}, ", 
+            kitty::get_kitty_name(&kitty_from_storage),kitty_from_storage.dna.0);
+            pretty_print_verifier(&verifier_from_storage);
+
+            // Print the details from the local db
+            match sync::get_kitty_fromlocaldb(&db, &output_ref)? {
+                Some((owner, kitty)) => {
+                    println!("Found in local db. Value: {kitty}, owned by {owner}");
+                }
+                None => {
+                    println!("Not found in local db");
+                }
+            }
+
+            Ok(())
+        }
+
+        Some(Command::SpendCoins(args)) => money::spend_coins(&db, &client, &keystore, args).await,
         Some(Command::InsertKey { seed }) => crate::keystore::insert_key(&keystore, &seed),
         Some(Command::GenerateKey { password }) => {
             crate::keystore::generate_key(&keystore, password)?;

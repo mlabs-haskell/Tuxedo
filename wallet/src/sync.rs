@@ -30,7 +30,7 @@ use runtime::{money::Coin, timestamp::Timestamp, Block, OuterVerifier, Transacti
 //Todo: Do we need all the data of kitty here 
 use runtime::{
     kitties::{KittyData, Parent,KittyHelpers,MomKittyStatus,DadKittyStatus,
-        KittyDNA,FreeKittyConstraintChecker,KittyConstraintChecker}
+        KittyDNA,FreeKittyConstraintChecker}
 };
 
 /// The identifier for the blocks tree in the db.
@@ -510,3 +510,14 @@ pub(crate) fn get_owned_kitties_from_local_db(db: &Db) -> anyhow::Result<impl It
     Ok(owned_kitties.into_iter())
 }
 
+/// Gets the owner and amount associated with an output ref from the unspent table
+///
+/// Some if the output ref exists, None if it doesn't
+pub(crate) fn get_kitty_fromlocaldb(db: &Db, output_ref: &OutputRef) -> anyhow::Result<Option<(H256, u128)>> {
+    let wallet_owned_kitty_tree = db.open_tree(OWNED_KITTY)?;
+    let Some(ivec) = wallet_owned_kitty_tree.get(output_ref.encode())? else {
+        return Ok(None);
+    };
+
+    Ok(Some(<(H256, u128)>::decode(&mut &ivec[..])?))
+}
