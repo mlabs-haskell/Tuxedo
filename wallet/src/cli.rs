@@ -13,8 +13,11 @@ use crate::{h256_from_string, keystore::SHAWN_PUB_KEY, output_ref_from_string, D
 /// The default number of coins to be minted.
 pub const DEFAULT_MINT_VALUE: &str = "100";
 
-/// The default number of coins to be minted.
+/// The default name of the kitty to be minted.
 pub const DEFAULT_KITTY_NAME: &str = "kity";
+
+/// The default gender of the kitty to be minted.
+pub const DEFAULT_KITTY_GENDER: &str = "female";
 
 /// The wallet's main CLI struct
 #[derive(Debug, Parser)]
@@ -141,12 +144,23 @@ pub enum Command {
     #[command(verbatim_doc_comment)]
     ShowAllKitties,
 
+    /// For each key tracked by the wallet, shows kitty refe.
+    #[command(verbatim_doc_comment)]
+    ShowKittyReferance,
+
     //Some(Command::MintCoins { amount }) => money::mint_coins(&db, &client, &keystore,amount).await,
     /// Spend some coins.
     /// For now, all outputs in a single transaction go to the same recipient.
     // FixMe: #62
     #[command(verbatim_doc_comment)]
     ShowOwnedKitties(ShowOwnedKittyArgs),
+
+    //Some(Command::MintCoins { amount }) => money::mint_coins(&db, &client, &keystore,amount).await,
+    /// Spend some coins.
+    /// For now, all outputs in a single transaction go to the same recipient.
+    // FixMe: #62
+    #[command(verbatim_doc_comment)]
+    BreedKitty(BreedKittyArgs),
 }
 
 #[derive(Debug, Args)]
@@ -154,19 +168,6 @@ pub struct MintCoinArgs {
     /// Pass the amount to be minted.
     #[arg(long, short, verbatim_doc_comment, action = Append,default_value = DEFAULT_MINT_VALUE)]
     pub amount: u128,
-
-    // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
-    // shows how to specify a custom parsing function
-    /// Hex encoded address (sr25519 pubkey) of the owner.
-    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
-    pub owner: H256,
-}
-
-#[derive(Debug, Args)]
-pub struct MintKittyArgs {
-    /// Pass the name of the kitty to be minted.
-    #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_NAME)]
-    pub kitty_name: String,
 
     // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
     // shows how to specify a custom parsing function
@@ -201,10 +202,44 @@ pub struct SpendArgs {
 }
 
 #[derive(Debug, Args)]
+pub struct MintKittyArgs {
+    /// Pass the name of the kitty to be minted.
+    #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_GENDER)]
+    pub kitty_gender: String,
+
+    /// Pass the name of the kitty to be minted.
+    #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_NAME)]
+    pub kitty_name: String,
+
+    // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
+    // shows how to specify a custom parsing function
+    /// Hex encoded address (sr25519 pubkey) of the owner.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
+    pub owner: H256,
+}
+
+#[derive(Debug, Args)]
 pub struct ShowOwnedKittyArgs {
     // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
     // shows how to specify a custom parsing function
     /// Hex encoded address (sr25519 pubkey) of the owner.
     #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
     pub owner: H256,
+}
+
+#[derive(Debug, Args)]
+pub struct BreedKittyArgs {
+    // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
+    // shows how to specify a custom parsing function
+    /// Hex encoded address (sr25519 pubkey) of the owner.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string)]
+    pub parent_kitty_mom_dna: H256,
+
+        /// Hex encoded address (sr25519 pubkey) of the owner.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string)]
+    pub parent_kitty_dad_dna: H256,
+
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
+    pub owner: H256,
+
 }

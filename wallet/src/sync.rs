@@ -28,6 +28,13 @@ use crate::cli::ShowOwnedKittyArgs;
 use jsonrpsee::http_client::HttpClient;
 use runtime::kitties::KittyData;
 use runtime::{money::Coin, timestamp::Timestamp, Block, OuterVerifier, Transaction};
+use runtime::{
+    kitties::{
+         KittyDNA,
+    },
+};
+use anyhow::Error;
+
 
 /*Todo: Do we need all the data of kitty here
 use runtime::{
@@ -49,7 +56,10 @@ const UNSPENT: &str = "unspent";
 const SPENT: &str = "spent";
 
 /// The identifier for the owned kitties in the db.
-const OWNED_KITTY: &str = "owned_kitty";
+const FRESH_KITTY: &str = "fresh_kitty";
+
+/// The identifier for the owned kitties in the db.
+const USED_KITTY: &str = "used_kitty";
 
 /// Open a database at the given location intended for the given genesis block.
 ///
@@ -196,6 +206,7 @@ pub(crate) fn get_arbitrary_unspent_set(
 
         let (output_ref_ivec, owner_amount_ivec) = pair?;
         let output_ref = OutputRef::decode(&mut &output_ref_ivec[..])?;
+        println!("in Sync::get_arbitrary_unspent_set output_ref = {:?}",output_ref);
         let (_owner_pubkey, amount) = <(H256, u128)>::decode(&mut &owner_amount_ivec[..])?;
 
         total += amount;
@@ -290,10 +301,11 @@ async fn apply_transaction<F: Fn(&OuterVerifier) -> bool>(
         }
     }
 
-    log::debug!("about to spend all inputs");
+    log::info!("about to spend all inputs");
     // Spend all the inputs
     for Input { output_ref, .. } in tx.inputs {
         spend_output(db, &output_ref)?;
+        mark_as_used_kitties(db, &output_ref)?;
     }
 
     Ok(())
@@ -335,6 +347,7 @@ fn spend_output(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
 
     Ok(())
 }
+
 
 /// Mark an output that was previously spent back as unspent.
 fn unspend_output(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
@@ -481,34 +494,89 @@ pub(crate) fn get_balances(db: &Db) -> anyhow::Result<impl Iterator<Item = (H256
 
 // Kitty related functions
 /// Add kitties to the database updating all tables.
-pub fn add_owned_kitty_to_db(
+pub fn add_fresh_kitty_to_db(
     db: &Db,
     output_ref: &OutputRef,
     owner_pubkey: &H256,
     kitty: &KittyData,
 ) -> anyhow::Result<()> {
-    let kitty_owned_tree = db.open_tree(OWNED_KITTY)?;
+    let kitty_owned_tree = db.open_tree(FRESH_KITTY)?;
     kitty_owned_tree.insert(output_ref.encode(), (owner_pubkey, kitty).encode())?;
 
     Ok(())
 }
 
 /// Remove an output from the database updating all tables.
-fn remove_un_owned_kitty(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
-    let unowned_tree = db.open_tree(OWNED_KITTY)?;
-
-    unowned_tree.remove(output_ref.encode())?;
+fn remove_used_kitty_from_db(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
+    let kitty_owned_tree = db.open_tree(FRESH_KITTY)?;
+    kitty_owned_tree.remove(output_ref.encode())?;
 
     Ok(())
 }
+
+/// Mark an existing output as spent. This does not purge all record of the output from the db.
+/// It just moves the record from the unspent table to the spent table
+fn mark_as_used_kitties(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
+    let fresh_kitty_tree = db.open_tree(FRESH_KITTY)?;
+    let used_kitty_tree = db.open_tree(USED_KITTY)?;
+
+    let Some(ivec) = fresh_kitty_tree.remove(output_ref.encode())? else {
+        return Ok(());
+    };
+    
+    let (owner, kitty) = <(H256, KittyData)>::decode(&mut &ivec[..])?;
+    used_kitty_tree.insert(output_ref.encode(), (owner, kitty).encode())?;
+
+    Ok(())
+}
+
+/// Mark an output that was previously spent back as unspent.
+fn unmark_as_used_kitties(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
+    let fresh_kitty_tree = db.open_tree(FRESH_KITTY)?;
+    let used_kitty_tree = db.open_tree(USED_KITTY)?;
+
+    let Some(ivec) = used_kitty_tree.remove(output_ref.encode())? else {
+        return Ok(());
+    };
+    let (owner, kitty) = <(H256, KittyData)>::decode(&mut &ivec[..])?;
+    fresh_kitty_tree.insert(output_ref.encode(), (owner, kitty).encode())?;
+
+    Ok(())
+}
+
+pub(crate) fn get_kittyReferance_set(
+    db: &Db,
+) -> anyhow::Result<Option<Vec<OutputRef>>> {
+    let wallet_owned_kitty_tree = db.open_tree(FRESH_KITTY)?;
+    let mut keepers = Vec::new();
+    
+    for i in wallet_owned_kitty_tree.iter() {
+        let (output_ref_ivec, owner_kitty_ivec) = match i {
+            Ok(data) => data,
+            Err(err) => {
+                // Handle the sled::Error if needed
+                eprintln!("Error iterating wallet_owned_kitty_tree: {:?}", err);
+                continue; // Skip to the next iteration
+            }
+        };
+
+        let output_ref = OutputRef::decode(&mut &output_ref_ivec[..])?;
+        
+        keepers.push(output_ref.clone());
+        println!("Raw kitty Data = {:?}", output_ref);
+    }
+    
+    Ok(Some(keepers))
+}
+
 
 /// Iterate the entire owned kitty
 /// on a per-address basis.
 pub(crate) fn get_all_kitties_from_local_db(
     db: &Db,
 ) -> anyhow::Result<impl Iterator<Item = (H256, KittyData)>> {
-    let wallet_owned_kitty_tree = db.open_tree(OWNED_KITTY)?;
-
+    let wallet_owned_kitty_tree = db.open_tree(FRESH_KITTY)?;
+    
     Ok(wallet_owned_kitty_tree.iter().filter_map(|raw_data| {
         let (_output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
         let (owner, kitty) = <(H256, KittyData)>::decode(&mut &owner_kitty_ivec[..]).ok()?;
@@ -523,7 +591,7 @@ pub(crate) fn get_owned_kitties_from_local_db(
     db: &Db,
     args: ShowOwnedKittyArgs,
 ) -> anyhow::Result<impl Iterator<Item = (H256, KittyData)>> {
-    let wallet_owned_kitty_tree = db.open_tree(OWNED_KITTY)?;
+    let wallet_owned_kitty_tree = db.open_tree(FRESH_KITTY)?;
 
     Ok(wallet_owned_kitty_tree.iter().filter_map(move |raw_data| {
         let (_output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
@@ -537,6 +605,79 @@ pub(crate) fn get_owned_kitties_from_local_db(
     }))
 }
 
+pub(crate) fn get_kitty_from_local_db_based_on_dna(
+    db: &Db,
+    dna: H256,
+) -> anyhow::Result<Option<(KittyData,String)>> {
+    let wallet_owned_kitty_tree = db.open_tree(FRESH_KITTY)?;
+
+    let (found_kitty, output_ref): (Option<KittyData>, String) = wallet_owned_kitty_tree
+        .iter()
+        .filter_map(move |raw_data| {
+            let (output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
+            let (owner, kitty) = <(H256, KittyData)>::decode(&mut &owner_kitty_ivec[..]).ok()?;
+            let output_ref_str = hex::encode(output_ref_ivec.clone());
+            let output_ref = OutputRef::decode(&mut &output_ref_ivec[..]).ok()?;
+            //println!("Dna : {:?}  -> output_ref {:?}", dna, output_ref.clone());
+            
+            if kitty.dna == KittyDNA(dna) {
+                Some((Some(kitty), output_ref_str))
+            } else {
+                None
+            }
+        })
+        .next()
+        .unwrap_or((None, String::new())); // Use unwrap_or to handle the Option
+
+    println!("output_ref = {:?}", output_ref);
+    println!("found_kitty = {:?}", found_kitty);
+
+    Ok(found_kitty.map(|kitty| (kitty,output_ref)))
+}
+
+fn string_to_h256(s: &str) -> Result<H256, hex::FromHexError> {
+    let bytes = hex::decode(s)?;
+    // Assuming H256 is a fixed-size array with 32 bytes
+    let mut h256 = [0u8; 32];
+    h256.copy_from_slice(&bytes);
+    Ok(h256.into())
+}
+pub(crate) fn get_kitty_from_local_db_based_on_dna1(
+    db: &Db,
+    dna: H256,
+) -> anyhow::Result<Option<(KittyData,OutputRef)>> {
+    let wallet_owned_kitty_tree = db.open_tree(FRESH_KITTY)?;
+
+    let (found_kitty, output_ref): (Option<KittyData>, OutputRef) = wallet_owned_kitty_tree
+        .iter()
+        .filter_map(move |raw_data| {
+            let (output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
+            let (owner, kitty) = <(H256, KittyData)>::decode(&mut &owner_kitty_ivec[..]).ok()?;
+            let output_ref_str = hex::encode(output_ref_ivec.clone());
+            let output_ref = OutputRef::decode(&mut &output_ref_ivec[..]).ok()?;
+            //println!("Dna : {:?}  -> output_ref {:?}", dna, output_ref.clone());
+            
+            if kitty.dna == KittyDNA(dna) {
+                Some((Some(kitty), output_ref))
+            } else {
+                None
+            }
+        })
+        .next()
+        .unwrap_or((None, OutputRef { tx_hash: string_to_h256("0000000000000000000000000000000000000000000000000000000000000000")?, index: 0 })); // Use unwrap_or to handle the Option
+
+    println!("output_ref = {:?}", output_ref);
+    println!("found_kitty = {:?}", found_kitty);
+
+    Ok(found_kitty.map(|kitty| (kitty,output_ref)))
+}
+
+
+
+
+
+
+
 /// Gets the owner and amount associated with an output ref from the unspent table
 ///
 /// Some if the output ref exists, None if it doesn't
@@ -544,7 +685,7 @@ pub(crate) fn get_kitty_fromlocaldb(
     db: &Db,
     output_ref: &OutputRef,
 ) -> anyhow::Result<Option<(H256, u128)>> {
-    let wallet_owned_kitty_tree = db.open_tree(OWNED_KITTY)?;
+    let wallet_owned_kitty_tree = db.open_tree(FRESH_KITTY)?;
     let Some(ivec) = wallet_owned_kitty_tree.get(output_ref.encode())? else {
         return Ok(None);
     };

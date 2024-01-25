@@ -162,7 +162,6 @@ async fn main() -> anyhow::Result<()> {
                     println!("Not found in local db");
                 }
             }
-
             Ok(())
         }
 
@@ -219,6 +218,8 @@ async fn main() -> anyhow::Result<()> {
         }
 
         Some(Command::MintKitty(args)) => kitty::mint_kitty(&client, args).await,
+        Some(Command::ShowKittyReferance) => kitty::show_kitty_referance(&db).await,
+        Some(Command::BreedKitty(args)) => kitty::breed_kitty(&db,&client, &keystore,args).await,
         Some(Command::ShowAllKitties) => {
             println!("ShowAllKitties Kitty Summary");
 
@@ -232,14 +233,25 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
         Some(Command::ShowOwnedKitties(args)) => {
+            sync::get_kittyReferance_set(&db);
             println!("ShowOwnedKitties Kitty Summary");
             let owned_kitties = sync::get_owned_kitties_from_local_db(&db, args)?;
+            for (kitty) in owned_kitties {
+                println!("{:?}", kitty);
+                println!("=-===================================================");
+            }
+            println!("___________________________________________________");
 
+            /*
             println!("After number of owned_kitties ");
             for (account, kitty) in owned_kitties {
-                println!("{account}: {:?}", kitty::get_kitty_name(&kitty));
+                println!("{account}: {:?}", kitty::get_kitty_name(&kitty).unwrap());
+                println!("--------------------");
+                println!("{:?}", kitty);
+                println!("=-===================================================");
             }
-            println!("--------------------");
+            */
+            println!("++++++++++++++++++++++++++++++++++++++++++++++++");
 
             Ok(())
         }
