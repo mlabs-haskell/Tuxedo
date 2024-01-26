@@ -617,6 +617,45 @@ pub(crate) fn get_owned_kitties_from_local_db(
     }))
 }
 
+pub(crate) fn is_kitty_name_duplicate(
+    db: &Db,
+    owner_pubkey: &H256,
+    name: String,
+) -> anyhow::Result<Option<(bool)>> {
+
+    let wallet_owned_kitty_tree = db.open_tree(FRESH_KITTY)?;
+    let mut array = [0; 4];
+    let kitty_name: &[u8; 4] = {
+        array.copy_from_slice(name.as_bytes());
+        &array
+    };
+
+    let (found_kitty): (Option<KittyData>) = wallet_owned_kitty_tree
+        .iter()
+        .filter_map(move |raw_data| {
+            let (output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
+            let (owner, kitty) = <(H256, KittyData)>::decode(&mut &owner_kitty_ivec[..]).ok()?;
+
+            println!("Name : {:?}", name);
+            
+            if kitty.name == &kitty_name[..] &&
+               owner == *owner_pubkey {
+                Some((Some(kitty)))
+            } else {
+                None
+            }
+        })
+        .next()
+        .unwrap_or(None); // Use unwrap_or to handle the Option
+
+    println!("found_kitty = {:?}", found_kitty);
+    let is_kitty_found = match found_kitty {
+        Some(k) => Some(true),
+        None => Some(false)
+    };
+    Ok(is_kitty_found)
+}
+
 /// Gets the owner and amount associated with an output ref from the unspent table
 ///
 /// Some if the output ref exists, None if it doesn't

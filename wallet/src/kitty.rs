@@ -36,13 +36,8 @@ fn generate_random_string(length: usize) -> String {
     random_string
 }
 
-pub async fn show_kitty_referance(db: &Db) -> anyhow::Result<()> {
-    //let kittyRef = sync::get_kittyReferance_set(db, total_output_amount - total_input_amount)?
-    
-    Ok(())
-}
 
-pub async fn mint_kitty(client: &HttpClient, args: MintKittyArgs) -> anyhow::Result<()> {
+pub async fn mint_kitty(db: &Db,client: &HttpClient, args: MintKittyArgs) -> anyhow::Result<()> {
     // Check the length of the kitty_name
     if args.kitty_name.len() != 4 {
         return Err(anyhow!(
@@ -50,6 +45,16 @@ pub async fn mint_kitty(client: &HttpClient, args: MintKittyArgs) -> anyhow::Res
             args.kitty_name.len()
         ));
     }
+
+    match crate::sync::is_kitty_name_duplicate(&db,&args.owner,args.kitty_name.clone()) {
+        Ok(Some(true)) => {
+            println!("Kitty name is duplicate , select another name");
+            return Err(anyhow!(
+                "Please input a non-duplicate name of length 4 characters"));
+        },
+        _ => {},
+    };
+
     let mut array = [0; 4];
     let kitty_name: &[u8; 4] = {
         array.copy_from_slice(args.kitty_name.clone().as_bytes());
@@ -145,7 +150,10 @@ pub async fn breed_kitty(db: &Db,
     inputs.push(dad_ref);
     
     let mut new_mom: KittyData = kitty_mom_info;
-    new_mom.parent = Parent::Mom(MomKittyStatus::HadBirthRecently);
+    new_mom.parent = Parent::Mom(MomKittyStatus::RearinToGo);
+    if new_mom.num_breedings >=2 {
+        new_mom.parent = Parent::Mom(MomKittyStatus::HadBirthRecently);
+    }
     new_mom.num_breedings += 1;
     new_mom.free_breedings -= 1;
 
@@ -158,7 +166,11 @@ pub async fn breed_kitty(db: &Db,
     };
 
     let mut new_dad = kitty_dad_info;
-    new_dad.parent = Parent::Dad(DadKittyStatus::Tired);
+    new_dad.parent = Parent::Dad(DadKittyStatus::RearinToGo);
+    if new_dad.num_breedings >=2 {
+        new_dad.parent = Parent::Dad(DadKittyStatus::Tired);
+    }
+    
     new_dad.num_breedings += 1;
     new_dad.free_breedings -= 1;
     // Create the Output dada

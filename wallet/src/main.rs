@@ -217,8 +217,7 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
 
-        Some(Command::MintKitty(args)) => kitty::mint_kitty(&client, args).await,
-        Some(Command::ShowKittyReferance) => kitty::show_kitty_referance(&db).await,
+        Some(Command::MintKitty(args)) => kitty::mint_kitty(&db,&client, args).await,
         Some(Command::BreedKitty(args)) => kitty::breed_kitty(&db,&client, &keystore,args).await,
         Some(Command::ShowAllKitties) => {
             println!("Show All Kitty Summary");

@@ -144,10 +144,6 @@ pub enum Command {
     #[command(verbatim_doc_comment)]
     ShowAllKitties,
 
-    /// For each key tracked by the wallet, shows kitty refe.
-    #[command(verbatim_doc_comment)]
-    ShowKittyReferance,
-
     //Some(Command::MintCoins { amount }) => money::mint_coins(&db, &client, &keystore,amount).await,
     /// Spend some coins.
     /// For now, all outputs in a single transaction go to the same recipient.
