@@ -221,23 +221,26 @@ async fn main() -> anyhow::Result<()> {
         Some(Command::ShowKittyReferance) => kitty::show_kitty_referance(&db).await,
         Some(Command::BreedKitty(args)) => kitty::breed_kitty(&db,&client, &keystore,args).await,
         Some(Command::ShowAllKitties) => {
-            println!("ShowAllKitties Kitty Summary");
+            println!("Show All Kitty Summary");
+            println!("==========================================");
 
             let owned_kitties = sync::get_all_kitties_from_local_db(&db)?;
 
-            for (account, kitty) in owned_kitties {
-                println!("{account}: {:?}", kitty::get_kitty_name(&kitty));
+            for (owner, kitty_data) in owned_kitties {
+                println!("Owner -> {:?}", owner);
+                println!("{:?} => {:?} -> ",  kitty::get_kitty_name(&kitty_data),kitty_data);
+                println!("=-===================================================");
             }
             println!("--------------------");
 
             Ok(())
         }
         Some(Command::ShowOwnedKitties(args)) => {
-            sync::get_kittyReferance_set(&db);
             println!("ShowOwnedKitties Kitty Summary");
+            println!("==========================================");
             let owned_kitties = sync::get_owned_kitties_from_local_db(&db, args)?;
-            for (kitty) in owned_kitties {
-                println!("{:?}", kitty);
+            for (owner, kitty_data,output_ref) in owned_kitties {
+                println!("{:?} => {:?} -> ",  kitty::get_kitty_name(&kitty_data),kitty_data);
                 println!("=-===================================================");
             }
             println!("___________________________________________________");

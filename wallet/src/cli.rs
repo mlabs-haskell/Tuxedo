@@ -229,6 +229,7 @@ pub struct ShowOwnedKittyArgs {
 
 #[derive(Debug, Args)]
 pub struct BreedKittyArgs {
+    /*
     // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
     // shows how to specify a custom parsing function
     /// Hex encoded address (sr25519 pubkey) of the owner.
@@ -238,6 +239,14 @@ pub struct BreedKittyArgs {
         /// Hex encoded address (sr25519 pubkey) of the owner.
     #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string)]
     pub parent_kitty_dad_dna: H256,
+    */
+    /// Name of Mom.
+    #[arg(long, short, verbatim_doc_comment, action = Append)]
+    pub mom_name: String,
+
+    /// Name of Dad.
+    #[arg(long, short, verbatim_doc_comment, action = Append)]
+    pub dad_name: String,
 
     #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
     pub owner: H256,

@@ -122,8 +122,9 @@ pub async fn breed_kitty(db: &Db,
     keystore: &LocalKeystore,
     args: BreedKittyArgs) -> anyhow::Result<()> {
     log::info!("The Breed kittyArgs are:: {:?}", args);
-    let kitty_mom = crate::sync::get_kitty_from_local_db_based_on_dna1(&db,args.parent_kitty_mom_dna);
-    let kitty_dad = crate::sync::get_kitty_from_local_db_based_on_dna1(&db,args.parent_kitty_dad_dna);
+
+    let kitty_mom = crate::sync::get_kitty_from_local_db_based_on_name(&db,args.mom_name);
+    let kitty_dad = crate::sync::get_kitty_from_local_db_based_on_name(&db,args.dad_name);
     let Some((kitty_mom_info,out_ref_mom)) = kitty_mom.unwrap() else { todo!() };
     let Some((kitty_dad_info,out_ref_dad)) = kitty_dad.unwrap() else { todo!() };
     log::info!("kitty_mom_ref:: {:?}", out_ref_mom);
