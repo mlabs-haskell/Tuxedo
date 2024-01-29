@@ -144,19 +144,23 @@ pub enum Command {
     #[command(verbatim_doc_comment)]
     ShowAllKitties,
 
-    //Some(Command::MintCoins { amount }) => money::mint_coins(&db, &client, &keystore,amount).await,
-    /// Spend some coins.
+    /// ShowOwnedKitties.
     /// For now, all outputs in a single transaction go to the same recipient.
     // FixMe: #62
     #[command(verbatim_doc_comment)]
     ShowOwnedKitties(ShowOwnedKittyArgs),
 
-    //Some(Command::MintCoins { amount }) => money::mint_coins(&db, &client, &keystore,amount).await,
-    /// Spend some coins.
+    /// Breed Kitties.
     /// For now, all outputs in a single transaction go to the same recipient.
     // FixMe: #62
     #[command(verbatim_doc_comment)]
     BreedKitty(BreedKittyArgs),
+
+    /// Breed Kitties.
+    /// For now, all outputs in a single transaction go to the same recipient.
+    // FixMe: #62
+    #[command(verbatim_doc_comment)]
+    SetKittyProperty(KittyPropertyArgs),
 }
 
 #[derive(Debug, Args)]
@@ -244,7 +248,33 @@ pub struct BreedKittyArgs {
     #[arg(long, short, verbatim_doc_comment, action = Append)]
     pub dad_name: String,
 
+    // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
+    // shows how to specify a custom parsing function
+    /// Hex encoded address (sr25519 pubkey) of the owner.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
+    pub owner: H256,
+}
+
+#[derive(Debug, Args)]
+pub struct KittyPropertyArgs {
+    /// New name of Kitty.
+    #[arg(long, short, verbatim_doc_comment, action = Append)]
+    pub new_name: String,
+
+    /// Price of Kitty.
+    #[arg(long, short, verbatim_doc_comment, action = Append)]
+    pub price: u64,
+
+    #[arg(long, short, verbatim_doc_comment)]
+    pub available_for_sale: bool,
+
+    // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
+    // shows how to specify a custom parsing function
+    /// Hex encoded address (sr25519 pubkey) of the owner.
     #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
     pub owner: H256,
 
+    /// Existing Name of Kitty.
+    #[arg(long, short, verbatim_doc_comment, action = Append)]
+    pub current_name: String,
 }

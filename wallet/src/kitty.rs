@@ -2,18 +2,18 @@ use crate::rpc::fetch_storage;
 
 //use crate::cli::BreedArgs;
 use tuxedo_core::{
-    types::{Output, OutputRef,Input},
+    types::{Input, Output, OutputRef},
     verifier::Sr25519Signature,
 };
 
-use sc_keystore::LocalKeystore;
 use anyhow::anyhow;
-use sp_core::sr25519::Public;
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use parity_scale_codec::Encode;
 use rand::distributions::Alphanumeric;
 use rand::Rng;
+use sc_keystore::LocalKeystore;
 use sled::Db;
+use sp_core::sr25519::Public;
 use sp_runtime::traits::{BlakeTwo256, Hash};
 
 use runtime::{
@@ -24,7 +24,7 @@ use runtime::{
     OuterVerifier, Transaction,
 };
 
-use crate::cli::{MintKittyArgs,BreedKittyArgs};
+use crate::cli::{BreedKittyArgs, KittyPropertyArgs, MintKittyArgs};
 
 fn generate_random_string(length: usize) -> String {
     let rng = rand::thread_rng();
@@ -36,8 +36,7 @@ fn generate_random_string(length: usize) -> String {
     random_string
 }
 
-
-pub async fn mint_kitty(db: &Db,client: &HttpClient, args: MintKittyArgs) -> anyhow::Result<()> {
+pub async fn mint_kitty(db: &Db, client: &HttpClient, args: MintKittyArgs) -> anyhow::Result<()> {
     // Check the length of the kitty_name
     if args.kitty_name.len() != 4 {
         return Err(anyhow!(
@@ -46,13 +45,14 @@ pub async fn mint_kitty(db: &Db,client: &HttpClient, args: MintKittyArgs) -> any
         ));
     }
 
-    match crate::sync::is_kitty_name_duplicate(&db,&args.owner,args.kitty_name.clone()) {
+    match crate::sync::is_kitty_name_duplicate(&db, &args.owner, args.kitty_name.clone()) {
         Ok(Some(true)) => {
             println!("Kitty name is duplicate , select another name");
             return Err(anyhow!(
-                "Please input a non-duplicate name of length 4 characters"));
-        },
-        _ => {},
+                "Please input a non-duplicate name of length 4 characters"
+            ));
+        }
+        _ => {}
     };
 
     let mut array = [0; 4];
@@ -74,6 +74,8 @@ pub async fn mint_kitty(db: &Db,client: &HttpClient, args: MintKittyArgs) -> any
         parent: gender,
         dna: KittyDNA(BlakeTwo256::hash(dna_preimage)),
         name: *kitty_name, // Default value for now, as the provided code does not specify a value
+        price: 200,
+        available_for_sale: true,
         ..Default::default()
     };
 
@@ -110,10 +112,14 @@ pub async fn mint_kitty(db: &Db,client: &HttpClient, args: MintKittyArgs) -> any
 
     let output = &transaction.outputs[0];
     let minted_kitty = output.payload.extract::<KittyData>()?.dna.0;
-    println!( "TransactionHash {:?}. ", <BlakeTwo256 as Hash>::hash_of(&transaction.encode()));
+    println!(
+        "TransactionHash {:?}. ",
+        <BlakeTwo256 as Hash>::hash_of(&transaction.encode())
+    );
 
     println!(
-        "Minted kitty encoded Ref {:?} with dna {:?}. ", hex::encode(minted_kitty_ref.encode()),
+        "Minted kitty encoded Ref {:?} with dna {:?}. ",
+        hex::encode(minted_kitty_ref.encode()),
         minted_kitty
     );
 
@@ -122,16 +128,115 @@ pub async fn mint_kitty(db: &Db,client: &HttpClient, args: MintKittyArgs) -> any
     Ok(())
 }
 
-pub async fn breed_kitty(db: &Db,
-    client: &HttpClient, 
+pub async fn set_kitty_property(
+    db: &Db,
+    client: &HttpClient,
     keystore: &LocalKeystore,
-    args: BreedKittyArgs) -> anyhow::Result<()> {
+    args: KittyPropertyArgs,
+) -> anyhow::Result<()> {
+    log::info!("The set_kitty_property are:: {:?}", args);
+    let kitty_to_be_updated =
+        crate::sync::get_kitty_from_local_db_based_on_name(&db, args.current_name);
+    let Some((kitty_info, kitty_out_ref)) = kitty_to_be_updated.unwrap() else {
+        todo!()
+    };
+    let kitty_ref = Input {
+        output_ref: kitty_out_ref,
+        redeemer: vec![], // We will sign the total transaction so this should be empty
+    };
+    let mut inputs: Vec<Input> = vec![];
+    inputs.push(kitty_ref);
+
+    let mut array = [0; 4];
+    let kitty_name: &[u8; 4] = {
+        array.copy_from_slice(args.new_name.clone().as_bytes());
+        &array
+    };
+
+    // Create the KittyData
+    let mut output_kitty = kitty_info.clone();
+    output_kitty.name = *kitty_name;
+    output_kitty.price = args.price;
+    output_kitty.available_for_sale = args.available_for_sale;
+
+    let output = Output {
+        payload: output_kitty.into(),
+        verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
+            owner_pubkey: args.owner,
+        }),
+    };
+
+    let mut transaction = Transaction {
+        inputs: inputs,
+        peeks: Vec::new(),
+        outputs: vec![output],
+        checker: FreeKittyConstraintChecker::UpdateProperties.into(),
+    };
+
+    // Keep a copy of the stripped encoded transaction for signing purposes
+    let stripped_encoded_transaction = transaction.clone().encode();
+
+    // Iterate back through the inputs, signing, and putting the signatures in place.
+    for input in &mut transaction.inputs {
+        // Fetch the output from storage
+        let utxo = fetch_storage::<OuterVerifier>(&input.output_ref, client).await?;
+
+        // Construct the proof that it can be consumed
+        let redeemer = match utxo.verifier {
+            OuterVerifier::Sr25519Signature(Sr25519Signature { owner_pubkey }) => {
+                let public = Public::from_h256(owner_pubkey);
+                crate::keystore::sign_with(keystore, &public, &stripped_encoded_transaction)?
+            }
+            OuterVerifier::UpForGrabs(_) => Vec::new(),
+            OuterVerifier::ThresholdMultiSignature(_) => todo!(),
+        };
+
+        // insert the proof
+        input.redeemer = redeemer;
+    }
+
+    // Encode the transaction
+    let spawn_hex = hex::encode(transaction.encode());
+    let params = rpc_params![spawn_hex];
+    let spawn_response: Result<String, _> = client.request("author_submitExtrinsic", params).await;
+    println!("Node's response to spawn transaction: {:?}", spawn_response);
+
+    // Print new output refs for user to check later
+    let tx_hash = <BlakeTwo256 as Hash>::hash_of(&transaction.encode());
+    for (i, output) in transaction.outputs.iter().enumerate() {
+        let new_kitty_ref = OutputRef {
+            tx_hash,
+            index: i as u32,
+        };
+        let new_kitty = output.payload.extract::<KittyData>()?.dna.0;
+
+        print!(
+            "Created {:?} worth {:?}. ",
+            hex::encode(new_kitty_ref.encode()),
+            new_kitty
+        );
+        crate::pretty_print_verifier(&output.verifier);
+    }
+
+    Ok(())
+}
+
+pub async fn breed_kitty(
+    db: &Db,
+    client: &HttpClient,
+    keystore: &LocalKeystore,
+    args: BreedKittyArgs,
+) -> anyhow::Result<()> {
     log::info!("The Breed kittyArgs are:: {:?}", args);
 
-    let kitty_mom = crate::sync::get_kitty_from_local_db_based_on_name(&db,args.mom_name);
-    let kitty_dad = crate::sync::get_kitty_from_local_db_based_on_name(&db,args.dad_name);
-    let Some((kitty_mom_info,out_ref_mom)) = kitty_mom.unwrap() else { todo!() };
-    let Some((kitty_dad_info,out_ref_dad)) = kitty_dad.unwrap() else { todo!() };
+    let kitty_mom = crate::sync::get_kitty_from_local_db_based_on_name(&db, args.mom_name);
+    let kitty_dad = crate::sync::get_kitty_from_local_db_based_on_name(&db, args.dad_name);
+    let Some((kitty_mom_info, out_ref_mom)) = kitty_mom.unwrap() else {
+        todo!()
+    };
+    let Some((kitty_dad_info, out_ref_dad)) = kitty_dad.unwrap() else {
+        todo!()
+    };
     log::info!("kitty_mom_ref:: {:?}", out_ref_mom);
     log::info!("kitty_dad_ref:: {:?}", out_ref_dad);
 
@@ -141,17 +246,17 @@ pub async fn breed_kitty(db: &Db,
     };
 
     let dad_ref = Input {
-        output_ref:  out_ref_dad,
+        output_ref: out_ref_dad,
         redeemer: vec![], // We will sign the total transaction so this should be empty
     };
-    
+
     let mut inputs: Vec<Input> = vec![];
     inputs.push(mom_ref);
     inputs.push(dad_ref);
-    
+
     let mut new_mom: KittyData = kitty_mom_info;
     new_mom.parent = Parent::Mom(MomKittyStatus::RearinToGo);
-    if new_mom.num_breedings >=2 {
+    if new_mom.num_breedings >= 2 {
         new_mom.parent = Parent::Mom(MomKittyStatus::HadBirthRecently);
     }
     new_mom.num_breedings += 1;
@@ -167,10 +272,10 @@ pub async fn breed_kitty(db: &Db,
 
     let mut new_dad = kitty_dad_info;
     new_dad.parent = Parent::Dad(DadKittyStatus::RearinToGo);
-    if new_dad.num_breedings >=2 {
+    if new_dad.num_breedings >= 2 {
         new_dad.parent = Parent::Dad(DadKittyStatus::Tired);
     }
-    
+
     new_dad.num_breedings += 1;
     new_dad.free_breedings -= 1;
     // Create the Output dada
@@ -184,18 +289,20 @@ pub async fn breed_kitty(db: &Db,
     let child = KittyData {
         parent: Parent::Mom(MomKittyStatus::RearinToGo),
         free_breedings: 2,
-        name:*b"tomy",
+        name: *b"tomy",
         dna: KittyDNA(BlakeTwo256::hash_of(&(
             new_mom.dna.clone(),
             new_dad.dna.clone(),
-            new_mom.num_breedings ,
-            new_dad.num_breedings ,
+            new_mom.num_breedings,
+            new_dad.num_breedings,
         ))),
         num_breedings: 0,
+        price: 100,
+        available_for_sale: true,
     };
-    println!("New mom Dna = {:?}",new_mom.dna);
-    println!("New Dad Dna = {:?}",new_dad.dna);
-    println!("Child Dna = {:?}",child.dna);
+    println!("New mom Dna = {:?}", new_mom.dna);
+    println!("New Dad Dna = {:?}", new_dad.dna);
+    println!("Child Dna = {:?}", child.dna);
     // Create the Output child
     let output_child = Output {
         payload: child.clone().into(),
@@ -205,16 +312,17 @@ pub async fn breed_kitty(db: &Db,
     };
 
     let new_family = Box::new(vec![output_mom, output_dad, output_child]);
-    
-     // Create the Transaction
-     let mut transaction = Transaction {
+
+    // Create the Transaction
+    let mut transaction = Transaction {
         inputs: inputs,
         peeks: Vec::new(),
         outputs: (&[
             new_family[0].clone(),
             new_family[1].clone(),
             new_family[2].clone(),
-        ]).to_vec(),
+        ])
+            .to_vec(),
         checker: FreeKittyConstraintChecker::Breed.into(),
     };
 
@@ -259,7 +367,8 @@ pub async fn breed_kitty(db: &Db,
 
         print!(
             "Created {:?} worth {:?}. ",
-            hex::encode(new_kitty_ref.encode()),new_kitty
+            hex::encode(new_kitty_ref.encode()),
+            new_kitty
         );
         crate::pretty_print_verifier(&output.verifier);
     }
@@ -277,7 +386,7 @@ pub(crate) fn apply_transaction(
     let kitty_detail: KittyData = output.payload.extract()?;
 
     let output_ref = OutputRef { tx_hash, index };
-    println!("in kitty:apply_transaction output_ref = {:?}",output_ref);
+    println!("in kitty:apply_transaction output_ref = {:?}", output_ref);
     match output.verifier {
         OuterVerifier::Sr25519Signature(Sr25519Signature { owner_pubkey }) => {
             // Add it to the global unspent_outputs table
@@ -307,12 +416,3 @@ pub async fn get_kitty_from_storage(
 
     Ok((kitty_in_storage, utxo.verifier))
 }
-
-/*
-
-pub async fn breed_kitty( db: &Db,client: &HttpClient,keystore: &LocalKeystore,
-    args: BreedArgs) -> anyhow::Result<()> {
-
-    Ok(())
-}
-*/

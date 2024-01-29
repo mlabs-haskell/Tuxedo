@@ -55,6 +55,8 @@ pub enum FreeKittyConstraintChecker {
     Breed,
     /// A mint transaction that creates kitties from one parent(either mom or dad).
     Mint,
+    ///Update various properties of kitty.
+    UpdateProperties,
     ///Can buy a new kitty from others
     Buy,
 }
@@ -173,6 +175,8 @@ pub struct KittyData {
     pub dna: KittyDNA,
     pub num_breedings: u128,
     pub name: [u8; 4], // Name of kitty is stored in onChain s of now.
+    pub price: u64,
+    pub available_for_sale: bool,
 }
 
 impl KittyData {
@@ -215,6 +219,8 @@ impl Default for KittyData {
             dna: KittyDNA(H256::from_slice(b"mom_kitty_1asdfasdfasdfasdfasdfa")),
             num_breedings: 3,
             name: *b"kty0",
+            price: 100,
+            available_for_sale: true,
         }
     }
 }
@@ -277,8 +283,18 @@ pub enum ConstraintCheckerError {
     TooManyBreedingsForKitty,
     /// Not enough free breedings available for these parents.
     NotEnoughFreeBreedings,
+    /// The transaction attempts to mint no Kitty . This is not allowed.
+    MintingNothing,
+    /// The transaction attempts to updat no Kitty . This is not allowed.
+    InputMissingUpadtingNothing,
+    /// The transaction attempts to updat no Kitty . This is not allowed.
+    OutputMissingUpadtingNothing,
     /// No Need of parents to mint.
     ParentsCannotExistForMinting,
+    /// Kitty Update has more than one outputs.
+    MultipleOutputsForKittyUpdateError,
+    /// Kitty Update has more than one outputs.
+    InValidNumberOfInputsForKittyUpdate,
 }
 
 trait Breed {
@@ -479,6 +495,10 @@ impl Breed for KittyHelpers {
             &new_dad.num_breedings,
         ));
 
+        log::info!("new_mom.dna {:?} ", new_mom.dna);
+        log::info!("new_dad.dna {:?} ", new_dad.dna);
+        log::info!("Passed child.dna {:?} ", child.dna);
+        log::info!("calculated  child.dna {:?} ", KittyDNA(new_dna));
         ensure!(
             child.dna == KittyDNA(new_dna),
             Self::Error::NewChildDnaIncorrect,
@@ -523,19 +543,24 @@ impl SimpleConstraintChecker for FreeKittyConstraintChecker {
         &self,
         input_data: &[DynamicallyTypedData],
         _peeks: &[DynamicallyTypedData],
-        new_family: &[DynamicallyTypedData],
+        output_data: &[DynamicallyTypedData],
     ) -> Result<TransactionPriority, Self::Error> {
         log::info!("FreeKittyConstraintChecker check()  called ");
         match &self {
             Self::Mint => {
                 // Make sure there are no inputs being consumed
                 log::info!("Self::Mint()  called ");
-                log::info!("KittyCreation new family length = {}", new_family.len());
                 ensure!(
-                    input_data.len() == 0,
-                    Self::Error::ParentsCannotExistForMinting
+                    input_data.is_empty(),
+                    ConstraintCheckerError::ParentsCannotExistForMinting
                 );
-                ensure!(new_family.len() == 1, Self::Error::NotEnoughFamilyMembers);
+
+                // Make sure there is at least one output being minted
+                ensure!(
+                    !output_data.is_empty(),
+                    ConstraintCheckerError::MintingNothing
+                );
+                ensure!(output_data.len() == 1, Self::Error::NotEnoughFamilyMembers);
                 log::info!("Mint kitty completed");
                 Ok(0)
             }
@@ -548,8 +573,23 @@ impl SimpleConstraintChecker for FreeKittyConstraintChecker {
                 let dad = KittyData::try_from(&input_data[1])?;
                 KittyHelpers::can_breed(&mom, &dad)?;
                 // Output must be Mom, Dad, Child
-                ensure!(new_family.len() == 3, Self::Error::NotEnoughFamilyMembers);
-                KittyHelpers::check_new_family(&mom, &dad, new_family)?;
+                ensure!(output_data.len() == 3, Self::Error::NotEnoughFamilyMembers);
+                KittyHelpers::check_new_family(&mom, &dad, output_data)?;
+                Ok(0)
+            }
+            Self::UpdateProperties => {
+                log::info!("Update properties is called ");
+                ensure!(
+                    input_data.is_empty(),
+                    ConstraintCheckerError::InputMissingUpadtingNothing
+                );
+
+                // Make sure there is at least one output being minted
+                ensure!(
+                    !output_data.is_empty(),
+                    ConstraintCheckerError::OutputMissingUpadtingNothing
+                );
+                // Needs more check for updating the kitties
                 Ok(0)
             }
             Self::Buy => {

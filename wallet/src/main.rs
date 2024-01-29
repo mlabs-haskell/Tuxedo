@@ -217,8 +217,11 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
 
-        Some(Command::MintKitty(args)) => kitty::mint_kitty(&db,&client, args).await,
-        Some(Command::BreedKitty(args)) => kitty::breed_kitty(&db,&client, &keystore,args).await,
+        Some(Command::MintKitty(args)) => kitty::mint_kitty(&db, &client, args).await,
+        Some(Command::SetKittyProperty(args)) => {
+            kitty::set_kitty_property(&db, &client, &keystore, args).await
+        }
+        Some(Command::BreedKitty(args)) => kitty::breed_kitty(&db, &client, &keystore, args).await,
         Some(Command::ShowAllKitties) => {
             println!("Show All Kitty Summary");
             println!("==========================================");
@@ -227,7 +230,11 @@ async fn main() -> anyhow::Result<()> {
 
             for (owner, kitty_data) in owned_kitties {
                 println!("Owner -> {:?}", owner);
-                println!("{:?} => {:?} -> ",  kitty::get_kitty_name(&kitty_data),kitty_data);
+                println!(
+                    "{:?} => {:?} -> ",
+                    kitty::get_kitty_name(&kitty_data),
+                    kitty_data
+                );
                 println!("=-===================================================");
             }
             println!("--------------------");
@@ -238,8 +245,12 @@ async fn main() -> anyhow::Result<()> {
             println!("ShowOwnedKitties Kitty Summary");
             println!("==========================================");
             let owned_kitties = sync::get_owned_kitties_from_local_db(&db, args)?;
-            for (owner, kitty_data,output_ref) in owned_kitties {
-                println!("{:?} => {:?} -> ",  kitty::get_kitty_name(&kitty_data),kitty_data);
+            for (owner, kitty_data, output_ref) in owned_kitties {
+                println!(
+                    "{:?} => {:?} -> ",
+                    kitty::get_kitty_name(&kitty_data),
+                    kitty_data
+                );
                 println!("=-===================================================");
             }
             println!("___________________________________________________");
