@@ -151,16 +151,16 @@ pub enum Command {
     ShowOwnedKitties(ShowOwnedKittyArgs),
 
     /// Breed Kitties.
-    /// For now, all outputs in a single transaction go to the same recipient.
-    // FixMe: #62
     #[command(verbatim_doc_comment)]
     BreedKitty(BreedKittyArgs),
 
     /// Breed Kitties.
-    /// For now, all outputs in a single transaction go to the same recipient.
-    // FixMe: #62
     #[command(verbatim_doc_comment)]
     SetKittyProperty(KittyPropertyArgs),
+
+    /// Buy Kitty.
+    #[command(verbatim_doc_comment)]
+    BuyKitty(BuyKittyArgs),
 }
 
 #[derive(Debug, Args)]
@@ -266,7 +266,7 @@ pub struct KittyPropertyArgs {
     pub price: u64,
 
     #[arg(long, short, verbatim_doc_comment)]
-    pub available_for_sale: bool,
+    pub is_available_for_sale: bool,
 
     // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
     // shows how to specify a custom parsing function
@@ -277,4 +277,33 @@ pub struct KittyPropertyArgs {
     /// Existing Name of Kitty.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
     pub current_name: String,
+}
+
+#[derive(Debug, Args)]
+pub struct BuyKittyArgs {
+    /// An input to be consumed by this transaction. This argument may be specified multiple times.
+    /// They must all be coins.
+    #[arg(long, short, verbatim_doc_comment, value_parser = output_ref_from_string)]
+    pub input: Vec<OutputRef>,
+
+    // /// All inputs to the transaction will be from this same sender.
+    // /// When not specified, inputs from any owner are chosen indiscriminantly
+    // #[arg(long, short, value_parser = h256_from_string)]
+    // sender: Option<H256>,
+
+    // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
+    // shows how to specify a custom parsing function
+    /// Hex encoded address (sr25519 pubkey) of the recipient.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
+    pub seller: H256,
+
+    /// Name of kitty to be bought.
+    #[arg(long, short, verbatim_doc_comment, action = Append)]
+    pub kitty_name: String,
+
+    // The `action = Append` allows us to accept the same value multiple times.
+    /// An output amount. For the transaction to be valid, the outputs must add up to less than the sum of the inputs.
+    /// The wallet will not enforce this and will gladly send an invalid which will then be rejected by the node.
+    #[arg(long, short, verbatim_doc_comment, action = Append)]
+    pub output_amount: Vec<u128>,
 }

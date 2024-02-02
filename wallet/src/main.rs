@@ -222,6 +222,7 @@ async fn main() -> anyhow::Result<()> {
             kitty::set_kitty_property(&db, &client, &keystore, args).await
         }
         Some(Command::BreedKitty(args)) => kitty::breed_kitty(&db, &client, &keystore, args).await,
+        Some(Command::BuyKitty(args)) => kitty::buy_kitty(&db, &client, &keystore, args).await,
         Some(Command::ShowAllKitties) => {
             println!("Show All Kitty Summary");
             println!("==========================================");

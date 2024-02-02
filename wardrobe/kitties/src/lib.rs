@@ -32,6 +32,7 @@ use tuxedo_core::{
     types::Transaction,
     SimpleConstraintChecker, Verifier,
 };
+use money::Coin;
 
 #[cfg(test)]
 mod tests;
@@ -175,9 +176,11 @@ pub struct KittyData {
     pub dna: KittyDNA,
     pub num_breedings: u128,
     pub name: [u8; 4], // Name of kitty is stored in onChain s of now.
-    pub price: u64,
-    pub available_for_sale: bool,
+    pub price: Option<u64>,
+    pub is_available_for_sale: bool,
 }
+
+
 
 impl KittyData {
     /// Create a mint transaction for a single Kitty.
@@ -219,8 +222,8 @@ impl Default for KittyData {
             dna: KittyDNA(H256::from_slice(b"mom_kitty_1asdfasdfasdfasdfasdfa")),
             num_breedings: 3,
             name: *b"kty0",
-            price: 100,
-            available_for_sale: true,
+            price: Some(100),
+            is_available_for_sale: true,
         }
     }
 }
@@ -253,6 +256,8 @@ pub enum ConstraintCheckerError {
     TwoParentsDoNotExist,
     /// Incorrect number of outputs when it comes to breeding.
     NotEnoughFamilyMembers,
+    /// Incorrect number of outputs when it comes to Minting.
+    IncorrectNumberOfKittiesForMintOperation,
     /// Mom has recently given birth and isnt ready to breed.
     MomNotReadyYet,
     /// Dad cannot breed because he is still too tired.
@@ -295,6 +300,14 @@ pub enum ConstraintCheckerError {
     MultipleOutputsForKittyUpdateError,
     /// Kitty Update has more than one outputs.
     InValidNumberOfInputsForKittyUpdate,
+    /// Kitty Dna cannot be updated.
+    DnaCannotBeUpdated,
+    /// Kitty FreeBreeding cannot be updated.
+    FreeBreedingCannotBeUpdated,
+    /// Kitty NumOfBreeding cannot be updated.
+    NumOfBreedingCannotBeUpdated,
+    /// Kitty updated price is incorrect.
+    UpdatedKittyIncorrectPrice,
 }
 
 trait Breed {
@@ -328,6 +341,19 @@ trait Breed {
         new_dad: &KittyData,
         child: &KittyData,
     ) -> Result<(), Self::Error>;
+}
+
+trait UpdateKittyProperty {
+    /// The Cost to update a kitty property if it is not free.
+    const COST: u128;
+    /// Error type for all Kitty errors.
+    type Error: Into<ConstraintCheckerError>;
+    
+    fn check_updated_kitty(
+        original_kitty: &KittyData,
+        updated_kitty: &KittyData,
+    ) -> Result<(), Self::Error>;
+
 }
 
 pub struct KittyHelpers;
@@ -528,6 +554,40 @@ impl Breed for KittyHelpers {
     }
 }
 
+impl UpdateKittyProperty for KittyHelpers {
+
+    const COST: u128 = 5u128;
+    type Error = ConstraintCheckerError;
+
+    fn check_updated_kitty(
+        original_kitty: &KittyData,
+        updated_kitty: &KittyData,
+    ) -> Result<(), Self::Error> {
+        ensure!(
+            original_kitty.dna == updated_kitty.dna,
+            Self::Error::DnaCannotBeUpdated,
+        );
+        ensure!(
+            original_kitty.free_breedings == updated_kitty.free_breedings,
+            Self::Error::FreeBreedingCannotBeUpdated,
+        );
+        ensure!(
+            original_kitty.num_breedings == updated_kitty.num_breedings,
+            Self::Error::NumOfBreedingCannotBeUpdated,
+        );
+        if !updated_kitty.is_available_for_sale &&
+                    updated_kitty.price != None {
+            return Err(Self::Error::UpdatedKittyIncorrectPrice);
+        }
+
+        if updated_kitty.is_available_for_sale &&
+                    updated_kitty.price == None {
+            return Err(Self::Error::UpdatedKittyIncorrectPrice);
+        }
+        Ok(())
+    }
+}
+
 impl TryFrom<&DynamicallyTypedData> for KittyData {
     type Error = ConstraintCheckerError;
     fn try_from(a: &DynamicallyTypedData) -> Result<Self, Self::Error> {
@@ -560,7 +620,14 @@ impl SimpleConstraintChecker for FreeKittyConstraintChecker {
                     !output_data.is_empty(),
                     ConstraintCheckerError::MintingNothing
                 );
-                ensure!(output_data.len() == 1, Self::Error::NotEnoughFamilyMembers);
+                ensure!(output_data.len() == 1, Self::Error::IncorrectNumberOfKittiesForMintOperation);
+
+                // Make sure the outputs are the right type
+                for utxo in output_data {
+                    let utxo_kitty = utxo
+                        .extract::<KittyData>()
+                        .map_err(|_| ConstraintCheckerError::BadlyTyped)?;
+                }
                 log::info!("Mint kitty completed");
                 Ok(0)
             }
@@ -589,7 +656,10 @@ impl SimpleConstraintChecker for FreeKittyConstraintChecker {
                     !output_data.is_empty(),
                     ConstraintCheckerError::OutputMissingUpadtingNothing
                 );
+                let original_kitty = KittyData::try_from(&input_data[0])?;
+                let updated_kitty = KittyData::try_from(&input_data[1])?;
                 // Needs more check for updating the kitties
+                KittyHelpers::check_updated_kitty(&original_kitty,&updated_kitty)?;
                 Ok(0)
             }
             Self::Buy => {
