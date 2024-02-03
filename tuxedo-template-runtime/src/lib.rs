@@ -41,6 +41,7 @@ use tuxedo_core::{
 
 pub use amoeba;
 pub use kitties;
+pub use tradable_kitties;
 pub use money;
 pub use poe;
 pub use runtime_upgrade;
@@ -170,6 +171,8 @@ pub enum OuterConstraintChecker {
     Money(money::MoneyConstraintChecker<0>),
     /// Checks Free Kitty transactions
     FreeKittyConstraintChecker(kitties::FreeKittyConstraintChecker<0>),
+    /// Checks Paid Kitty transactions
+    PaidKittyConstraintChecker(kitties::PaidKittyConstraintChecker<0>),
     /*
     /// Checks Free Kitty transactions
     KittyConstraintChecker(kitties::KittyConstraintChecker),
@@ -209,6 +212,10 @@ pub enum OuterConstraintChecker {
     Money(money::MoneyConstraintChecker<0>),
     /// Checks Free Kitty transactions
     FreeKittyConstraintChecker(kitties::FreeKittyConstraintChecker),
+    /// Checks Paid Kitty transactions
+    PaidKittyConstraintChecker(kitties::PaidKittyConstraintChecker<0>),
+    /// Checks Paid Kitty transactions
+    TradableKittyConstraintChecker(tradable_kitties::TradableKittyConstraintChecker),
     /// Checks that an amoeba can split into two new amoebas
     AmoebaMitosis(amoeba::AmoebaMitosis),
     /// Checks that a single amoeba is simply removed from the state

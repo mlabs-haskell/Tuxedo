@@ -297,6 +297,12 @@ pub struct BuyKittyArgs {
     #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
     pub seller: H256,
 
+    // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
+    // shows how to specify a custom parsing function
+    /// Hex encoded address (sr25519 pubkey) of the owner.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
+    pub owner: H256,
+
     /// Name of kitty to be bought.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
     pub kitty_name: String,

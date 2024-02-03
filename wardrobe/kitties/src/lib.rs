@@ -69,6 +69,25 @@ pub enum FreeKittyConstraintChecker {
     Eq,
     PartialOrd,
     Ord,
+    Clone,
+    Encode,
+    Decode,
+    Hash,
+    Debug,
+    TypeInfo,
+)]
+pub enum  PaidKittyConstraintChecker<const ID: u8> {
+    Buy,
+    Breed,
+}
+
+#[derive(
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
     Default,
     Clone,
     Encode,
@@ -179,8 +198,6 @@ pub struct KittyData {
     pub price: Option<u64>,
     pub is_available_for_sale: bool,
 }
-
-
 
 impl KittyData {
     /// Create a mint transaction for a single Kitty.
@@ -668,5 +685,22 @@ impl SimpleConstraintChecker for FreeKittyConstraintChecker {
                 Ok(0)
             }
         }
+    }
+}
+
+impl<const ID: u8> SimpleConstraintChecker for PaidKittyConstraintChecker<ID> {
+    type Error = ConstraintCheckerError;
+    /// Checks:
+    ///     - `input_data` is of length 2
+    ///     - `output_data` is of length 3
+    ///
+    fn check(
+        &self,
+        input_data: &[DynamicallyTypedData],
+        _peeks: &[DynamicallyTypedData],
+        output_data: &[DynamicallyTypedData],
+    ) -> Result<TransactionPriority, Self::Error> {
+        log::info!("PaidKittyConstraintChecker called ");
+        Ok(0)
     }
 }

@@ -1,4 +1,6 @@
 use crate::rpc::fetch_storage;
+use crate::sync;
+use crate::money::get_coin_from_storage;
 
 //use crate::cli::BreedArgs;
 use tuxedo_core::{
@@ -17,6 +19,8 @@ use sp_core::sr25519::Public;
 use sp_runtime::traits::{BlakeTwo256, Hash};
 
 use runtime::{
+    money::{Coin, MoneyConstraintChecker},
+    tradable_kitties::TradableKittyConstraintChecker,
     kitties::{
         DadKittyStatus, FreeKittyConstraintChecker, PaidKittyConstraintChecker, KittyDNA, KittyData, KittyHelpers,
         MomKittyStatus, Parent,
@@ -135,9 +139,9 @@ pub async fn set_kitty_property(
     args: KittyPropertyArgs,
 ) -> anyhow::Result<()> {
     log::info!("The set_kitty_property are:: {:?}", args);
-    let kitty_to_be_updated =
+    let kitty_to_be_bought =
         crate::sync::get_kitty_from_local_db_based_on_name(&db, args.current_name);
-    let Some((kitty_info, kitty_out_ref)) = kitty_to_be_updated.unwrap() else {
+    let Some((kitty_info, kitty_out_ref)) = kitty_to_be_bought.unwrap() else {
         todo!()
     };
     let kitty_ref = Input {
@@ -383,9 +387,11 @@ pub async fn buy_kitty(
     args: BuyKittyArgs,
 ) -> anyhow::Result<()> {
     log::info!("The Buy kittyArgs are:: {:?}", args);
-    let kitty_to_be_updated =
+
+    let kitty_to_be_bought =
         crate::sync::get_kitty_from_local_db_based_on_name(&db, args.kitty_name);
-    let Some((kitty_info, kitty_out_ref)) = kitty_to_be_updated.unwrap() else {
+        
+    let Some((kitty_info, kitty_out_ref)) = kitty_to_be_bought.unwrap() else {
         todo!()
     };
     let kitty_ref = Input {
@@ -395,25 +401,68 @@ pub async fn buy_kitty(
     let mut inputs: Vec<Input> = vec![];
     inputs.push(kitty_ref);
 
-
-
     // Create the KittyData
-    let mut output_kitty = kitty_info.clone();
-
+    let mut output_kitty = kitty_info.clone(); 
 
     let output = Output {
         payload: output_kitty.into(),
         verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
-            owner_pubkey: args.seller,
+            owner_pubkey: args.owner,
         }),
     };
-/*
+
     let mut transaction = Transaction {
         inputs: inputs,
         peeks: Vec::new(),
         outputs: vec![output],
-        checker: PaidKittyConstraintChecker::Buy.into(),
+        checker: TradableKittyConstraintChecker.into(),
     };
+
+    // Construct each output and then push to the transactions for Money
+    let mut total_output_amount = 0;
+    for amount in &args.output_amount {
+        let output = Output {
+            payload: Coin::<0>::new(*amount).into(),
+            verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
+                owner_pubkey: args.seller,
+            }),
+        };
+        total_output_amount += amount;
+        transaction.outputs.push(output);
+        if total_output_amount>= kitty_info.price.unwrap().into() {
+            break;
+        }
+    }
+
+    let mut total_input_amount = 0;
+    let mut all_input_refs = args.input;
+    for output_ref in &all_input_refs {
+        let (_owner_pubkey, amount) = sync::get_unspent(db, output_ref)?.ok_or(anyhow!(
+            "user-specified output ref not found in local database"
+        ))?;
+        total_input_amount += amount;
+    }
+
+    if total_input_amount < total_output_amount {
+        match sync::get_arbitrary_unspent_set(db, total_output_amount - total_input_amount)? {
+            Some(more_inputs) => {
+                all_input_refs.extend(more_inputs);
+            }
+            None => Err(anyhow!(
+                "Not enough value in database to construct transaction"
+            ))?,
+        }
+    }
+
+    // Make sure each input decodes and is still present in the node's storage,
+    // and then push to transaction.
+    for output_ref in &all_input_refs {
+        get_coin_from_storage(output_ref, client).await?;
+        transaction.inputs.push(Input {
+            output_ref: output_ref.clone(),
+            redeemer: vec![], // We will sign the total transaction so this should be empty
+        });
+    }
 
     // Keep a copy of the stripped encoded transaction for signing purposes
     let stripped_encoded_transaction = transaction.clone().encode();
@@ -426,7 +475,11 @@ pub async fn buy_kitty(
         // Construct the proof that it can be consumed
         let redeemer = match utxo.verifier {
             OuterVerifier::Sr25519Signature(Sr25519Signature { owner_pubkey }) => {
+                
                 let public = Public::from_h256(owner_pubkey);
+                //let public = Public::from_h256(args.owner);
+                
+                log::info!("owner_pubkey:: {:?}", owner_pubkey);
                 crate::keystore::sign_with(keystore, &public, &stripped_encoded_transaction)?
             }
             OuterVerifier::UpForGrabs(_) => Vec::new(),
@@ -459,7 +512,6 @@ pub async fn buy_kitty(
         );
         crate::pretty_print_verifier(&output.verifier);
     }
-    */
 
     Ok(())
 }
