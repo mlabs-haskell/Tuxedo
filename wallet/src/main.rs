@@ -13,6 +13,7 @@ use sp_core::H256;
 mod cli;
 mod keystore;
 mod kitty;
+mod TradableKitties;
 mod money;
 mod output_filter;
 mod rpc;
@@ -165,6 +166,31 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
 
+        Some(Command::VerifyTradableKitty { output_ref }) => {
+            println!("Details of Kitty {}:", hex::encode(output_ref.encode()));
+
+            // Print the details from storage
+            let (kitty_from_storage, verifier_from_storage) =
+                TradableKitties::get_kitty_from_storage(&output_ref, &client).await?;
+            print!(
+                "Found in storage.  Kitty-Name:{:?}  kitty: {:?}, ",
+                TradableKitties::get_kitty_name(&kitty_from_storage),
+                kitty_from_storage
+            );
+            pretty_print_verifier(&verifier_from_storage);
+
+            // Print the details from the local db
+            match sync::get_tradable_kitty_fromlocaldb(&db, &output_ref)? {
+                Some((owner, kitty)) => {
+                    println!("Found in local db. Value: {kitty}, owned by {owner}");
+                }
+                None => {
+                    println!("Not found in local db");
+                }
+            }
+            Ok(())
+        }
+
         Some(Command::SpendCoins(args)) => money::spend_coins(&db, &client, &keystore, args).await,
         Some(Command::InsertKey { seed }) => crate::keystore::insert_key(&keystore, &seed),
         Some(Command::GenerateKey { password }) => {
@@ -219,7 +245,7 @@ async fn main() -> anyhow::Result<()> {
 
         Some(Command::MintKitty(args)) => kitty::mint_kitty(&db, &client, args).await,
         Some(Command::SetKittyProperty(args)) => {
-            kitty::set_kitty_property(&db, &client, &keystore, args).await
+            TradableKitties::set_kitty_property(&db, &client, &keystore, args).await
         }
         Some(Command::BreedKitty(args)) => kitty::breed_kitty(&db, &client, &keystore, args).await,
         Some(Command::BuyKitty(args)) => kitty::buy_kitty(&db, &client, &keystore, args).await,
@@ -236,25 +262,48 @@ async fn main() -> anyhow::Result<()> {
                     kitty::get_kitty_name(&kitty_data),
                     kitty_data
                 );
-                println!("=-===================================================");
+                println!("--------------------------------------------------");
             }
-            println!("--------------------");
+            println!("=-===================================================");
+            let owned_tradable_kitties = sync::get_all_tradable_kitties_from_local_db(&db)?;
+            for (owner, kitty_data) in owned_tradable_kitties {
+                println!("Owner -> {:?}", owner);
+                println!(
+                    "{:?} => {:?} -> ",
+                    TradableKitties::get_kitty_name(&kitty_data),
+                    kitty_data
+                );
+                println!("--------------------------------------------------");
+            }
+            println!("=-===================================================");
+           
 
             Ok(())
         }
         Some(Command::ShowOwnedKitties(args)) => {
             println!("ShowOwnedKitties Kitty Summary");
             println!("==========================================");
-            let owned_kitties = sync::get_owned_kitties_from_local_db(&db, args)?;
+            let owned_kitties = sync::get_owned_kitties_from_local_db(&db, &args)?;
             for (owner, kitty_data, output_ref) in owned_kitties {
                 println!(
                     "{:?} => {:?} -> ",
                     kitty::get_kitty_name(&kitty_data),
                     kitty_data
                 );
-                println!("=-===================================================");
+                println!("--------------------------------------------------");
             }
-            println!("___________________________________________________");
+            println!("=-===================================================");
+            let owned_tradable_kitties = sync::get_owned_tradable_kitties_from_local_db(&db, &args)?;
+            for (owner, kitty_data, output_ref) in owned_tradable_kitties {
+                println!(
+                    "{:?} => {:?} -> ",
+                    TradableKitties::get_kitty_name(&kitty_data),
+                    kitty_data
+                );
+                println!("--------------------------------------------------");
+            }
+            println!("=-===================================================");
+           
 
             /*
             println!("After number of owned_kitties ");
@@ -269,6 +318,7 @@ async fn main() -> anyhow::Result<()> {
 
             Ok(())
         }
+        Some(Command::MintTradableKitty(args)) => TradableKitties::mint_kitty(&db, &client, args).await,
 
         None => {
             log::info!("No Wallet Command invoked. Exiting.");

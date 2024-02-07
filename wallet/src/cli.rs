@@ -80,6 +80,13 @@ pub enum Command {
         output_ref: OutputRef,
     },
 
+    #[command(verbatim_doc_comment)]
+    VerifyTradableKitty {
+        /// A hex-encoded output reference
+        #[arg(value_parser = output_ref_from_string)]
+        output_ref: OutputRef,
+    },
+
     /// Verify that a particular coin exists.
     /// Show its value and owner from both chain storage and the local database.
     #[command(verbatim_doc_comment)]
@@ -137,8 +144,10 @@ pub enum Command {
     ShowTimestamp,
 
     /// Mint Kitty without mom and dad.
-    ///New family will be created.
     MintKitty(MintKittyArgs),
+
+    /// Mint Tradable Kitty without mom and dad.
+    MintTradableKitty(MintTradableKittyArgs),
 
     /// For each key tracked by the wallet, shows all kitties owned.
     #[command(verbatim_doc_comment)]
@@ -208,8 +217,8 @@ pub struct MintKittyArgs {
     pub kitty_gender: String,
 
     /// Pass the name of the kitty to be minted.
-    #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_NAME)]
-    pub kitty_name: String,
+     #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_NAME)]
+     pub kitty_name: String,
 
     // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
     // shows how to specify a custom parsing function
@@ -312,4 +321,29 @@ pub struct BuyKittyArgs {
     /// The wallet will not enforce this and will gladly send an invalid which will then be rejected by the node.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
     pub output_amount: Vec<u128>,
+}
+
+#[derive(Debug, Args)]
+pub struct MintTradableKittyArgs {
+    /// Pass the name of the kitty to be minted.
+    #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_GENDER)]
+    pub kitty_gender: String,
+
+    /// Pass the name of the kitty to be minted.
+     #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_NAME)]
+     pub kitty_name: String,
+
+     /// Price of Kitty.
+    #[arg(long, short, verbatim_doc_comment, action = Append)]
+    pub price: u64,
+    
+    /// Is Kitty avilable for sale
+    #[arg(long, short, verbatim_doc_comment)]
+    pub is_available_for_sale: bool,
+
+    // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
+    // shows how to specify a custom parsing function
+    /// Hex encoded address (sr25519 pubkey) of the owner.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
+    pub owner: H256,
 }

@@ -21,6 +21,7 @@ use sp_runtime::traits::{BlakeTwo256, Hash};
 use runtime::{
     money::{Coin, MoneyConstraintChecker},
     tradable_kitties::TradableKittyConstraintChecker,
+    tradable_kitties::TradableKittyData,
     kitties::{
         DadKittyStatus, FreeKittyConstraintChecker,  KittyDNA, KittyData, KittyHelpers,
         MomKittyStatus, Parent,
@@ -28,7 +29,7 @@ use runtime::{
     OuterVerifier, Transaction,
 };
 
-use crate::cli::{BreedKittyArgs, KittyPropertyArgs, MintKittyArgs, BuyKittyArgs};
+use crate::cli::{BreedKittyArgs, KittyPropertyArgs, MintTradableKittyArgs, BuyKittyArgs};
 
 fn generate_random_string(length: usize) -> String {
     let rng = rand::thread_rng();
@@ -40,8 +41,7 @@ fn generate_random_string(length: usize) -> String {
     random_string
 }
 
-pub async fn mint_kitty(db: &Db, client: &HttpClient, args: MintKittyArgs) -> anyhow::Result<()> {
-    
+pub async fn mint_kitty(db: &Db, client: &HttpClient, args: MintTradableKittyArgs) -> anyhow::Result<()> {
     // Check the length of the kitty_name
     if args.kitty_name.len() != 4 {
         return Err(anyhow!(
@@ -49,7 +49,7 @@ pub async fn mint_kitty(db: &Db, client: &HttpClient, args: MintKittyArgs) -> an
             args.kitty_name.len()
         ));
     }
-
+/*
     match crate::sync::is_kitty_name_duplicate(&db, &args.owner, args.kitty_name.clone()) {
         Ok(Some(true)) => {
             println!("Kitty name is duplicate , select another name");
@@ -59,13 +59,12 @@ pub async fn mint_kitty(db: &Db, client: &HttpClient, args: MintKittyArgs) -> an
         }
         _ => {}
     };
-
+*/
     let mut array = [0; 4];
     let kitty_name: &[u8; 4] = {
         array.copy_from_slice(args.kitty_name.clone().as_bytes());
         &array
     };
-    
 
     // Generate a random string of length 5
     let random_string = generate_random_string(5) + args.kitty_name.as_str();
@@ -80,14 +79,19 @@ pub async fn mint_kitty(db: &Db, client: &HttpClient, args: MintKittyArgs) -> an
         parent: gender,
         dna: KittyDNA(BlakeTwo256::hash(dna_preimage)),
         name: *kitty_name, // Default value for now, as the provided code does not specify a value
-        //price: Some(100),
-       // is_available_for_sale: true,
+      //  price: Some(100),
+      //  is_available_for_sale: true,
         ..Default::default()
+    };
+    let tradable_child_kitty = TradableKittyData{
+        kitty_basic_data:child_kitty,
+        price: Some(args.price),
+        is_available_for_sale: args.is_available_for_sale,
     };
 
     // Create the Output
     let output = Output {
-        payload: child_kitty.into(),
+        payload: tradable_child_kitty.into(),
         verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
             owner_pubkey: args.owner,
         }),
@@ -98,7 +102,7 @@ pub async fn mint_kitty(db: &Db, client: &HttpClient, args: MintKittyArgs) -> an
         inputs: Vec::new(),
         peeks: Vec::new(),
         outputs: vec![output],
-        checker: FreeKittyConstraintChecker::Mint.into(),
+        checker: TradableKittyConstraintChecker::Mint.into(),
     };
 
     // Encode the transaction
@@ -117,7 +121,7 @@ pub async fn mint_kitty(db: &Db, client: &HttpClient, args: MintKittyArgs) -> an
     };
 
     let output = &transaction.outputs[0];
-    let minted_kitty = output.payload.extract::<KittyData>()?.dna.0;
+    let minted_kitty = output.payload.extract::<TradableKittyData>()?.kitty_basic_data.dna.0;
     println!(
         "TransactionHash {:?}. ",
         <BlakeTwo256 as Hash>::hash_of(&transaction.encode())
@@ -133,6 +137,13 @@ pub async fn mint_kitty(db: &Db, client: &HttpClient, args: MintKittyArgs) -> an
 
     Ok(())
 }
+fn gen_dna() -> [u8; 16] {
+    let payload = (
+        T::KittyRandomness::random(&b"dna"[..]).0,
+        <frame_system::Pallet<T>>::block_number(),
+    );
+    payload.using_encoded(blake2_128)
+}
 
 pub async fn set_kitty_property(
     db: &Db,
@@ -141,12 +152,12 @@ pub async fn set_kitty_property(
     args: KittyPropertyArgs,
 ) -> anyhow::Result<()> {
     log::info!("The set_kitty_property are:: {:?}", args);
-    log::info!("The et_kitty_property is not supported for basic kitty");
-    /*
-    let kitty_to_be_bought =
-        crate::sync::get_kitty_from_local_db_based_on_name(&db, args.current_name);
-    let Some((kitty_info, kitty_out_ref)) = kitty_to_be_bought.unwrap() else {
-        todo!()
+
+    let kitty_to_be_updated =
+        crate::sync::get_tradable_kitty_from_local_db_based_on_name(&db, args.current_name.clone());
+    let Some((kitty_info, kitty_out_ref)) = kitty_to_be_updated.unwrap() else {
+        println!("No kitty with name : {}",args.current_name.clone() );
+        return Err(anyhow!("No kitty with name {}",args.current_name.clone())); // Todo this needs to error 
     };
     let kitty_ref = Input {
         output_ref: kitty_out_ref,
@@ -163,7 +174,7 @@ pub async fn set_kitty_property(
 
     // Create the KittyData
     let mut output_kitty = kitty_info.clone();
-    output_kitty.name = *kitty_name;
+    output_kitty.kitty_basic_data.name = *kitty_name;
     output_kitty.price = Some(args.price);
     output_kitty.is_available_for_sale = args.is_available_for_sale;
 
@@ -178,7 +189,7 @@ pub async fn set_kitty_property(
         inputs: inputs,
         peeks: Vec::new(),
         outputs: vec![output],
-        checker: FreeKittyConstraintChecker::UpdateProperties.into(),
+        checker: TradableKittyConstraintChecker::UpdateProperties.into(),
     };
 
     // Keep a copy of the stripped encoded transaction for signing purposes
@@ -216,7 +227,7 @@ pub async fn set_kitty_property(
             tx_hash,
             index: i as u32,
         };
-        let new_kitty = output.payload.extract::<KittyData>()?.dna.0;
+        let new_kitty = output.payload.extract::<TradableKittyData>()?.kitty_basic_data.dna.0;
 
         print!(
             "Created {:?} worth {:?}. ",
@@ -225,10 +236,11 @@ pub async fn set_kitty_property(
         );
         crate::pretty_print_verifier(&output.verifier);
     }
-    */
 
     Ok(())
 }
+
+/*
 
 pub async fn breed_kitty(
     db: &Db,
@@ -240,7 +252,6 @@ pub async fn breed_kitty(
 
     let kitty_mom = crate::sync::get_kitty_from_local_db_based_on_name(&db, args.mom_name);
     let kitty_dad = crate::sync::get_kitty_from_local_db_based_on_name(&db, args.dad_name);
-
     let Some((kitty_mom_info, out_ref_mom)) = kitty_mom.unwrap() else {
         todo!()
     };
@@ -299,7 +310,7 @@ pub async fn breed_kitty(
     let child = KittyData {
         parent: Parent::Mom(MomKittyStatus::RearinToGo),
         free_breedings: 2,
-        name: *b"tomy", // Name of child kitty need to be generated in better way
+        name: *b"tomy",
         dna: KittyDNA(BlakeTwo256::hash_of(&(
             new_mom.dna.clone(),
             new_dad.dna.clone(),
@@ -307,8 +318,8 @@ pub async fn breed_kitty(
             new_dad.num_breedings,
         ))),
         num_breedings: 0,
-       // price: None,
-      //  is_available_for_sale: false,
+        price: None,
+        is_available_for_sale: false,
     };
     println!("New mom Dna = {:?}", new_mom.dna);
     println!("New Dad Dna = {:?}", new_dad.dna);
@@ -393,8 +404,7 @@ pub async fn buy_kitty(
     args: BuyKittyArgs,
 ) -> anyhow::Result<()> {
     log::info!("The Buy kittyArgs are:: {:?}", args);
-    log::info!("The Buy kitty is not supported for basic kitty");
-/*
+
     let kitty_to_be_bought =
         crate::sync::get_kitty_from_local_db_based_on_name(&db, args.kitty_name);
         
@@ -519,9 +529,10 @@ pub async fn buy_kitty(
         );
         crate::pretty_print_verifier(&output.verifier);
     }
-    */
+
     Ok(())
 }
+*/
 
 /// Apply a transaction to the local database, storing the new coins.
 pub(crate) fn apply_transaction(
@@ -530,21 +541,21 @@ pub(crate) fn apply_transaction(
     index: u32,
     output: &Output<OuterVerifier>,
 ) -> anyhow::Result<()> {
-    let kitty_detail: KittyData = output.payload.extract()?;
+    let tradable_kitty_detail: TradableKittyData = output.payload.extract()?;
 
     let output_ref = OutputRef { tx_hash, index };
-    println!("in kitty:apply_transaction output_ref = {:?}", output_ref);
+    println!("in Tradable kitty:apply_transaction output_ref = {:?}", output_ref);
     match output.verifier {
         OuterVerifier::Sr25519Signature(Sr25519Signature { owner_pubkey }) => {
             // Add it to the global unspent_outputs table
-            crate::sync::add_fresh_kitty_to_db(db, &output_ref, &owner_pubkey, &kitty_detail)
+            crate::sync::add_fresh_tradable_kitty_to_db(db, &output_ref, &owner_pubkey, &tradable_kitty_detail)
         }
         _ => Err(anyhow!("{:?}", ())),
     }
 }
 
-pub(crate) fn get_kitty_name(kitty: &KittyData) -> Option<String> {
-    if let Ok(kitty_name) = std::str::from_utf8(&kitty.name) {
+pub(crate) fn get_kitty_name(tradable_kitty: &TradableKittyData) -> Option<String> {
+    if let Ok(kitty_name) = std::str::from_utf8(&tradable_kitty.kitty_basic_data.name) {
         return Some(kitty_name.to_string());
     } else {
         println!("Invalid UTF-8 data in the Kittyname");
@@ -557,9 +568,9 @@ pub(crate) fn get_kitty_name(kitty: &KittyData) -> Option<String> {
 pub async fn get_kitty_from_storage(
     output_ref: &OutputRef,
     client: &HttpClient,
-) -> anyhow::Result<(KittyData, OuterVerifier)> {
+) -> anyhow::Result<(TradableKittyData, OuterVerifier)> {
     let utxo = fetch_storage::<OuterVerifier>(output_ref, client).await?;
-    let kitty_in_storage: KittyData = utxo.payload.extract()?;
+    let kitty_in_storage: TradableKittyData = utxo.payload.extract()?;
 
     Ok((kitty_in_storage, utxo.verifier))
 }

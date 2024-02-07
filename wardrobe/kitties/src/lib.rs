@@ -56,12 +56,15 @@ pub enum FreeKittyConstraintChecker {
     Breed,
     /// A mint transaction that creates kitties from one parent(either mom or dad).
     Mint,
+	/*
     ///Update various properties of kitty.
-    UpdateProperties,
+     UpdateProperties,
     ///Can buy a new kitty from others
     Buy,
+	*/
 }
 
+/*
 #[derive(
     Serialize,
     Deserialize,
@@ -80,6 +83,7 @@ pub enum  PaidKittyConstraintChecker<const ID: u8> {
     Buy,
     Breed,
 }
+*/
 
 #[derive(
     Serialize,
@@ -195,8 +199,8 @@ pub struct KittyData {
     pub dna: KittyDNA,
     pub num_breedings: u128,
     pub name: [u8; 4], // Name of kitty is stored in onChain s of now.
-    pub price: Option<u64>,
-    pub is_available_for_sale: bool,
+   // pub price: Option<u64>,
+   // pub is_available_for_sale: bool,
 }
 
 impl KittyData {
@@ -239,8 +243,8 @@ impl Default for KittyData {
             dna: KittyDNA(H256::from_slice(b"mom_kitty_1asdfasdfasdfasdfasdfa")),
             num_breedings: 3,
             name: *b"kty0",
-            price: Some(100),
-            is_available_for_sale: true,
+        //    price: Some(100),
+        //    is_available_for_sale: true,
         }
     }
 }
@@ -307,12 +311,15 @@ pub enum ConstraintCheckerError {
     NotEnoughFreeBreedings,
     /// The transaction attempts to mint no Kitty . This is not allowed.
     MintingNothing,
+	/// No Need of parents to mint.
+    MintingWithInputs,
+	/*
     /// The transaction attempts to updat no Kitty . This is not allowed.
     InputMissingUpadtingNothing,
     /// The transaction attempts to updat no Kitty . This is not allowed.
     OutputMissingUpadtingNothing,
-    /// No Need of parents to mint.
-    ParentsCannotExistForMinting,
+
+    
     /// Kitty Update has more than one outputs.
     MultipleOutputsForKittyUpdateError,
     /// Kitty Update has more than one outputs.
@@ -325,9 +332,10 @@ pub enum ConstraintCheckerError {
     NumOfBreedingCannotBeUpdated,
     /// Kitty updated price is incorrect.
     UpdatedKittyIncorrectPrice,
+	*/
 }
 
-trait Breed {
+pub trait Breed {
     /// The Cost to breed a kitty if it is not free.
     const COST: u128;
     /// Number of free breedings a kitty will have.
@@ -359,6 +367,7 @@ trait Breed {
         child: &KittyData,
     ) -> Result<(), Self::Error>;
 }
+
 
 trait UpdateKittyProperty {
     /// The Cost to update a kitty property if it is not free.
@@ -570,7 +579,7 @@ impl Breed for KittyHelpers {
         Ok(())
     }
 }
-
+/*
 impl UpdateKittyProperty for KittyHelpers {
 
     const COST: u128 = 5u128;
@@ -604,6 +613,7 @@ impl UpdateKittyProperty for KittyHelpers {
         Ok(())
     }
 }
+*/
 
 impl TryFrom<&DynamicallyTypedData> for KittyData {
     type Error = ConstraintCheckerError;
@@ -629,7 +639,7 @@ impl SimpleConstraintChecker for FreeKittyConstraintChecker {
                 log::info!("Self::Mint()  called ");
                 ensure!(
                     input_data.is_empty(),
-                    ConstraintCheckerError::ParentsCannotExistForMinting
+                    ConstraintCheckerError::MintingWithInputs
                 );
 
                 // Make sure there is at least one output being minted
@@ -661,17 +671,20 @@ impl SimpleConstraintChecker for FreeKittyConstraintChecker {
                 KittyHelpers::check_new_family(&mom, &dad, output_data)?;
                 Ok(0)
             }
+			/*
             Self::UpdateProperties => {
                 log::info!("Update properties is called ");
                 ensure!(
                     input_data.is_empty(),
-                    ConstraintCheckerError::InputMissingUpadtingNothing
+                    //ConstraintCheckerError::InputMissingUpadtingNothing
+					ConstraintCheckerError::MintingNothing
                 );
 
                 // Make sure there is at least one output being minted
                 ensure!(
                     !output_data.is_empty(),
-                    ConstraintCheckerError::OutputMissingUpadtingNothing
+                    //ConstraintCheckerError::OutputMissingUpadtingNothing
+					ConstraintCheckerError::MintingNothing
                 );
                 let original_kitty = KittyData::try_from(&input_data[0])?;
                 let updated_kitty = KittyData::try_from(&input_data[1])?;
@@ -684,10 +697,12 @@ impl SimpleConstraintChecker for FreeKittyConstraintChecker {
                 log::info!("Buy called ");
                 Ok(0)
             }
+			*/
         }
     }
 }
 
+/*
 impl<const ID: u8> SimpleConstraintChecker for PaidKittyConstraintChecker<ID> {
     type Error = ConstraintCheckerError;
     /// Checks:
@@ -704,3 +719,4 @@ impl<const ID: u8> SimpleConstraintChecker for PaidKittyConstraintChecker<ID> {
         Ok(0)
     }
 }
+*/
