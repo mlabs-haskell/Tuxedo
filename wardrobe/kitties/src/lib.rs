@@ -453,6 +453,7 @@ impl Breed for KittyHelpers {
         old_dad: &KittyData,
         new_family: &[DynamicallyTypedData],
     ) -> Result<(), Self::Error> {
+        log::info!("Kitty check_new_family");
         // Output Side
         ensure!(new_family.len() == 3, Self::Error::NotEnoughFamilyMembers);
         let new_mom = KittyData::try_from(&new_family[0])?;
@@ -647,7 +648,6 @@ impl SimpleConstraintChecker for FreeKittyConstraintChecker {
                     !output_data.is_empty(),
                     ConstraintCheckerError::MintingNothing
                 );
-                ensure!(output_data.len() == 1, Self::Error::IncorrectNumberOfKittiesForMintOperation);
 
                 // Make sure the outputs are the right type
                 for utxo in output_data {

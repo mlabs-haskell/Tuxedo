@@ -165,6 +165,10 @@ pub enum Command {
 
     /// Breed Kitties.
     #[command(verbatim_doc_comment)]
+    BreedTradableKitty(BreedKittyArgs),
+
+    /// Breed Kitties.
+    #[command(verbatim_doc_comment)]
     SetKittyProperty(KittyPropertyArgs),
 
     /// Buy Kitty.
@@ -238,17 +242,7 @@ pub struct ShowOwnedKittyArgs {
 
 #[derive(Debug, Args)]
 pub struct BreedKittyArgs {
-    /*
-    // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
-    // shows how to specify a custom parsing function
-    /// Hex encoded address (sr25519 pubkey) of the owner.
-    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string)]
-    pub parent_kitty_mom_dna: H256,
-
-        /// Hex encoded address (sr25519 pubkey) of the owner.
-    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string)]
-    pub parent_kitty_dad_dna: H256,
-    */
+    
     /// Name of Mom.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
     pub mom_name: String,
@@ -294,11 +288,6 @@ pub struct BuyKittyArgs {
     /// They must all be coins.
     #[arg(long, short, verbatim_doc_comment, value_parser = output_ref_from_string)]
     pub input: Vec<OutputRef>,
-
-    // /// All inputs to the transaction will be from this same sender.
-    // /// When not specified, inputs from any owner are chosen indiscriminantly
-    // #[arg(long, short, value_parser = h256_from_string)]
-    // sender: Option<H256>,
 
     // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
     // shows how to specify a custom parsing function

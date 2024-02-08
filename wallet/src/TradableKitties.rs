@@ -137,13 +137,6 @@ pub async fn mint_kitty(db: &Db, client: &HttpClient, args: MintTradableKittyArg
 
     Ok(())
 }
-fn gen_dna() -> [u8; 16] {
-    let payload = (
-        T::KittyRandomness::random(&b"dna"[..]).0,
-        <frame_system::Pallet<T>>::block_number(),
-    );
-    payload.using_encoded(blake2_128)
-}
 
 pub async fn set_kitty_property(
     db: &Db,
@@ -240,7 +233,7 @@ pub async fn set_kitty_property(
     Ok(())
 }
 
-/*
+
 
 pub async fn breed_kitty(
     db: &Db,
@@ -250,13 +243,14 @@ pub async fn breed_kitty(
 ) -> anyhow::Result<()> {
     log::info!("The Breed kittyArgs are:: {:?}", args);
 
-    let kitty_mom = crate::sync::get_kitty_from_local_db_based_on_name(&db, args.mom_name);
-    let kitty_dad = crate::sync::get_kitty_from_local_db_based_on_name(&db, args.dad_name);
+    let kitty_mom = crate::sync::get_tradable_kitty_from_local_db_based_on_name(&db, args.mom_name.clone());
     let Some((kitty_mom_info, out_ref_mom)) = kitty_mom.unwrap() else {
-        todo!()
+        return Err(anyhow!("No kitty with name {}",args.mom_name)); // Todo this needs to error
     };
+    
+    let kitty_dad = crate::sync::get_tradable_kitty_from_local_db_based_on_name(&db, args.dad_name.clone());
     let Some((kitty_dad_info, out_ref_dad)) = kitty_dad.unwrap() else {
-        todo!()
+        return Err(anyhow!("No kitty with name {}",args.dad_name)); // Todo this needs to error
     };
     log::info!("kitty_mom_ref:: {:?}", out_ref_mom);
     log::info!("kitty_dad_ref:: {:?}", out_ref_dad);
@@ -275,13 +269,13 @@ pub async fn breed_kitty(
     inputs.push(mom_ref);
     inputs.push(dad_ref);
 
-    let mut new_mom: KittyData = kitty_mom_info;
-    new_mom.parent = Parent::Mom(MomKittyStatus::RearinToGo);
-    if new_mom.num_breedings >= 2 {
-        new_mom.parent = Parent::Mom(MomKittyStatus::HadBirthRecently);
+    let mut new_mom: TradableKittyData = kitty_mom_info;
+    new_mom.kitty_basic_data.parent = Parent::Mom(MomKittyStatus::RearinToGo);
+    if new_mom.kitty_basic_data.num_breedings >= 2 {
+        new_mom.kitty_basic_data.parent = Parent::Mom(MomKittyStatus::HadBirthRecently);
     }
-    new_mom.num_breedings += 1;
-    new_mom.free_breedings -= 1;
+    new_mom.kitty_basic_data.num_breedings += 1;
+    new_mom.kitty_basic_data.free_breedings -= 1;
 
     // Create the Output mom
     let output_mom = Output {
@@ -291,14 +285,14 @@ pub async fn breed_kitty(
         }),
     };
 
-    let mut new_dad = kitty_dad_info;
-    new_dad.parent = Parent::Dad(DadKittyStatus::RearinToGo);
-    if new_dad.num_breedings >= 2 {
-        new_dad.parent = Parent::Dad(DadKittyStatus::Tired);
+    let mut new_dad:TradableKittyData = kitty_dad_info;
+    new_dad.kitty_basic_data.parent = Parent::Dad(DadKittyStatus::RearinToGo);
+    if new_dad.kitty_basic_data.num_breedings >= 2 {
+        new_dad.kitty_basic_data.parent = Parent::Dad(DadKittyStatus::Tired);
     }
 
-    new_dad.num_breedings += 1;
-    new_dad.free_breedings -= 1;
+    new_dad.kitty_basic_data.num_breedings += 1;
+    new_dad.kitty_basic_data.free_breedings -= 1;
     // Create the Output dada
     let output_dad = Output {
         payload: new_dad.clone().into(),
@@ -307,23 +301,27 @@ pub async fn breed_kitty(
         }),
     };
 
-    let child = KittyData {
+    let child_kitty = KittyData {
         parent: Parent::Mom(MomKittyStatus::RearinToGo),
         free_breedings: 2,
         name: *b"tomy",
         dna: KittyDNA(BlakeTwo256::hash_of(&(
-            new_mom.dna.clone(),
-            new_dad.dna.clone(),
-            new_mom.num_breedings,
-            new_dad.num_breedings,
+            new_mom.kitty_basic_data.dna.clone(),
+            new_dad.kitty_basic_data.dna.clone(),
+            new_mom.kitty_basic_data.num_breedings,
+            new_dad.kitty_basic_data.num_breedings,
         ))),
         num_breedings: 0,
+    };
+
+    let child = TradableKittyData {
+        kitty_basic_data: child_kitty,
         price: None,
         is_available_for_sale: false,
     };
-    println!("New mom Dna = {:?}", new_mom.dna);
-    println!("New Dad Dna = {:?}", new_dad.dna);
-    println!("Child Dna = {:?}", child.dna);
+    println!("New mom Dna = {:?}", new_mom.kitty_basic_data.dna);
+    println!("New Dad Dna = {:?}", new_dad.kitty_basic_data.dna);
+    println!("Child Dna = {:?}", child.kitty_basic_data.dna);
     // Create the Output child
     let output_child = Output {
         payload: child.clone().into(),
@@ -344,7 +342,7 @@ pub async fn breed_kitty(
             new_family[2].clone(),
         ])
             .to_vec(),
-        checker: FreeKittyConstraintChecker::Breed.into(),
+        checker: TradableKittyConstraintChecker::Breed.into(),
     };
 
     // Keep a copy of the stripped encoded transaction for signing purposes
@@ -384,10 +382,10 @@ pub async fn breed_kitty(
             tx_hash,
             index: i as u32,
         };
-        let new_kitty = output.payload.extract::<KittyData>()?.dna.0;
+        let new_kitty = output.payload.extract::<TradableKittyData>()?.kitty_basic_data.dna.0;
 
         print!(
-            "Created {:?} worth {:?}. ",
+            "Created {:?} Tradable Kitty {:?}. ",
             hex::encode(new_kitty_ref.encode()),
             new_kitty
         );
@@ -406,10 +404,12 @@ pub async fn buy_kitty(
     log::info!("The Buy kittyArgs are:: {:?}", args);
 
     let kitty_to_be_bought =
-        crate::sync::get_kitty_from_local_db_based_on_name(&db, args.kitty_name);
+        crate::sync::get_tradable_kitty_from_local_db_based_on_name(&db, args.kitty_name);
         
     let Some((kitty_info, kitty_out_ref)) = kitty_to_be_bought.unwrap() else {
-        todo!()
+        return Err(anyhow!(
+            "Not enough value in database to construct transaction"
+        ))?;
     };
     let kitty_ref = Input {
         output_ref: kitty_out_ref,
@@ -432,7 +432,7 @@ pub async fn buy_kitty(
         inputs: inputs,
         peeks: Vec::new(),
         outputs: vec![output],
-        checker: TradableKittyConstraintChecker.into(),
+        checker: TradableKittyConstraintChecker::Buy.into()
     };
 
     // Construct each output and then push to the transactions for Money
@@ -446,7 +446,7 @@ pub async fn buy_kitty(
         };
         total_output_amount += amount;
         transaction.outputs.push(output);
-        if total_output_amount>= kitty_info.price.unwrap().into() {
+        if total_output_amount >= kitty_info.price.unwrap().into() {
             break;
         }
     }
@@ -494,7 +494,6 @@ pub async fn buy_kitty(
             OuterVerifier::Sr25519Signature(Sr25519Signature { owner_pubkey }) => {
                 
                 let public = Public::from_h256(owner_pubkey);
-                //let public = Public::from_h256(args.owner);
                 
                 log::info!("owner_pubkey:: {:?}", owner_pubkey);
                 crate::keystore::sign_with(keystore, &public, &stripped_encoded_transaction)?
@@ -520,7 +519,7 @@ pub async fn buy_kitty(
             tx_hash,
             index: i as u32,
         };
-        let new_kitty = output.payload.extract::<KittyData>()?.dna.0;
+        let new_kitty = output.payload.extract::<TradableKittyData>()?.kitty_basic_data.dna.0;
 
         print!(
             "Created {:?} worth {:?}. ",
@@ -532,7 +531,7 @@ pub async fn buy_kitty(
 
     Ok(())
 }
-*/
+
 
 /// Apply a transaction to the local database, storing the new coins.
 pub(crate) fn apply_transaction(
