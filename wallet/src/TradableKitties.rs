@@ -17,6 +17,8 @@ use sc_keystore::LocalKeystore;
 use sled::Db;
 use sp_core::sr25519::Public;
 use sp_runtime::traits::{BlakeTwo256, Hash};
+use crate::kitty;
+use crate::kitty::Gender;
 
 use runtime::{
     money::{Coin, MoneyConstraintChecker},
@@ -67,12 +69,18 @@ pub async fn mint_kitty(db: &Db, client: &HttpClient, args: MintTradableKittyArg
     };
 
     // Generate a random string of length 5
-    let random_string = generate_random_string(5) + args.kitty_name.as_str();
+    let random_string = kitty::generate_random_string(5) + args.kitty_name.as_str();
     let dna_preimage: &[u8] = random_string.as_bytes();
+    /*
     let mut gender = Parent::mom();
     if args.kitty_gender == "male" {
         gender = Parent::dad();
     }
+    */
+    let gender = match kitty::gen_random_gender() {
+        Gender::Male =>  Parent::dad(),
+        Gender::Female =>  Parent::mom(),
+    };
 
     // Create the KittyData
     let child_kitty = KittyData {
@@ -150,7 +158,7 @@ pub async fn set_kitty_property(
         crate::sync::get_tradable_kitty_from_local_db_based_on_name(&db, args.current_name.clone());
     let Some((kitty_info, kitty_out_ref)) = kitty_to_be_updated.unwrap() else {
         println!("No kitty with name : {}",args.current_name.clone() );
-        return Err(anyhow!("No kitty with name {}",args.current_name.clone())); // Todo this needs to error 
+        return Err(anyhow!("No kitty with name {}",args.current_name.clone()));  
     };
     let kitty_ref = Input {
         output_ref: kitty_out_ref,

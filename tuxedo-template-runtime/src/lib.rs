@@ -170,13 +170,9 @@ pub enum OuterConstraintChecker {
     /// Checks monetary transactions in a basic fungible cryptocurrency
     Money(money::MoneyConstraintChecker<0>),
     /// Checks Free Kitty transactions
-    FreeKittyConstraintChecker(kitties::FreeKittyConstraintChecker<0>),
+    FreeKittyConstraintChecker(kitties::FreeKittyConstraintChecker),
     /// Checks Paid Kitty transactions
-    PaidKittyConstraintChecker(kitties::PaidKittyConstraintChecker<0>),
-    /*
-    /// Checks Free Kitty transactions
-    KittyConstraintChecker(kitties::KittyConstraintChecker),
-    */
+    TradableKittyConstraintChecker(tradable_kitties::TradableKittyConstraintChecker<0>),
     /// Checks that an amoeba can split into two new amoebas
     AmoebaMitosis(amoeba::AmoebaMitosis),
     /// Checks that a single amoeba is simply removed from the state
@@ -212,8 +208,6 @@ pub enum OuterConstraintChecker {
     Money(money::MoneyConstraintChecker<0>),
     /// Checks Free Kitty transactions
     FreeKittyConstraintChecker(kitties::FreeKittyConstraintChecker),
-    // /// Checks Paid Kitty transactions
-    // PaidKittyConstraintChecker(kitties::PaidKittyConstraintChecker<0>),
     /// Checks Paid Kitty transactions
     TradableKittyConstraintChecker(tradable_kitties::TradableKittyConstraintChecker<0>),
     /// Checks that an amoeba can split into two new amoebas

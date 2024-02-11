@@ -13,6 +13,7 @@ serde = { features = [ "derive" ], workspace = true }
 sp-runtime = { default_features = false, workspace = true }
 sp-std = { default_features = false, workspace = true }
 tuxedo-core = { default-features = false, path = "../../tuxedo-core" }
+log = { workspace = true }
 
 [features]
 default = [ "std" ]

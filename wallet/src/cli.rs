@@ -218,7 +218,7 @@ pub struct SpendArgs {
 pub struct MintKittyArgs {
     /// Pass the name of the kitty to be minted.
     #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_GENDER)]
-    pub kitty_gender: String,
+    pub kitty_gender: String,  // Todo: This will be removed , gender will be decode randomly.
 
     /// Pass the name of the kitty to be minted.
      #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_NAME)]
@@ -266,7 +266,7 @@ pub struct KittyPropertyArgs {
 
     /// Price of Kitty.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
-    pub price: u64,
+    pub price: u128,
 
     #[arg(long, short, verbatim_doc_comment)]
     pub is_available_for_sale: bool,
@@ -316,7 +316,7 @@ pub struct BuyKittyArgs {
 pub struct MintTradableKittyArgs {
     /// Pass the name of the kitty to be minted.
     #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_GENDER)]
-    pub kitty_gender: String,
+    pub kitty_gender: String, // Todo: This will be removed , gender will be decode randomly.
 
     /// Pass the name of the kitty to be minted.
      #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_NAME)]
@@ -324,7 +324,7 @@ pub struct MintTradableKittyArgs {
 
      /// Price of Kitty.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
-    pub price: u64,
+    pub price: u128,
     
     /// Is Kitty avilable for sale
     #[arg(long, short, verbatim_doc_comment)]

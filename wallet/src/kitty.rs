@@ -28,9 +28,13 @@ use runtime::{
     OuterVerifier, Transaction,
 };
 
+use parity_scale_codec::{ Decode};
+
 use crate::cli::{BreedKittyArgs, KittyPropertyArgs, MintKittyArgs, BuyKittyArgs};
 
-fn generate_random_string(length: usize) -> String {
+
+
+pub fn generate_random_string(length: usize) -> String {
     let rng = rand::thread_rng();
     let random_string: String = rng
         .sample_iter(&Alphanumeric)
@@ -38,6 +42,26 @@ fn generate_random_string(length: usize) -> String {
         .map(char::from)
         .collect();
     random_string
+}
+
+#[derive(Encode, Decode, Debug, Clone, PartialEq)]
+pub enum Gender {
+    Male,
+    Female,
+}
+
+pub fn gen_random_gender() -> Gender {
+    // Create a local random number generator
+    let mut rng = rand::thread_rng();
+
+    // Generate a random number between 0 and 1
+    let random_number = rng.gen_range(0..=1);
+
+    // We Use the random number to determine the gender
+    match random_number {
+        0 => Gender::Male,
+        _ => Gender::Female,
+    }
 }
 
 pub async fn mint_kitty(db: &Db, client: &HttpClient, args: MintKittyArgs) -> anyhow::Result<()> {
@@ -70,10 +94,17 @@ pub async fn mint_kitty(db: &Db, client: &HttpClient, args: MintKittyArgs) -> an
     // Generate a random string of length 5
     let random_string = generate_random_string(5) + args.kitty_name.as_str();
     let dna_preimage: &[u8] = random_string.as_bytes();
+   /*
     let mut gender = Parent::mom();
     if args.kitty_gender == "male" {
         gender = Parent::dad();
     }
+    */
+
+    let gender = match gen_random_gender() {
+        Gender::Male =>  Parent::dad(),
+        Gender::Female =>  Parent::mom(),
+    };
 
     // Create the KittyData
     let child_kitty = KittyData {
@@ -152,15 +183,18 @@ pub async fn breed_kitty(
 ) -> anyhow::Result<()> {
     log::info!("The Breed kittyArgs are:: {:?}", args);
 
-    let kitty_mom = crate::sync::get_kitty_from_local_db_based_on_name(&db, args.mom_name);
-    let kitty_dad = crate::sync::get_kitty_from_local_db_based_on_name(&db, args.dad_name);
-
+    let kitty_mom = crate::sync::get_kitty_from_local_db_based_on_name(&db, args.mom_name.clone());
     let Some((kitty_mom_info, out_ref_mom)) = kitty_mom.unwrap() else {
-        todo!()
+        return Err(anyhow!("No kitty with name {}",args.mom_name));  
     };
+
+    let kitty_dad = crate::sync::get_kitty_from_local_db_based_on_name(&db, args.dad_name.clone());
+
+    
     let Some((kitty_dad_info, out_ref_dad)) = kitty_dad.unwrap() else {
-        todo!()
+        return Err(anyhow!("No kitty with name {}",args.dad_name));  
     };
+
     log::info!("kitty_mom_ref:: {:?}", out_ref_mom);
     log::info!("kitty_dad_ref:: {:?}", out_ref_dad);
 
@@ -183,8 +217,8 @@ pub async fn breed_kitty(
     if new_mom.num_breedings >= 2 {
         new_mom.parent = Parent::Mom(MomKittyStatus::HadBirthRecently);
     }
-    new_mom.num_breedings += 1;
-    new_mom.free_breedings -= 1;
+    new_mom.num_breedings.checked_add(1);
+    new_mom.free_breedings.checked_sub(1);
 
     // Create the Output mom
     let output_mom = Output {
@@ -200,8 +234,8 @@ pub async fn breed_kitty(
         new_dad.parent = Parent::Dad(DadKittyStatus::Tired);
     }
 
-    new_dad.num_breedings += 1;
-    new_dad.free_breedings -= 1;
+    new_dad.num_breedings.checked_add(1);
+    new_dad.free_breedings.checked_sub(1);
     // Create the Output dada
     let output_dad = Output {
         payload: new_dad.clone().into(),

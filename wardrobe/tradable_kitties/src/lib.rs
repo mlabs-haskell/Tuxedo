@@ -1,44 +1,42 @@
-//! An NFT game inspired by cryptokitties.
-//! This is a game which allows for kitties to be bred based on a few factors
-//! 1.) Mom and Tired have to be in a state where they are ready to breed
-//! 2.) Each Mom and Dad have some DNA and the child will have unique DNA combined from the both of them
-//!     Linkable back to the Mom and Dad
-//! 3.) The game also allows Kitties to have a cooling off period inbetween breeding before they can be bred again.
-//! 4.) A rest operation allows for a Mom Kitty and a Dad Kitty to be cooled off
+//! This module defines TradableKitty, a specialized type of kitty with additional features.
 //!
-//! In order to submit a valid transaction you must strutucture it as follows:
-//! 1.) Input must contain 1 mom and 1 dad
-//! 2.) Output must contain Mom, Dad, and newly created Child
-//! 3.) A child's DNA is calculated by:
-//!         BlakeTwo256::hash_of(MomDna, DadDna, MomCurrNumBreedings, DadCurrNumberBreedings)
+//! TradableKitties are designed for trading, and they extend the functionality of the basic kitty.
+//! Key features of TradableKitties include:
+//! The TradableKitty module extends the basic functionality of kitties with additional features such as buying, updating properties, minting, and breeding. The provided validation functionality includes:
 //!
-//! There are a only a finite amount of free breedings available before it starts to cost money
-//! to breed kitties.
+//! - `Mint`: Create new TradableKitties, supporting the generation of kitties without parents.
+//! - `Breed`: Consume kitties and create a new family, including parents (mom and dad) and a child.
+//! - `UpdateProperties`: Update properties of a TradableKitty, including `is_available_for_sale`, `price`, and `name`.
+//!    A single API, `updateKittyProperties()`, is provided for updating these properties for below reasons: 
+//!               1. Updating atomically in a single transaction, ensuring consistency.
+//!               2. Benfit of less number of transaction is reduced weight or gas fees. 
+//! - `Buy`: Enable users to purchase TradableKitties from others, facilitating secure and fair exchanges.
+//!
+//!
+//! TradableKitties provide an enhanced user experience by introducing trading capabilities
+//! and additional customization for kitty properties.
+
+
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
-use sp_core::H256;
 use sp_runtime::{
-    traits::{BlakeTwo256, Hash as HashT},
     transaction_validity::TransactionPriority,
 };
 use sp_std::prelude::*;
 use tuxedo_core::{
     dynamic_typing::{DynamicallyTypedData, UtxoData},
-    traits::Cash,
     ensure,
-    types::Transaction,
-    SimpleConstraintChecker, Verifier,
+    SimpleConstraintChecker,
 };
 use kitties::KittyHelpers;
 use kitties::Breed as BasicKittyBreed;
 use money::{Coin, MoneyConstraintChecker};
 use kitties::KittyData;
 use kitties::ConstraintCheckerError;
-use tuxedo_core::types::Output;
 
 
 #[cfg(test)]
@@ -60,7 +58,7 @@ mod tests;
 )]
 pub struct TradableKittyData {
     pub kitty_basic_data: KittyData,
-    pub price: Option<u64>,
+    pub price: Option<u128>,
     pub is_available_for_sale: bool,
 }
 
@@ -68,9 +66,8 @@ impl Default for TradableKittyData {
     fn default() -> Self {
         Self {
             kitty_basic_data: KittyData::default(),
-//            kitty_basic_data.kitty_name: *b"tdkt",
-            price: Some(100),
-            is_available_for_sale: true,
+            price: None,
+            is_available_for_sale: false,
         }
     }
 }
@@ -144,37 +141,43 @@ pub enum TradableKittyConstraintCheckerError {
     TooManyBreedingsForKitty,
     /// Not enough free breedings available for these parents.
     NotEnoughFreeBreedings,
-    /// The transaction attempts to mint no Kitty . This is not allowed.
+    /// The transaction attempts to mint no Kitty. 
     MintingNothing,
-    /// No Need of parents to mint.
+    /// Inputs(Parents) not required for mint.
     MintingWithInputs,
-    /// Kitty Update has more than one outputs.
+    /// No input for kitty Update.
+    InputMissingUpdatingNothing,
+    /// Mismatch innumberof inputs and number of outputs .
+    MismatchBetweenNumberOfInputAndUpdateUpadtingNothing,
+    /// TradableKitty Update can't have more than one outputs.
     MultipleOutputsForKittyUpdateError,
-    /// Kitty Update has more than one outputs.
+    /// Kitty Update has more than one inputs.
     InValidNumberOfInputsForKittyUpdate,
     /// Basic kitty properties cannot be updated.
-    BasicKittyPropertiesCannotBeUpdated,
+    KittyGenderCannotBeUpdated,
+    /// Basic kitty properties cannot be updated.
+    KittyDnaCannotBeUpdated,
     /// Kitty FreeBreeding cannot be updated.
     FreeBreedingCannotBeUpdated,
     /// Kitty NumOfBreeding cannot be updated.
     NumOfBreedingCannotBeUpdated,
-    /// Kitty updated price is incorrect.
+    /// Updated price of is incorrect.
     UpdatedKittyIncorrectPrice,
-    /// No input for kitty Update.
-    InputMissingUpdatingNothing,
-    /// No output for kitty Update.
-    OutputMissingUpadtingNothing,
 
-    /// No input for kitty Update.
+    /// No input for kitty buy operation.
     InputMissingBuyingNothing,
-    /// No output for kitty Update.
+    /// No output for kitty buy operation.
     OutputMissingBuyingNothing,
-    /// Incorrect number of outputs when it comes to Minting.
+    /// Incorrect number of outputs buy operation.
     IncorrectNumberOfInputKittiesForBuyOperation,
-    /// Incorrect number of outputs when it comes to Minting.
+    /// Incorrect number of outputs for buy operation.
     IncorrectNumberOfOutputKittiesForBuyOperation,
     /// Kitty not avilable for sale
-    KittyNotAvilableForSale,
+    KittyNotForSale,
+    /// Kitty price cant be none when it is avilable for sale
+    KittyPriceCantBeNone,
+    /// Kitty price cant be zero when it is avilable for sale
+    KittyPriceCantBeZero,
     /// Not enough amount to buy kitty 
     InsufficientCollateralToBuyKitty,
     
@@ -260,30 +263,19 @@ pub enum TradableKittyConstraintChecker<const ID: u8>   {
     Breed,
     ///Update various properties of kitty.
     UpdateProperties,
+    ///Can transfer kitty to others.
+    Transfer,
     ///Can buy a new kitty from others
     Buy,
 }
 
-trait Buy {
-    /*
-    /// The Cost to buy a kitty if it is not free.
-    const COST: u128;
-    */
-    /// Error type for all Kitty errors.
-    type Error: Into<TradableKittyConstraintCheckerError>;
-
-    fn can_buy(input_data: &[DynamicallyTypedData],
-        output_data: &[DynamicallyTypedData]) -> Result<(), Self::Error>;
-
-    fn check_can_kitty_be_traded(input_data: &[DynamicallyTypedData],
-        output_data: &[DynamicallyTypedData]) -> Result<(), Self::Error>;
-}
-
 pub trait Breed {
+    /// The Cost to breed a kitty.
+    const COST: u128;
     type Error: Into<TradableKittyConstraintCheckerError>;
     fn can_breed(mom: &TradableKittyData, dad: &TradableKittyData) -> Result<(), Self::Error>;
     fn check_new_family(mom: &TradableKittyData, dad: &TradableKittyData,
-        newFamily: &[DynamicallyTypedData])-> Result<(), Self::Error>;
+        new_family: &[DynamicallyTypedData])-> Result<(), Self::Error>;
 }
 
 trait UpdateKittyProperty {
@@ -296,7 +288,14 @@ trait UpdateKittyProperty {
         original_kitty: &TradableKittyData,
         updated_kitty: &TradableKittyData,
     ) -> Result<(), Self::Error>;
+}
 
+trait Buy {
+    /// Error type for all Kitty errors.
+    type Error: Into<TradableKittyConstraintCheckerError>;
+
+    fn can_buy(input_data: &[DynamicallyTypedData],
+        output_data: &[DynamicallyTypedData]) -> Result<(), Self::Error>;
 }
 
 pub struct TradableKittyHelpers<const ID: u8> ;
@@ -313,24 +312,24 @@ impl<const ID: u8>  UpdateKittyProperty for TradableKittyHelpers<ID> {
         ensure!(
             original_kitty.kitty_basic_data.parent == 
                 updated_kitty.kitty_basic_data.parent,
-            Self::Error::BasicKittyPropertiesCannotBeUpdated,
+            Self::Error::KittyGenderCannotBeUpdated,
         );
         ensure!(
             original_kitty.kitty_basic_data.free_breedings == 
                 updated_kitty.kitty_basic_data.free_breedings,
-            Self::Error::BasicKittyPropertiesCannotBeUpdated,
+            Self::Error::FreeBreedingCannotBeUpdated,
         );
         ensure!(
             original_kitty.kitty_basic_data.dna == 
                 updated_kitty.kitty_basic_data.dna,
-            Self::Error::BasicKittyPropertiesCannotBeUpdated,
+            Self::Error::KittyDnaCannotBeUpdated,
         );
         ensure!(
             original_kitty.kitty_basic_data.num_breedings == 
                 updated_kitty.kitty_basic_data.num_breedings,
-            Self::Error::BasicKittyPropertiesCannotBeUpdated,
+            Self::Error::NumOfBreedingCannotBeUpdated,
         );
-        // Name can be updated.
+        
         if !updated_kitty.is_available_for_sale &&
                     updated_kitty.price != None {
             return Err(Self::Error::UpdatedKittyIncorrectPrice);
@@ -341,12 +340,12 @@ impl<const ID: u8>  UpdateKittyProperty for TradableKittyHelpers<ID> {
                      updated_kitty.price.unwrap() == 0) {
             return Err(Self::Error::UpdatedKittyIncorrectPrice);
         }
-        //Todo some more check are required.
         Ok(())
     }
 }
 
 impl<const ID: u8>  Breed for TradableKittyHelpers<ID> {
+    const COST: u128 = 5u128;
     type Error = TradableKittyConstraintCheckerError;
     fn can_breed(mom: &TradableKittyData, dad: &TradableKittyData) -> Result<(), Self::Error> {
         log::info!("TradableKitty can_breed");
@@ -362,14 +361,14 @@ impl<const ID: u8>  Breed for TradableKittyHelpers<ID> {
         let new_tradable_kitty_dad = TradableKittyData::try_from(&new_tradable_kitty_family[1])?;
         let new_tradable_kitty_child = TradableKittyData::try_from(&new_tradable_kitty_family[2])?;
 
-        let new_kitty_mom:DynamicallyTypedData = new_tradable_kitty_mom.kitty_basic_data.into();
-        let new_kitty_dad:DynamicallyTypedData = new_tradable_kitty_dad.kitty_basic_data.into();
-        let new_kitty_child:DynamicallyTypedData = new_tradable_kitty_child.kitty_basic_data.into();
+        let new_basic_kitty_mom:DynamicallyTypedData = new_tradable_kitty_mom.kitty_basic_data.into();
+        let new_basic_kitty_dad:DynamicallyTypedData = new_tradable_kitty_dad.kitty_basic_data.into();
+        let new_basic_kitty_child:DynamicallyTypedData = new_tradable_kitty_child.kitty_basic_data.into();
 
         let mut new_family: Vec<DynamicallyTypedData> = Vec::new();
-        new_family.push(new_kitty_mom);
-        new_family.push(new_kitty_dad);
-        new_family.push(new_kitty_child);
+        new_family.push(new_basic_kitty_mom);
+        new_family.push(new_basic_kitty_dad);
+        new_family.push(new_basic_kitty_child);
 
 
         KittyHelpers::check_new_family(
@@ -382,7 +381,6 @@ impl<const ID: u8>  Breed for TradableKittyHelpers<ID> {
 
 impl<const ID: u8>  Buy for TradableKittyHelpers<ID> {
 
- //   const COST: u128 = 5u128;
     type Error = TradableKittyConstraintCheckerError;
     fn can_buy(
         input_data: &[DynamicallyTypedData],
@@ -390,12 +388,12 @@ impl<const ID: u8>  Buy for TradableKittyHelpers<ID> {
 
         
         let mut input_coin_data: Vec<DynamicallyTypedData> = Vec::new();
-        let mut input_kitty_data: Vec<DynamicallyTypedData> = Vec::new();
         let mut output_coin_data: Vec<DynamicallyTypedData> = Vec::new();
+        let mut input_kitty_data: Vec<DynamicallyTypedData> = Vec::new();
         let mut output_kitty_data: Vec<DynamicallyTypedData> = Vec::new();
 
-        let mut total_input_amount = 0;
-        let mut total_price_of_kitty = 0;
+        let mut total_input_amount: u128 = 0;
+        let mut total_price_of_kitty: u128 = 0;
         
         for utxo in input_data {
             if let Ok(coin) = utxo.extract::<Coin<ID>>() {
@@ -403,18 +401,26 @@ impl<const ID: u8>  Buy for TradableKittyHelpers<ID> {
                 let utxo_value = coin.0;
                 ensure!(utxo_value > 0, TradableKittyConstraintCheckerError::ZeroValueCoin);
                 input_coin_data.push(utxo.clone());
-                total_input_amount+=utxo_value
-                // Process Coin
+                total_input_amount = total_input_amount.checked_add(utxo_value)
+                .ok_or(TradableKittyConstraintCheckerError::ValueOverflow)?;
+                
+                // Process Kitty
             } else if let Ok(tradable_kitty) = utxo.extract::<TradableKittyData>() {
                 log::info!("TradableKittyConstraintChecker found kitty in i/p {:?}",tradable_kitty);
                 if !tradable_kitty.is_available_for_sale {
                     log::error!("Kitty notavliable for sale");
-                    return Err(Self::Error::KittyNotAvilableForSale);
+                    return Err(Self::Error::KittyNotForSale);
                 }
+                let price = match tradable_kitty.price {
+                    None => return Err(Self::Error::KittyPriceCantBeNone),
+                    Some(p) => p
+                };
+
                 input_kitty_data.push(utxo.clone());
-                total_price_of_kitty+= tradable_kitty.price.unwrap();
+                total_price_of_kitty = total_price_of_kitty.checked_add(price)
+                .ok_or(TradableKittyConstraintCheckerError::ValueOverflow)?;
                 // Process TradableKittyData
-                // You can also use the `tradable_kitty` variable here
+                // You can also use the `tradable_kitty` variable herex
             } else {
                 log::error!("TradableKittyConstraintChecker found something else i/p {:?}",utxo);
                 return Err(Self::Error::BadlyTyped);
@@ -432,69 +438,38 @@ impl<const ID: u8>  Buy for TradableKittyHelpers<ID> {
             } else if let Ok(tradable_kitty) = utxo.extract::<TradableKittyData>() {
                 log::info!("TradableKittyConstraintChecker found kitty in o/p {:?}",tradable_kitty);
                 output_kitty_data.push(utxo.clone());
-                // Process TradableKittyData
-                // You can also use the `tradable_kitty` variable here
             } else {
                 log::error!("TradableKittyConstraintChecker found something else in o/p  {:?}",utxo);
                 return Err(Self::Error::BadlyTyped);
             }
         }
 
-        // As of now buying only a single kitty is supported.
-        // There is no way to check the how much amount is sent which seller.
-        ensure!(input_kitty_data.len() == 1, Self::Error::IncorrectNumberOfInputKittiesForBuyOperation);
-        ensure!(output_kitty_data.len() == 1, Self::Error::IncorrectNumberOfOutputKittiesForBuyOperation);
+        ensure!(
+            !input_kitty_data.is_empty(),
+            TradableKittyConstraintCheckerError::InputMissingBuyingNothing
+        );
+
+        // Make sure there is at least one output being minted
+        ensure!(
+            !output_kitty_data.is_empty(),
+            TradableKittyConstraintCheckerError::OutputMissingBuyingNothing
+        );
+
         log::info!("InsufficientCollateralToBuyKitty  total_price_of_kitty = {:?}total_input_amount = {:?}",
         total_price_of_kitty,total_input_amount);
-        ensure!(
-            u128::from(total_price_of_kitty) <= total_input_amount,
+        ensure!(total_price_of_kitty <= total_input_amount,
             TradableKittyConstraintCheckerError::InsufficientCollateralToBuyKitty
         );
 
         // Need to filter only Coins and send to MoneyConstraintChecker
         MoneyConstraintChecker::<0>::Spend.check(&input_coin_data, &[], &output_coin_data)?;
-        log::info!("MoneyConstraintChecker passed ");
-
-        Self::check_can_kitty_be_traded(&input_kitty_data,&output_kitty_data)?;
-
-        
-        Ok(())
-    }
-
-    fn check_can_kitty_be_traded(input_data: &[DynamicallyTypedData],
-        output_data: &[DynamicallyTypedData]) -> Result<(), Self::Error> {
-            
-            log::info!("check_can_kitty_be_traded() called ");
-            ensure!(
-                !input_data.is_empty(),
-                TradableKittyConstraintCheckerError::InputMissingBuyingNothing
-            );
-
-            // Make sure there is at least one output being minted
-            ensure!(
-                !output_data.is_empty(),
-                TradableKittyConstraintCheckerError::OutputMissingBuyingNothing
-            );
-
-            // Make sure the outputs are the right type
-            for utxo in output_data {
-                let utxo_kitty = utxo
-                    .extract::<TradableKittyData>()
-                    .map_err(|_| TradableKittyConstraintCheckerError::BadlyTyped)?;
-            }
-
-            log::info!("Buy kitty checks completed");
-
         Ok(())
     }
 }
 
 impl<const ID: u8>  SimpleConstraintChecker for TradableKittyConstraintChecker<ID>  {
     type Error = TradableKittyConstraintCheckerError;
-    /// Checks:
-    ///     - `input_data` is of length 2
-    ///     - `output_data` is of length 3
-    ///
+
     fn check(
         &self,
         input_data: &[DynamicallyTypedData],
@@ -519,7 +494,7 @@ impl<const ID: u8>  SimpleConstraintChecker for TradableKittyConstraintChecker<I
 
                 // Make sure the outputs are the right type
                 for utxo in output_data {
-                    let utxo_kitty = utxo
+                    let _utxo_kitty = utxo
                         .extract::<TradableKittyData>()
                         .map_err(|_| TradableKittyConstraintCheckerError::BadlyTyped)?;
                 }
@@ -527,7 +502,6 @@ impl<const ID: u8>  SimpleConstraintChecker for TradableKittyConstraintChecker<I
                 return Ok(0);
             }
             Self::Breed => {
-                log::info!("Breed called");
                 ensure!(input_data.len() == 2, Self::Error::TwoParentsDoNotExist);
                 let mom = TradableKittyData::try_from(&input_data[0])?;
                 let dad = TradableKittyData::try_from(&input_data[1])?;
@@ -545,16 +519,19 @@ impl<const ID: u8>  SimpleConstraintChecker for TradableKittyConstraintChecker<I
                     !input_data.is_empty(),
                     TradableKittyConstraintCheckerError::InputMissingUpdatingNothing
                 );
-
-                // Make sure there is at least one output being minted
+                
                 ensure!(
-                    !output_data.is_empty(),
-                    TradableKittyConstraintCheckerError::OutputMissingUpadtingNothing
+                    input_data.len() == output_data.len(),
+                    TradableKittyConstraintCheckerError::MismatchBetweenNumberOfInputAndUpdateUpadtingNothing
                 );
+
                 let original_kitty = TradableKittyData::try_from(&input_data[0])?;
                 let updated_kitty = TradableKittyData::try_from(&output_data[0])?;
                 // Needs more check for updating the kitties
                 TradableKittyHelpers::<ID>::check_updated_kitty(&original_kitty,&updated_kitty)?;
+            }
+            Self::Transfer => {
+                log::info!("UpdateProperties called");
             }
             Self::Buy => {
                 TradableKittyHelpers::<ID>::can_buy(input_data,output_data)?;
