@@ -570,7 +570,7 @@ fn check_child_num_breedings_non_zero_fails() {
 
 // From below update tradable kitty properties test cases starts 
 #[test]
-fn updateProperties_happy_path_works() {
+fn update_properties_happy_path_works() {
     let result = TradableKittyConstraintChecker::<0>::UpdateProperties.check(
         &[TradableKittyData::default().into()],
         &[], // no peeks
@@ -580,7 +580,7 @@ fn updateProperties_happy_path_works() {
 }
 
 #[test]
-fn updateProperties_update_no_input_fails() {
+fn update_properties_update_no_input_fails() {
 
     let result = TradableKittyConstraintChecker::<0>::UpdateProperties.check(
         &[],
@@ -594,7 +594,7 @@ fn updateProperties_update_no_input_fails() {
 }
 
 #[test]
-fn updateProperties_update_num_of_input_output_mismatch_fails() {
+fn update_properties_update_num_of_input_output_mismatch_fails() {
     let mut updated_kitty= TradableKittyData::default();
     updated_kitty.kitty_basic_data.dna = KittyDNA(H256::from_slice(b"superkalifragislisticexpialadoci"));
     let result = TradableKittyConstraintChecker::<0>::UpdateProperties.check(
@@ -609,7 +609,7 @@ fn updateProperties_update_num_of_input_output_mismatch_fails() {
 }
 
 #[test]
-fn updateProperties_update_dna_fails() {
+fn update_properties_update_dna_fails() {
     let mut updated_kitty= TradableKittyData::default();
     updated_kitty.kitty_basic_data.dna = KittyDNA(H256::from_slice(b"superkalifragislisticexpialadoci"));
     let result = TradableKittyConstraintChecker::<0>::UpdateProperties.check(
@@ -624,7 +624,7 @@ fn updateProperties_update_dna_fails() {
 }
 
 #[test]
-fn updateProperties_update_gender_fails() {
+fn update_properties_update_gender_fails() {
     let updated_kitty= TradableKittyData::default_dad();
     let result = TradableKittyConstraintChecker::<0>::UpdateProperties.check(
         &[TradableKittyData::default().into()],
@@ -638,7 +638,7 @@ fn updateProperties_update_gender_fails() {
 }
 
 #[test]
-fn updateProperties_update_free_breedings_fails() {
+fn update_properties_update_free_breedings_fails() {
     let mut updated_kitty= TradableKittyData::default();
     updated_kitty.kitty_basic_data.free_breedings = 5;
     let result = TradableKittyConstraintChecker::<0>::UpdateProperties.check(
@@ -653,7 +653,7 @@ fn updateProperties_update_free_breedings_fails() {
 }
 
 #[test]
-fn updateProperties_update_num_breedings_fails() {
+fn update_properties_update_num_breedings_fails() {
     let mut updated_kitty= TradableKittyData::default();
     updated_kitty.kitty_basic_data.num_breedings = 5;
     let result = TradableKittyConstraintChecker::<0>::UpdateProperties.check(
@@ -668,7 +668,7 @@ fn updateProperties_update_num_breedings_fails() {
 }
 
 #[test]
-fn updateProperties_non_none_price_when_is_avilable_for_sale_is_false_fails() {
+fn update_properties_non_none_price_when_is_avilable_for_sale_is_false_fails() {
     let mut updated_kitty= TradableKittyData::default();
     updated_kitty.price = Some(100);
     let result = TradableKittyConstraintChecker::<0>::UpdateProperties.check(
@@ -683,7 +683,7 @@ fn updateProperties_non_none_price_when_is_avilable_for_sale_is_false_fails() {
 }
 
 #[test]
-fn updateProperties_none_price_when_is_avilable_for_sale_is_true_fails() {
+fn update_properties_none_price_when_is_avilable_for_sale_is_true_fails() {
     let mut updated_kitty= TradableKittyData::default();
     updated_kitty.is_available_for_sale = true;
     updated_kitty.price = None;
@@ -817,7 +817,7 @@ fn buy_kityy_wrong_output_type_fails() {
 }
 
 #[test]
-fn buy_kitty_less_money_than_price_of_Kityy_fails() {
+fn buy_kitty_less_money_than_price_of_kityy_fails() {
     let mut input_kitty = TradableKittyData::default();
     input_kitty.is_available_for_sale = true;
     input_kitty.price = Some(101);
