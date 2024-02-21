@@ -103,7 +103,7 @@ pub enum TradeableKittyError {
     /// output missing updating nothing.
     OutputUtxoMissingError,
     /// No input for kitty Update.
-    OutputMissingListingNothingForSale,
+    InputMissingError,
     /// Not enough amount to buy kitty
     InsufficientCollateralToBuyKitty,
     /// No input for kitty Update.
@@ -156,28 +156,6 @@ pub enum TradableKittyConstraintChecker<const ID: u8>   {
     /// Fo buying a new kitty from others
     Buy,
 }
-/*
-#[derive(
-    Serialize,
-    Deserialize,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Clone,
-    Encode,
-    Decode,
-    Hash,
-    Debug,
-    TypeInfo,
-)]
-enum Kitty_update_properties {
-    /// For updating the tradable kitty name 
-    KittyName,
-    /// For updating the tradable kitty price
-    KittyPrice,
-}
-*/
 
 fn extract_basic_kitty_List(tradable_kitty_data: &[DynamicallyTypedData], 
     kitty_data_list: &mut Vec<DynamicallyTypedData>) -> Result<(), TradeableKittyError>{
@@ -250,18 +228,18 @@ fn check_can_buy<const ID: u8> (
             // Process Coin
         } else if let Ok(td_output_kitty) = utxo.extract::<TradableKittyData>() {
             log::info!("TradableKittyConstraintChecker found kitty in o/p {:?}",td_output_kitty);
-            match dna_to_tdkitty_map.get(&td_output_kitty.kitty_basic_data.dna) {
+            match dna_to_tdkitty_map.remove(&td_output_kitty.kitty_basic_data.dna) {
                 Some(found_kitty) => {
                     // After buy opertaion, basic kitty properties cant be updated.
                     ensure!(
                         found_kitty.kitty_basic_data == td_output_kitty.kitty_basic_data, // basic kitty data is unaltered 
                         TradeableKittyError::KittyBasicPropertiesAltered // this need to be chan
                     );
-                }
+                },
                 None => {
                     return Err(TradeableKittyError::OutputUtxoMissingError);
-                }
-            }
+                },
+            };
             output_kitty_data.push(utxo.clone());
         } else {
             log::error!("TradableKittyConstraintChecker found something else in o/p  {:?}",utxo);
@@ -311,7 +289,7 @@ fn check_tdkitty_price_update(
             .extract::<TradableKittyData>()
             .map_err(|_| TradeableKittyError::BadlyTyped)?;
 
-        if let Some(found_kitty) = dna_to_tdkitty_map.get(&td_output_kitty.kitty_basic_data.dna) {
+        if let Some(found_kitty) = dna_to_tdkitty_map.remove(&td_output_kitty.kitty_basic_data.dna) {
             // Element found, access the value
             log::info!("Found value: {:?}", found_kitty);
             ensure!(
@@ -381,7 +359,24 @@ fn check_kitty_tdkitty_interconversion(
             .extract::<TradableKittyData>()
             .map_err(|_| TradeableKittyError::BadlyTyped)?;
 
-        if let Some(kitty) = map.get(&utxo_tradable_kitty.kitty_basic_data.dna) {
+            match map.remove(&utxo_tradable_kitty.kitty_basic_data.dna) {
+                Some(kitty) => {
+                    log::info!("Found value: {:?}", kitty);
+                    ensure!(
+                        kitty == utxo_tradable_kitty.kitty_basic_data, // basic kitty data is unaltered 
+                        TradeableKittyError::KittyBasicPropertiesAltered // this need to be chan
+                    );
+                    let kitty_price = match utxo_tradable_kitty.price {
+                        Some(price) => { log::info!("price of tradable kitty {:?}", price); },
+                        None => return Err(TradeableKittyError::KittyPriceCantBeNone),
+                    };
+                },
+                None => {
+                    return Err(TradeableKittyError::InputMissingError);
+                },
+            };
+/*
+        if let Some(kitty) = map.remove(&utxo_tradable_kitty.kitty_basic_data.dna) {
             // Element found, access the value
             log::info!("Found value: {:?}", kitty);
             ensure!(
@@ -392,9 +387,11 @@ fn check_kitty_tdkitty_interconversion(
                 Some(price) => { log::info!("price of tradable kitty {:?}", price); },
                 None => return Err(TradeableKittyError::KittyPriceCantBeNone),
             };
+            //map.remove(&utxo_tradable_kitty.kitty_basic_data.dna);
         } else {
-            return Err(TradeableKittyError::OutputMissingListingNothingForSale);
+            return Err(TradeableKittyError::InputMissingError);
         }
+        */
     }
     return Ok(0);
 }

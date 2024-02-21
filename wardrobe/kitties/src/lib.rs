@@ -56,7 +56,7 @@ pub enum FreeKittyConstraintChecker {
     Breed,
     /// A transaction that creates kitty without parents.
     Create,
-    /// Update kitty Name.
+    /// A Transaction that updates kitty Name.
     UpdateKittyName
 }
 
@@ -293,6 +293,8 @@ pub enum ConstraintCheckerError {
     FreeBreedingCannotBeUpdated,
     /// Kitty NumOfBreeding cannot be updated.
     NumOfBreedingCannotBeUpdated,
+    /// Gender cannot be updated 
+    KittyGenderCannotBeUpdated,
 }
 
 pub trait Breed {
@@ -613,7 +615,7 @@ pub fn can_kitty_name_be_updated(
             .extract::<KittyData>()
             .map_err(|_| ConstraintCheckerError::BadlyTyped)?;
 
-        if let Some(input_kitty) = map.get(&utxo_output_kitty.dna) {
+        if let Some(input_kitty) = map.remove(&utxo_output_kitty.dna) {
             // Element found, access the value
             log::info!("Found value: {:?}", input_kitty);
             check_kitty_name_update(&input_kitty,&utxo_output_kitty)?;
@@ -639,7 +641,7 @@ fn check_kitty_name_update(original_kitty: &KittyData,
     );
     ensure!(
         original_kitty.parent == updated_kitty.parent, 
-        ConstraintCheckerError::NumOfBreedingCannotBeUpdated
+        ConstraintCheckerError::KittyGenderCannotBeUpdated
     );
     return Ok(0);
 }
