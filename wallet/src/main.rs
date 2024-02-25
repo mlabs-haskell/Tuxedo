@@ -10,10 +10,10 @@ use tuxedo_core::{types::OutputRef, verifier::*};
 use sp_core::H256;
 
 //mod amoeba;
+mod TradableKitties;
 mod cli;
 mod keystore;
 mod kitty;
-mod TradableKitties;
 mod money;
 mod output_filter;
 mod rpc;
@@ -219,11 +219,19 @@ async fn main() -> anyhow::Result<()> {
 
         Some(Command::CreateKitty(args)) => kitty::create_kitty(&db, &client, args).await,
         Some(Command::BreedKitty(args)) => kitty::breed_kitty(&db, &client, &keystore, args).await,
-        Some(Command::ListKittyForSale(args)) => kitty::list_kitty_for_sale(&db, &client, &keystore, args).await,
-        Some(Command::DelistKittyFromSale(args)) => kitty::delist_kitty_for_sale(&db, &client, &keystore, args).await,
-        Some(Command::UpdateKittyName(args)) => kitty::update_kitty_name(&db, &client, &keystore, args).await,
-        Some(Command::UpdateKittyPrice(args)) => kitty::update_kitty_price(&db, &client, &keystore, args).await,
-        Some(Command::BuyKitty(args)) => TradableKitties::buy_kitty(&db, &client, &keystore, args).await,
+        Some(Command::ListKittyForSale(args)) => {
+            kitty::list_kitty_for_sale(&db, &client, &keystore, args).await
+        }
+        Some(Command::DelistKittyFromSale(args)) => {
+            kitty::delist_kitty_for_sale(&db, &client, &keystore, args).await
+        }
+        Some(Command::UpdateKittyName(args)) => {
+            kitty::update_kitty_name(&db, &client, &keystore, args).await
+        }
+        Some(Command::UpdateKittyPrice(args)) => {
+            kitty::update_kitty_price(&db, &client, &keystore, args).await
+        }
+        Some(Command::BuyKitty(args)) => kitty::buy_kitty(&db, &client, &keystore, args).await,
         Some(Command::ShowAllKitties) => {
             println!("Show All Kitty Summary");
             println!("==========================================");
@@ -266,7 +274,8 @@ async fn main() -> anyhow::Result<()> {
                 println!("--------------------------------------------------");
             }
             println!("=-===================================================");
-            let owned_tradable_kitties = sync::get_owned_tradable_kitties_from_local_db(&db, &args)?;
+            let owned_tradable_kitties =
+                sync::get_owned_tradable_kitties_from_local_db(&db, &args)?;
             for (owner, kitty_data, output_ref) in owned_tradable_kitties {
                 println!(
                     "{:?} => {:?} -> ",

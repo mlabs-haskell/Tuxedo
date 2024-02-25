@@ -186,7 +186,10 @@ impl<const ID: u8> SimpleConstraintChecker for MoneyConstraintChecker<ID> {
                 // Priority is based on how many token are burned
                 // Type stuff is kinda ugly. Maybe division would be better?
                 let burned = total_input_value - total_output_value;
-                log::info!("Money:Spend Total burned for this transaction = {:?}",burned);
+                log::info!(
+                    "Money:Spend Total burned for this transaction = {:?}",
+                    burned
+                );
                 Ok(if burned < u64::max_value() as u128 {
                     burned as u64
                 } else {

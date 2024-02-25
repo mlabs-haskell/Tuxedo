@@ -30,12 +30,10 @@ use jsonrpsee::http_client::HttpClient;
 use runtime::kitties::KittyDNA;
 use runtime::kitties::KittyData;
 
-use runtime::{money::Coin, 
-    tradable_kitties::TradableKittyData, 
-    timestamp::Timestamp, 
-    Block, 
-    OuterVerifier,
-    Transaction};
+use runtime::{
+    money::Coin, timestamp::Timestamp, tradable_kitties::TradableKittyData, Block, OuterVerifier,
+    Transaction,
+};
 
 /*Todo: Do we need all the data of kitty here
 use runtime::{
@@ -295,7 +293,6 @@ async fn apply_transaction<F: Fn(&OuterVerifier) -> bool>(
         .filter(|o| filter(&o.verifier))
         .enumerate()
     {
-        
         match output.payload.type_id {
             Coin::<0>::TYPE_ID => {
                 crate::money::apply_transaction(db, tx_hash, index as u32, output)?;
@@ -471,7 +468,6 @@ pub(crate) fn print_unspent_tree(db: &Db) -> anyhow::Result<()> {
     Ok(())
 }
 
-
 /// Iterate the entire unspent set summing the values of the coins
 /// on a per-address basis.
 pub(crate) fn get_balances(db: &Db) -> anyhow::Result<impl Iterator<Item = (H256, u128)>> {
@@ -613,16 +609,20 @@ pub(crate) fn get_all_tradable_kitties_from_local_db<'a>(
 pub(crate) fn get_kitty_from_local_db_based_on_name(
     db: &Db,
     name: String,
-) -> anyhow::Result<Option<(KittyData, OutputRef)>>
-{
-    get_data_from_local_db_based_on_name(db, FRESH_KITTY, name,|kitty:&KittyData| &kitty.name)
+) -> anyhow::Result<Option<(KittyData, OutputRef)>> {
+    get_data_from_local_db_based_on_name(db, FRESH_KITTY, name, |kitty: &KittyData| &kitty.name)
 }
 
 pub(crate) fn get_tradable_kitty_from_local_db_based_on_name(
     db: &Db,
     name: String,
 ) -> anyhow::Result<Option<(TradableKittyData, OutputRef)>> {
-    get_data_from_local_db_based_on_name(db, FRESH_TRADABLE_KITTY,name, |kitty:&TradableKittyData| &kitty.kitty_basic_data.name)
+    get_data_from_local_db_based_on_name(
+        db,
+        FRESH_TRADABLE_KITTY,
+        name,
+        |kitty: &TradableKittyData| &kitty.kitty_basic_data.name,
+    )
 }
 
 /// Iterate the entire owned kitty
@@ -643,23 +643,28 @@ pub(crate) fn get_owned_tradable_kitties_from_local_db<'a>(
     get_any_owned_kitties_from_local_db(db, FRESH_TRADABLE_KITTY, &args.owner)
 }
 
-
 pub(crate) fn is_kitty_name_duplicate(
     db: &Db,
     name: String,
     owner_pubkey: &H256,
-) ->  anyhow::Result<Option<(bool)>> {
-    is_name_duplicate(db,name,owner_pubkey,FRESH_TRADABLE_KITTY,
-        |kitty:&KittyData| &kitty.name)
+) -> anyhow::Result<Option<(bool)>> {
+    is_name_duplicate(db, name, owner_pubkey, FRESH_KITTY, |kitty: &KittyData| {
+        &kitty.name
+    })
 }
 
 pub(crate) fn is_td_kitty_name_duplicate(
     db: &Db,
     name: String,
     owner_pubkey: &H256,
-) ->  anyhow::Result<Option<(bool)>> {
-    is_name_duplicate(db,name,owner_pubkey,FRESH_TRADABLE_KITTY,
-        |kitty:&TradableKittyData| &kitty.kitty_basic_data.name)
+) -> anyhow::Result<Option<(bool)>> {
+    is_name_duplicate(
+        db,
+        name,
+        owner_pubkey,
+        FRESH_TRADABLE_KITTY,
+        |kitty: &TradableKittyData| &kitty.kitty_basic_data.name,
+    )
 }
 
 /// Gets the owner and amount associated with an output ref from the unspent table
@@ -693,25 +698,26 @@ pub(crate) fn get_tradable_kitty_fromlocaldb(
 }
 
 //////////////////////////
-// Private Functions 
+// Private Functions
 //////////////////////////
 
 fn get_all_kitties_and_td_kitties_from_local_db<'a, T>(
     db: &'a Db,
     tree_name: &'a str,
-   
 ) -> anyhow::Result<impl Iterator<Item = (H256, T)> + 'a>
 where
     T: Decode + Default + Clone + std::fmt::Debug,
 {
     let wallet_owned_tradable_kitty_tree = db.open_tree(tree_name)?;
 
-    Ok(wallet_owned_tradable_kitty_tree.iter().filter_map(|raw_data| {
-        let (_output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
-        let (owner, kitty) = <(H256, T)>::decode(&mut &owner_kitty_ivec[..]).ok()?;
+    Ok(wallet_owned_tradable_kitty_tree
+        .iter()
+        .filter_map(|raw_data| {
+            let (_output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
+            let (owner, kitty) = <(H256, T)>::decode(&mut &owner_kitty_ivec[..]).ok()?;
 
-        Some((owner, kitty))
-    }))
+            Some((owner, kitty))
+        }))
 }
 
 fn get_data_from_local_db_based_on_name<T>(
@@ -760,7 +766,7 @@ where
     Ok(found_kitty.map(|kitty| (kitty, output_ref)))
 }
 
- fn get_any_owned_kitties_from_local_db<'a, T>(
+fn get_any_owned_kitties_from_local_db<'a, T>(
     db: &'a Db,
     tree_name: &'a str,
     owner_pubkey: &'a H256,
@@ -789,7 +795,7 @@ fn is_name_duplicate<T>(
     owner_pubkey: &H256,
     tree_name: &str,
     name_extractor: impl Fn(&T) -> &[u8; 4],
-) ->  anyhow::Result<Option<(bool)>> 
+) -> anyhow::Result<Option<(bool)>>
 where
     T: Decode + Default + Clone + std::fmt::Debug,
 {
@@ -824,7 +830,6 @@ where
     };
     Ok(is_kitty_found)
 }
-
 
 fn string_to_h256(s: &str) -> Result<H256, hex::FromHexError> {
     let bytes = hex::decode(s)?;

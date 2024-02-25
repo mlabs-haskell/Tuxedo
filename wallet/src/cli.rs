@@ -13,7 +13,7 @@ use crate::{h256_from_string, keystore::SHAWN_PUB_KEY, output_ref_from_string, D
 /// The default number of coins to be minted.
 pub const DEFAULT_MINT_VALUE: &str = "100";
 
-/// The default name of the kitty to be created. Show be 4 character long 
+/// The default name of the kitty to be created. Show be 4 character long
 pub const DEFAULT_KITTY_NAME: &str = "    ";
 
 /// The default gender of the kitty to be created.
@@ -211,12 +211,12 @@ pub struct SpendArgs {
 pub struct CreateKittyArgs {
     /// Pass the name of the kitty to be minted.
     #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_GENDER)]
-    pub kitty_gender: String,  // Todo: This will be removed , gender will be decided randomly.
+    pub kitty_gender: String, // Todo: This will be removed , gender will be decided randomly.
 
     /// Pass the name of the kitty to be minted.
     /// If kitty name is not passed ,name is choosen randomly from predefine name vector.
-     #[arg(long, short, action = Append, default_value = DEFAULT_KITTY_NAME)]
-     pub kitty_name: String,
+    #[arg(long, short, action = Append, default_value = DEFAULT_KITTY_NAME)]
+    pub kitty_name: String,
 
     // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
     // shows how to specify a custom parsing function
@@ -236,7 +236,6 @@ pub struct ShowOwnedKittyArgs {
 
 #[derive(Debug, Args)]
 pub struct BreedKittyArgs {
-    
     /// Name of Mom to be used for breeding .
     #[arg(long, short, verbatim_doc_comment, action = Append)]
     pub mom_name: String,
@@ -267,7 +266,6 @@ pub struct UpdateKittyNameArgs {
     /// Hex encoded address (sr25519 pubkey) of the owner.
     #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
     pub owner: H256,
-
 }
 
 #[derive(Debug, Args)]
@@ -319,15 +317,14 @@ pub struct BuyKittyArgs {
 
 #[derive(Debug, Args)]
 pub struct ListKittyForSaleArgs {
-
     /// Pass the name of the kitty to be listed for sale.
-     #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_NAME)]
-     pub name: String,
+    #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_NAME)]
+    pub name: String,
 
-     /// Price of Kitty.
+    /// Price of Kitty.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
     pub price: u128,
-    
+
     // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
     // shows how to specify a custom parsing function
     /// Hex encoded address (sr25519 pubkey) of the owner.
@@ -337,11 +334,10 @@ pub struct ListKittyForSaleArgs {
 
 #[derive(Debug, Args)]
 pub struct DelistKittyFromSaleArgs {
-
     /// Pass the name of the kitty to be delisted or removed from the sale .
-     #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_NAME)]
-     pub name: String,
-    
+    #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_NAME)]
+    pub name: String,
+
     // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
     // shows how to specify a custom parsing function
     /// Hex encoded address (sr25519 pubkey) of the owner.

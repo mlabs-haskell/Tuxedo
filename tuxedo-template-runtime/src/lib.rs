@@ -41,11 +41,11 @@ use tuxedo_core::{
 
 pub use amoeba;
 pub use kitties;
-pub use tradable_kitties;
 pub use money;
 pub use poe;
 pub use runtime_upgrade;
 pub use timestamp;
+pub use tradable_kitties;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats

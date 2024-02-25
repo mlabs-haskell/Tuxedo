@@ -384,7 +384,6 @@ impl<T: TimestampConfig> SimpleConstraintChecker for CleanUpTimestamp<T> {
                 Self::Error::DontBeSoHasty
             );
         }
-
         Ok(0)
     }
 }

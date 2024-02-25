@@ -1,6 +1,6 @@
+use crate::money::get_coin_from_storage;
 use crate::rpc::fetch_storage;
 use crate::sync;
-use crate::money::get_coin_from_storage;
 
 //use crate::cli::BreedArgs;
 use tuxedo_core::{
@@ -8,6 +8,8 @@ use tuxedo_core::{
     verifier::Sr25519Signature,
 };
 
+use crate::kitty;
+use crate::kitty::Gender;
 use anyhow::anyhow;
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use parity_scale_codec::Encode;
@@ -17,22 +19,20 @@ use sc_keystore::LocalKeystore;
 use sled::Db;
 use sp_core::sr25519::Public;
 use sp_runtime::traits::{BlakeTwo256, Hash};
-use crate::kitty;
-use crate::kitty::Gender;
 //use crate::kitty::get_kitty_name;
 
 use runtime::{
+    kitties::{
+        DadKittyStatus, FreeKittyConstraintChecker, KittyDNA, KittyData, KittyHelpers,
+        MomKittyStatus, Parent,
+    },
     money::{Coin, MoneyConstraintChecker},
     tradable_kitties::TradableKittyConstraintChecker,
     tradable_kitties::TradableKittyData,
-    kitties::{
-        DadKittyStatus, FreeKittyConstraintChecker,  KittyDNA, KittyData, KittyHelpers,
-        MomKittyStatus, Parent,
-    },
     OuterVerifier, Transaction,
 };
 
-use crate::cli::{BuyKittyArgs};
+use crate::cli::BuyKittyArgs;
 
 fn generate_random_string(length: usize) -> String {
     let rng = rand::thread_rng();
@@ -56,7 +56,7 @@ pub async fn set_kitty_property(
         crate::sync::get_tradable_kitty_from_local_db_based_on_name(&db, args.current_name.clone());
     let Some((kitty_info, kitty_out_ref)) = kitty_to_be_updated.unwrap() else {
         println!("No kitty with name : {}",args.current_name.clone() );
-        return Err(anyhow!("No kitty with name {}",args.current_name.clone()));  
+        return Err(anyhow!("No kitty with name {}",args.current_name.clone()));
     };
     let kitty_ref = Input {
         output_ref: kitty_out_ref,
@@ -152,7 +152,7 @@ pub async fn breed_kitty(
     let Some((kitty_mom_info, out_ref_mom)) = kitty_mom.unwrap() else {
         return Err(anyhow!("No kitty with name {}",args.mom_name)); // Todo this needs to error
     };
-    
+
     let kitty_dad = crate::sync::get_tradable_kitty_from_local_db_based_on_name(&db, args.dad_name.clone());
     let Some((kitty_dad_info, out_ref_dad)) = kitty_dad.unwrap() else {
         return Err(anyhow!("No kitty with name {}",args.dad_name)); // Todo this needs to error
@@ -303,7 +303,7 @@ pub async fn breed_kitty(
 
     Ok(())
 }
-*/
+
 pub async fn buy_kitty(
     db: &Db,
     client: &HttpClient,
@@ -314,7 +314,7 @@ pub async fn buy_kitty(
 
     let kitty_to_be_bought =
         crate::sync::get_tradable_kitty_from_local_db_based_on_name(&db, args.kitty_name);
-        
+
     let Some((kitty_info, kitty_out_ref)) = kitty_to_be_bought.unwrap() else {
         return Err(anyhow!(
             "Not enough value in database to construct transaction"
@@ -328,7 +328,7 @@ pub async fn buy_kitty(
     inputs.push(kitty_ref);
 
     // Create the KittyData
-    let mut output_kitty = kitty_info.clone(); 
+    let mut output_kitty = kitty_info.clone();
 
     let output = Output {
         payload: output_kitty.into(),
@@ -401,9 +401,9 @@ pub async fn buy_kitty(
         // Construct the proof that it can be consumed
         let redeemer = match utxo.verifier {
             OuterVerifier::Sr25519Signature(Sr25519Signature { owner_pubkey }) => {
-                
+
                 let public = Public::from_h256(owner_pubkey);
-                
+
                 log::info!("owner_pubkey:: {:?}", owner_pubkey);
                 crate::keystore::sign_with(keystore, &public, &stripped_encoded_transaction)?
             }
@@ -440,3 +440,4 @@ pub async fn buy_kitty(
 
     Ok(())
 }
+*/
