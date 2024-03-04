@@ -220,17 +220,17 @@ fn list_for_sale_with_basic_property_changed_fails() {
 }
 
 #[test]
-fn list_for_sale_with_price_none_fails() {
+fn list_for_sale_with_price_zero_fails() {
     let input1 = TradableKittyData::default_kitty();
     let mut output1 = TradableKittyData::default_tradable_kitty();
     output1.kitty_basic_data = input1.clone();
-    output1.price = None;
+    output1.price = 0;
     let result = TradableKittyConstraintChecker::<0>::ListKittyForSale.check(
         &[input1.into()],
         &[],
         &[output1.into()],
     );
-    assert_eq!(result, Err(TradeableKittyError::KittyPriceCantBeNone));
+    assert_eq!(result, Err(TradeableKittyError::KittyPriceCantBeZero));
 }
 
 // From below delist tradable kitty test cases start.
@@ -623,17 +623,17 @@ fn update_price_not_updated_path_fails() {
 }
 
 #[test]
-fn update_price_to_null_updated_path_fails() {
+fn update_price_to_zero_updated_path_fails() {
     let input = TradableKittyData::default_tradable_kitty();
     let mut output = input.clone();
-    output.price = None;
+    output.price = 0;
 
     let result = TradableKittyConstraintChecker::<0>::UpdateKittyPrice.check(
         &[input.into()],
         &[],
         &[output.into()],
     );
-    assert_eq!(result, Err(TradeableKittyError::KittyPriceCantBeNone));
+    assert_eq!(result, Err(TradeableKittyError::KittyPriceCantBeZero));
 }
 
 // From below buy tradable kitty test cases start.

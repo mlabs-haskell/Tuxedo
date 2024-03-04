@@ -45,7 +45,7 @@ impl<B: BlockT<Extrinsic = Transaction<V, C>>, V: Verifier, C: ConstraintChecker
     pub fn validate_tuxedo_transaction(
         transaction: &Transaction<V, C>,
     ) -> Result<ValidTransaction, UtxoError<C::Error>> {
-        debug!(
+        log::info!(
             target: LOG_TARGET,
             "validating tuxedo transaction",
         );
@@ -53,12 +53,21 @@ impl<B: BlockT<Extrinsic = Transaction<V, C>>, V: Verifier, C: ConstraintChecker
         // Make sure there are no duplicate inputs
         // Duplicate peeks are allowed, although they are inefficient and wallets should not create such transactions
         {
+
             let input_set: BTreeSet<_> = transaction.inputs.iter().map(|o| o.encode()).collect();
+            log::info!(
+                target: LOG_TARGET,
+                "input_set.len() {} and transaction.inputs.len()  {}",input_set.len(),
+                transaction.inputs.len()
+            );
             ensure!(
                 input_set.len() == transaction.inputs.len(),
                 UtxoError::DuplicateInput
             );
+
         }
+
+        
 
         // Build the stripped transaction (with the redeemers stripped) and encode it
         // This will be passed to the verifiers
@@ -402,7 +411,7 @@ impl<B: BlockT<Extrinsic = Transaction<V, C>>, V: Verifier, C: ConstraintChecker
             })
         };
 
-        debug!(target: LOG_TARGET, "Validation result: {:?}", r);
+        log::info!(target: LOG_TARGET, "Validation result: {:?}", r);
 
         r
     }

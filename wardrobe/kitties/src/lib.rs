@@ -25,7 +25,7 @@
 //! 3.) The game also allows Kitties to have a cooling off period inbetween breeding before they can be bred again.
 //! 4.) A rest operation allows for a Mom Kitty and a Dad Kitty to be cooled off
 //!
-//! In order to submit a valid transaction you must structure it as follows:
+//! In order to submit a valid breed transaction you must structure it as follows:
 //! 1.) Input must contain 1 mom and 1 dad
 //! 2.) Output must contain Mom, Dad, and newly created Child
 //! 3.) A child's DNA is calculated by:
@@ -644,9 +644,11 @@ pub fn can_kitty_name_be_updated(
             .clone()
             .extract::<KittyData>()
             .map_err(|_| ConstraintCheckerError::BadlyTyped)?;
+        
         if utxo_input_kitty.dna != utxo_output_kitty.dna {
             return Err(ConstraintCheckerError::DnaMismatchBetweenInputAndOutput);
         }
+        
         check_kitty_name_update(&utxo_input_kitty, &utxo_output_kitty)?;
     }
     return Ok(0);

@@ -13,11 +13,37 @@ use crate::{h256_from_string, keystore::SHAWN_PUB_KEY, output_ref_from_string, D
 /// The default number of coins to be minted.
 pub const DEFAULT_MINT_VALUE: &str = "100";
 
+/// Default recipient is  SHAWN_KEY and output amount is 0
+pub const DEFAULT_RECIPIENT: &str = "d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 0";
+
 /// The default name of the kitty to be created. Show be 4 character long
 pub const DEFAULT_KITTY_NAME: &str = "    ";
 
 /// The default gender of the kitty to be created.
 pub const DEFAULT_KITTY_GENDER: &str = "female";
+use crate::keystore;
+
+
+fn parse_recipient_coins(s: &str) -> Result<(H256, Vec<u128>), &'static str> {
+    println!("In parse_recipient_coins");
+    let parts: Vec<&str> = s.split_whitespace().collect();
+    if parts.len() >= 2 {
+        let mut recipient = h256_from_string(parts[0]);
+        let coins = parts[1..].iter().filter_map(|&c| c.parse().ok()).collect();
+        match recipient {
+            Ok(r) => {
+                println!("Recipient: {}", r);
+                return Ok((r, coins));
+            },
+            _ => {},
+        };
+    }
+    println!("Sending the error value ");
+    Err("Invalid input format")
+}
+
+
+
 
 /// The wallet's main CLI struct
 #[derive(Debug, Parser)]
@@ -57,7 +83,7 @@ pub enum Command {
     /// get the block hash ad print the block.
     getBlock {
         /// Input the blockheight to be retrived.
-        block_height: Option<u32>,
+        block_height: Option<u32>, // fixme
     },
 
     /*
@@ -182,6 +208,8 @@ pub struct MintCoinArgs {
     pub owner: H256,
 }
 
+/*
+// Old implementation 
 #[derive(Debug, Args)]
 pub struct SpendArgs {
     /// An input to be consumed by this transaction. This argument may be specified multiple times.
@@ -205,6 +233,23 @@ pub struct SpendArgs {
     /// The wallet will not enforce this and will gladly send an invalid which will then be rejected by the node.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
     pub output_amount: Vec<u128>,
+}
+*/
+
+#[derive(Debug, Args,Clone)]
+pub struct SpendArgs {
+    /// An input to be consumed by this transaction. This argument may be specified multiple times.
+    /// They must all be coins.
+    #[arg(long, short, verbatim_doc_comment, value_parser = output_ref_from_string)]
+    pub input: Vec<OutputRef>,
+
+    /// Variable number of recipients and their associated coins.
+    /// For example, "--recipients 0x1234 1 2 --recipients 0x5678 3 4 6"
+   // #[arg(long, short, verbatim_doc_comment, value_parser = parse_recipient_coins, action = Append)]
+   // pub recipients: Vec<(H256, Vec<u128>)>,
+   #[arg(long, short, verbatim_doc_comment, value_parser = parse_recipient_coins, action = Append, 
+    default_value = DEFAULT_RECIPIENT)]
+   pub recipients: Vec<(H256, Vec<u128>)>,
 }
 
 #[derive(Debug, Args)]
@@ -230,7 +275,7 @@ pub struct ShowOwnedKittyArgs {
     // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
     // shows how to specify a custom parsing function
     /// Hex encoded address (sr25519 pubkey) of the owner.
-    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
+    #[arg(long, short, verbatim_doc_comment)]
     pub owner: H256,
 }
 

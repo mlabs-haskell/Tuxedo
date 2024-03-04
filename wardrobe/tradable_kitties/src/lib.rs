@@ -37,6 +37,9 @@ use tuxedo_core::{
 #[cfg(test)]
 mod tests;
 
+/// The default price of kitty is 10.
+const DEFAULT_KITTY_PRICE: u128 = 10;
+
 /// A tradableKittyData, required for trading the kitty..
 /// It contains optional price of tradable-kitty in addition to the basic kitty data.
 #[derive(
@@ -57,14 +60,14 @@ pub struct TradableKittyData {
     /// Basic kitty data composed from kitties piece
     pub kitty_basic_data: KittyData,
     /// Price of the tradable kitty
-    pub price: Option<u128>,
+    pub price: u128,
 }
 
 impl Default for TradableKittyData {
     fn default() -> Self {
         Self {
             kitty_basic_data: KittyData::default(),
-            price: None,
+            price: DEFAULT_KITTY_PRICE,
         }
     }
 }
@@ -116,8 +119,8 @@ pub enum TradeableKittyError {
     KittyBasicPropertiesAltered,
     /// Kitty not available for sale.Occur when price is None.
     KittyNotForSale,
-    /// Kitty price cant be none when it is available for sale.
-    KittyPriceCantBeNone,
+    /// Kitty price cant be zero when it is available for sale.
+    KittyPriceCantBeZero,
     /// Duplicate kitty foundi.e based on the DNA.
     DuplicateKittyFound,
     /// Duplicate tradable kitty foundi.e based on the DNA.
@@ -187,6 +190,84 @@ fn extract_basic_kitty_list(
 }
 
 /// Checks if buying the kitty is possible of not. It depends on Money piece to validate spending of coins.
+/// Checks if buying the kitty is possible of not. It depends on Money piece to validate spending of coins.
+fn check_can_buy<const ID: u8>(
+    input_data: &[DynamicallyTypedData],
+    output_data: &[DynamicallyTypedData],
+) -> Result<TransactionPriority, TradeableKittyError> {
+    let mut input_coin_data: Vec<DynamicallyTypedData> = Vec::new();
+    let mut output_coin_data: Vec<DynamicallyTypedData> = Vec::new();
+    let input_ktty_to_be_traded: Option<TradableKittyData>;
+
+    let mut total_input_amount: u128 = 0;
+    let  total_price_of_kitty: u128 ;
+    
+    if let Ok(td_input_kitty) = input_data[0].extract::<TradableKittyData>() {
+        ensure!(
+            td_input_kitty.price != 0, // basic kitty data is unaltered
+            TradeableKittyError::KittyPriceCantBeZero
+        );
+        input_ktty_to_be_traded = Some(td_input_kitty.clone());
+        total_price_of_kitty = td_input_kitty.price;
+    } else {
+        return Err(TradeableKittyError::BadlyTyped);
+    }
+
+    if let Ok(td_output_kitty) = output_data[0].extract::<TradableKittyData>() {
+        ensure!(
+            input_ktty_to_be_traded.clone().unwrap().kitty_basic_data
+                == td_output_kitty.kitty_basic_data, 
+            TradeableKittyError::KittyBasicPropertiesAltered 
+        );
+    } else {
+        return Err(TradeableKittyError::BadlyTyped);
+    }
+
+    for i in 1..input_data.len() {
+        let coin = input_data[i]
+            .clone()
+            .extract::<Coin<ID>>()
+            .map_err(|_| TradeableKittyError::BadlyTyped)?;
+
+        let utxo_value = coin.0;
+        ensure!(
+            utxo_value > 0,
+            TradeableKittyError::MoneyError(MoneyError::ZeroValueCoin)
+        );
+        input_coin_data.push(input_data[i].clone());
+        total_input_amount = total_input_amount
+            .checked_add(utxo_value)
+            .ok_or(TradeableKittyError::MoneyError(MoneyError::ValueOverflow))?;
+        
+    }
+
+    for i in 1..output_data.len() {
+        let coin = output_data[i]
+            .clone()
+            .extract::<Coin<ID>>()
+            .map_err(|_| TradeableKittyError::BadlyTyped)?;
+
+        let utxo_value = coin.0;
+        ensure!(
+            utxo_value > 0,
+            TradeableKittyError::MoneyError(MoneyError::ZeroValueCoin)
+        );
+        ensure!(
+            utxo_value > 0,
+            TradeableKittyError::MoneyError(MoneyError::ZeroValueCoin)
+        );
+        output_coin_data.push(output_data[i].clone());
+    }
+    ensure!(
+        total_price_of_kitty <= total_input_amount,
+        TradeableKittyError::InsufficientCollateralToBuyKitty
+    );
+
+    // Filterd coins sent to MoneyConstraintChecker for money validation.
+    let priority = MoneyConstraintChecker::<0>::Spend.check(&input_coin_data, &[], &output_coin_data)?;
+    Ok(priority)
+}
+/*
 fn check_can_buy<const ID: u8>(
     input_data: &[DynamicallyTypedData],
     output_data: &[DynamicallyTypedData],
@@ -289,6 +370,7 @@ fn check_can_buy<const ID: u8>(
     MoneyConstraintChecker::<0>::Spend.check(&input_coin_data, &[], &output_coin_data)?;
     Ok(())
 }
+*/
 
 /// checks if tradable kitty price updates is possible of not.
 /// Price of multiple tradable kitties can be updated in the same txn.
@@ -323,15 +405,14 @@ fn check_kitty_price_update(
                 == utxo_output_tradable_kitty.kitty_basic_data,
             TradeableKittyError::KittyBasicPropertiesAltered
         );
-        match utxo_output_tradable_kitty.price {
-            Some(_) => {
-                ensure!(
-                    utxo_input_tradable_kitty.price != utxo_output_tradable_kitty.price, // kitty ptice is unaltered
-                    TradeableKittyError::KittyPriceUnaltered
-                );
-            }
-            None => return Err(TradeableKittyError::KittyPriceCantBeNone),
-        };
+        ensure!(
+            utxo_input_tradable_kitty.price != 0, // basic kitty data is unaltered
+            TradeableKittyError::KittyPriceCantBeZero  // this need to be chan
+        );
+        ensure!(
+            utxo_input_tradable_kitty.price != utxo_output_tradable_kitty.price,
+            TradeableKittyError::KittyPriceUnaltered
+        );
     }
 
     return Ok(0);
@@ -398,8 +479,8 @@ fn check_kitty_tdkitty_interconversion(
             TradeableKittyError::KittyBasicPropertiesAltered
         );
         ensure!(
-            utxo_tradable_kitty.price != None, // basic kitty data is unaltered
-            TradeableKittyError::KittyPriceCantBeNone  // this need to be chan
+            utxo_tradable_kitty.price != 0,
+            TradeableKittyError::KittyPriceCantBeZero  
         );
     }
 

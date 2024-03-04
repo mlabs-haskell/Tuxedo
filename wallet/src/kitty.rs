@@ -652,18 +652,34 @@ pub async fn update_kitty_name(
     */
 
     let mut transaction = match create_tx_input_based_on_kitty_name(db, args.current_name.clone()) {
-        Ok((kitty_info, kitty_ref)) => {
+        Ok((input_kitty_info, input_kitty_ref)) => {
             let mut array = [0; 4];
             let kitty_name: &[u8; 4] = {
                 array.copy_from_slice(args.new_name.as_bytes());
                 &array
             };
 
-            let inputs: Vec<Input> = vec![kitty_ref];
-            let mut updated_kitty: KittyData = kitty_info;
+            let inputs: Vec<Input> = vec![input_kitty_ref.clone(),input_kitty_ref];
+
+            let mut updated_kitty: KittyData = input_kitty_info.clone();
             updated_kitty.name = *kitty_name;
             let output = Output {
                 payload: updated_kitty.into(),
+                verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
+                    owner_pubkey: args.owner,
+                }),
+            };
+
+            let mut updated_kitty_fake: KittyData = input_kitty_info;
+            let mut array = [0; 4];
+            let kitty_name: &[u8; 4] = {
+                array.copy_from_slice("lily".as_bytes());
+                &array
+            };
+
+            updated_kitty_fake.name  = *kitty_name;
+            let output1 = Output {
+                payload: updated_kitty_fake.into(),
                 verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
                     owner_pubkey: args.owner,
                 }),
@@ -673,7 +689,7 @@ pub async fn update_kitty_name(
             let transaction = Transaction {
                 inputs: inputs,
                 peeks: Vec::new(),
-                outputs: vec![output],
+                outputs: vec![output,output1],
                 checker: FreeKittyConstraintChecker::UpdateKittyName.into(),
             };
             transaction
