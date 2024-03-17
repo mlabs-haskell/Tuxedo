@@ -371,7 +371,7 @@ pub async fn list_kitty_for_sale(
 
     let tradable_kitty = TradableKittyData {
         kitty_basic_data: kitty_info,
-        price: Some(args.price),
+        price: args.price,
     };
 
     // Create the Output
@@ -549,7 +549,7 @@ pub async fn buy_kitty(
         };
         total_output_amount += amount;
         transaction.outputs.push(output);
-        if total_output_amount >= kitty_info.price.unwrap().into() {
+        if total_output_amount >= kitty_info.price.into() {
             break;
         }
     }
@@ -754,7 +754,7 @@ pub async fn update_kitty_price(
 
     let inputs: Vec<Input> = vec![kitty_ref];
     let mut updated_kitty: TradableKittyData = kitty_info;
-    updated_kitty.price = Some(args.price);
+    updated_kitty.price = args.price;
     let output = Output {
         payload: updated_kitty.into(),
         verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {

@@ -201,8 +201,12 @@ async fn send_tx(
     let spawn_hex = hex::encode(transaction.encode());
     let params = rpc_params![spawn_hex];
     let spawn_response: Result<String, _> = client.request("author_submitExtrinsic", params).await;
+    
     println!("Node's response to spawn transaction: {:?}", spawn_response);
-    Ok(())
+    match spawn_response {
+        Ok(_) => Ok(()),
+        Err(err) => Err(anyhow::Error::msg(format!("Error sending transaction: {:?}", err))),
+    }
 }
 
 fn gen_random_gender() -> Gender {
@@ -310,7 +314,7 @@ pub async fn create_kitty(
     db: &Db,
     client: &HttpClient,
     args: CreateKittyArgs,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<Option<KittyData>> {
     let mut kitty_name = [0; 4];
 
     let g = gen_random_gender();
@@ -337,7 +341,7 @@ pub async fn create_kitty(
 
     // Create the Output
     let output = Output {
-        payload: child_kitty.into(),
+        payload: child_kitty.clone().into(),
         verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
             owner_pubkey: args.owner,
         }),
@@ -352,9 +356,49 @@ pub async fn create_kitty(
 
     send_tx(&mut transaction, &client, None).await?;
     print_new_output(&transaction)?;
-    Ok(())
+    Ok(Some(child_kitty))
 }
 
+pub async fn list_kitty_for_sale(
+    db: &Db,
+    client: &HttpClient,
+    keystore: &LocalKeystore,
+    args: ListKittyForSaleArgs,
+) -> anyhow::Result<Option<TradableKittyData>> {
+    log::info!("The list_kitty_for_sale args : {:?}", args);
+
+    let Ok((kitty_info, input)) = create_tx_input_based_on_kitty_name(db, args.name.clone()) else {
+        return Err(anyhow!("No kitty with name {} in localdb", args.name));
+    };
+
+    let inputs: Vec<Input> = vec![input];
+
+    let tradable_kitty = TradableKittyData {
+        kitty_basic_data: kitty_info,
+        price: args.price,
+    };
+
+    // Create the Output
+    let output = Output {
+        payload: tradable_kitty.clone().into(),
+        verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
+            owner_pubkey: args.owner,
+        }),
+    };
+
+    // Create the Transaction
+    let mut transaction = Transaction {
+        inputs: inputs,
+        peeks: Vec::new(),
+        outputs: vec![output],
+        checker: TradableKittyConstraintChecker::ListKittyForSale.into(),
+    };
+    send_tx(&mut transaction, &client, Some(&keystore)).await?;
+    print_new_output(&transaction)?;
+    Ok(Some(tradable_kitty))
+}
+
+/*
 pub async fn list_kitty_for_sale(
     db: &Db,
     client: &HttpClient,
@@ -393,6 +437,7 @@ pub async fn list_kitty_for_sale(
     print_new_output(&transaction)?;
     Ok(())
 }
+*/
 
 pub async fn delist_kitty_for_sale(
     db: &Db,

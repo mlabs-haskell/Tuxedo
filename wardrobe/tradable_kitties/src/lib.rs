@@ -72,6 +72,7 @@ impl Default for TradableKittyData {
     }
 }
 
+
 impl TryFrom<&DynamicallyTypedData> for TradableKittyData {
     type Error = TradeableKittyError;
     fn try_from(a: &DynamicallyTypedData) -> Result<Self, Self::Error> {

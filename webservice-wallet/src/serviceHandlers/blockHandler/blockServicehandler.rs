@@ -36,7 +36,7 @@ pub struct BlockResponse {
 }
 
 pub async fn get_block(body: Json<BlockRequest>) -> Json<BlockResponse> {
-
+    println!("Get block called fro block num {} ",body.number);
     match get_blocks(body.number).await {
         Ok(Some(node_genesis_block)) => Json(BlockResponse {
             message: format!("block  found {:?}",node_genesis_block),
@@ -59,8 +59,9 @@ async fn get_blocks(number: u128) -> anyhow::Result<Option<Block>> {
     let node_block_hash = rpc::node_get_block_hash(number.try_into().unwrap(), &client)
         .await?
         .expect("node should be able to return some genesis hash");
-
+    println!("Get blocks node_block_hash {:?} ",node_block_hash);
     let maybe_block = rpc::node_get_block(node_block_hash, &client).await?;
+    println!("BlockData {:?} ",maybe_block.clone().unwrap());
     match maybe_block {
         Some(block) => Ok(Some(block)),
         None => bail!("Block not found for hash: {:?}", node_block_hash),

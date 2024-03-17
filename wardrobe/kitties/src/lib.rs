@@ -186,9 +186,9 @@ pub struct KittyDNA(pub H256);
 
 /// Kitty data contains basic informationsuch as below :
 /// parent: 1 mom kitty and 1 dad kitty.
-/// free_breedings: Free breeding allowed on a kitty.
+/// free_breedings: Number of free breedings allowed for the Kitty.
 /// dna :Its a unique per kitty.
-/// num_breedings: number of free breedings are remaining.
+/// num_breedings: Number of free breedings are remaining.
 /// name: Name of kitty.
 #[derive(
     Serialize,
@@ -205,11 +205,11 @@ pub struct KittyDNA(pub H256);
     TypeInfo,
 )]
 pub struct KittyData {
+    pub dna: KittyDNA,
+    pub name: [u8; 4],
     pub parent: Parent,
     pub free_breedings: u64, // Ignore in breed for money case
-    pub dna: KittyDNA,
     pub num_breedings: u128,
-    pub name: [u8; 4],
 }
 
 impl KittyData {
@@ -240,11 +240,11 @@ impl KittyData {
 impl Default for KittyData {
     fn default() -> Self {
         Self {
+            dna: KittyDNA(H256::from_slice(b"mom_kitty_1asdfasdfasdfasdfasdfa")),
+            name: *b"kity",
             parent: Parent::Mom(MomKittyStatus::RearinToGo),
             free_breedings: 2,
-            dna: KittyDNA(H256::from_slice(b"mom_kitty_1asdfasdfasdfasdfasdfa")),
             num_breedings: 3,
-            name: *b"kity",
         }
     }
 }

@@ -9,7 +9,6 @@ use crate::money;
 use sp_core::H256;
 
 use crate::cli::MintCoinArgs;
-use crate::cli::CreateKittyArgs;
 
 /// The default RPC endpoint for the wallet to connect to
 const DEFAULT_ENDPOINT: &str = "http://localhost:9944";
