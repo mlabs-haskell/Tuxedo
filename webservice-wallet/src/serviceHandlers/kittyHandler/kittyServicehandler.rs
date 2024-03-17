@@ -7,8 +7,8 @@ use sled::Db;
 use crate::kitty;
 use sp_core::H256;
 
-use crate::cli::CreateKittyArgs;
-use crate::cli::ListKittyForSaleArgs;
+use crate::cli::{CreateKittyArgs, ListKittyForSaleArgs, 
+    DelistKittyFromSaleArgs};
 
 /// The default RPC endpoint for the wallet to connect to
 const DEFAULT_ENDPOINT: &str = "http://localhost:9944";
@@ -125,6 +125,8 @@ pub async fn create_kitties(body: Json<CreateKittyRequest>) -> Result<Json<Creat
 }
 
 ////////////////////////////////////////////////////////////////////
+// List kitty for Sale 
+////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Deserialize)]
 pub struct ListKittyForSaleRequest {
@@ -140,6 +142,7 @@ pub struct ListKittyForSaleResponse {
     // Add any additional fields as needed
 }
 pub async fn list_kitties_for_sale (body: Json<ListKittyForSaleRequest>) -> Result<Json<ListKittyForSaleResponse>, Infallible> {
+    println!("List kitties for sale is called {:?}",body);
     let client_result = HttpClientBuilder::default().build(DEFAULT_ENDPOINT);
     let db = sync_and_get_db().await.expect("Error");
 
@@ -178,6 +181,64 @@ pub async fn list_kitties_for_sale (body: Json<ListKittyForSaleRequest>) -> Resu
         Err(err) => Ok(Json(ListKittyForSaleResponse {
             message: format!("Error listing forsale: {:?}", err),
             td_kitty:None,
+        })),
+    }
+}
+
+////////////////////////////////////////////////////////////////////
+// De-list kitty from Sale 
+////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Deserialize)]
+pub struct DelistKittyFromSaleRequest {
+    pub name: String,
+    pub owner_public_key:String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct DelistKittyFromSaleResponse {
+    pub message: String,
+    pub kitty:Option<KittyData>
+}
+pub async fn delist_kitties_from_sale (body: Json<DelistKittyFromSaleRequest>) -> Result<Json<DelistKittyFromSaleResponse>, Infallible> {
+    println!("List kitties for sale is called {:?}",body);
+    let client_result = HttpClientBuilder::default().build(DEFAULT_ENDPOINT);
+    let db = sync_and_get_db().await.expect("Error");
+
+    let client = match client_result {
+        Ok(client) => client,
+        Err(err) => {
+            return Ok(Json(DelistKittyFromSaleResponse {
+                message: format!("Error creating HTTP client: {:?}", err),
+                kitty:None,
+            }));
+        }
+    };
+
+    // Convert the hexadecimal string to bytes
+    let public_key_bytes = hex::decode(SHAWN_PUB_KEY).expect("Invalid hexadecimal string");
+    let public_key_h256 = H256::from_slice(&public_key_bytes);
+    let ks = get_local_keystore().await.expect("Error");
+
+    match kitty::delist_kitties_from_sale(&db, &client, &ks,DelistKittyFromSaleArgs {
+        name: body.name.to_string(),
+        owner: public_key_h256,
+    }).await {
+        Ok(Some(delisted_kitty)) => {
+            // Convert created_kitty to JSON and include it in the response
+            let response = DelistKittyFromSaleResponse {
+                message: format!("Kitty listed for sale successfully"),
+                kitty: Some(delisted_kitty), // Include the created kitty in the response
+            };
+            Ok(Json(response))
+        },
+        Ok(None) => Ok(Json(DelistKittyFromSaleResponse {
+            message: format!("Kitty listing forsale  failed: No data returned"),
+            kitty:None,
+        })),
+        Err(err) => Ok(Json(DelistKittyFromSaleResponse {
+            message: format!("Error listing forsale: {:?}", err),
+            kitty:None,
         })),
     }
 }

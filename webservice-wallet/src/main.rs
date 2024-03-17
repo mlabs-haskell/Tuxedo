@@ -48,6 +48,7 @@ use serviceHandlers::moneyHandler::moneyServicehandler::{MintCoinsRequest, MintC
 use serviceHandlers::kittyHandler::kittyServicehandler::{
     CreateKittyRequest, CreateKittyResponse, create_kitties,
     ListKittyForSaleRequest, ListKittyForSaleResponse, list_kitties_for_sale,
+    DelistKittyFromSaleRequest,DelistKittyFromSaleResponse,delist_kitties_from_sale,
 };
 use serviceHandlers::blockHandler::blockServicehandler::{BlockRequest, BlockResponse, get_block};
 
@@ -75,7 +76,7 @@ async fn main() {
         .route("/mint-coins", post(mint_coins))
         .route("/create-kitties", post(create_kitties))
         .route("/list-kitties-for-sale", put(list_kitties_for_sale)) 
-        //.route("/delist-kitties-from-sale", put(delist_kitty_from_sale))
+        .route("/delist-kitties-from-sale", put(delist_kitties_from_sale))
         //.route("/update-kitties-name", put(update_kitties_name))
         //.route("/update-kitties-price", put(update_kitties_price)) 
         //.route("/buy-kitty", put(buy_kitty))
