@@ -7,7 +7,7 @@ use parity_scale_codec::{Decode, Encode};
 use runtime::OuterVerifier;
 use std::path::PathBuf;
 use sled::Db;
-use crate::kitty::{create_kitty,list_kitty_for_sale};
+//use crate::kitty::{create_kitty,list_kitty_for_sale};
 use tuxedo_core::{types::OutputRef, verifier::*};
 use sp_core::H256;
 use sc_keystore::LocalKeystore;
@@ -46,9 +46,14 @@ mod serviceHandlers {
 
 use serviceHandlers::moneyHandler::moneyServicehandler::{MintCoinsRequest, MintCoinsResponse, mint_coins};
 use serviceHandlers::kittyHandler::kittyServicehandler::{
-    CreateKittyRequest, CreateKittyResponse, create_kitties,
-    ListKittyForSaleRequest, ListKittyForSaleResponse, list_kitties_for_sale,
-    DelistKittyFromSaleRequest,DelistKittyFromSaleResponse,delist_kitties_from_sale,
+    CreateKittyRequest, CreateKittyResponse, create_kitty,
+    ListKittyForSaleRequest, ListKittyForSaleResponse, list_kitty_for_sale,
+    DelistKittyFromSaleRequest, DelistKittyFromSaleResponse, delist_kitty_from_sale,
+    UpdateKittyNameRequest, UpdateKittyNameResponse, update_kitty_name,
+    UpdateTdKittyNameRequest, UpdateTdKittyNameResponse, update_td_kitty_name,
+    UpdateTdKittyPriceRequest, UpdateTdKittyPriceResponse, update_td_kitty_price,
+    BuyTdKittyRequest, BuyTdKittyResponse, buy_kitty,
+    BreedKittyRequest, BreedKittyResponse, breed_kitty,
 };
 use serviceHandlers::blockHandler::blockServicehandler::{BlockRequest, BlockResponse, get_block};
 
@@ -71,20 +76,17 @@ async fn main() {
     let cors = CorsLayer::new().allow_origin(Any);
 
     let app = Router::new()
-       // .route("/get-block",get(|| async { get_block().await }))
         .route("/get-block", get(get_block)) 
         .route("/mint-coins", post(mint_coins))
-        .route("/create-kitties", post(create_kitties))
-        .route("/list-kitties-for-sale", put(list_kitties_for_sale)) 
-        .route("/delist-kitties-from-sale", put(delist_kitties_from_sale))
-        //.route("/update-kitties-name", put(update_kitties_name))
-        //.route("/update-kitties-price", put(update_kitties_price)) 
-        //.route("/buy-kitty", put(buy_kitty))
-        //.route("/breed-kitty", post(breed_kitty))
-        //.route("/spend-coins", put(spend_coins)) 
-        //.route("/breed-kitty", post(breed_kitty))
-        //.route("/buy-kitty", put(buy_kitty))
-        //.route("/update-kitty-name", patch(update_kitty_name))
+        .route("/create-kitty", post(create_kitty))
+        .route("/list-kitty-for-sale", put(list_kitty_for_sale)) 
+        .route("/delist-kitty-from-sale", put(delist_kitty_from_sale))
+        .route("/update-kitty-name", put(update_kitty_name))
+        .route("/update-td-kitty-name", put(update_td_kitty_name))
+        .route("/update-td-kitty-price", put(update_td_kitty_price)) 
+        .route("/buy-kitty", put(buy_kitty))
+        .route("/breed-kitty", post(breed_kitty))
+        //.route("/spend-coins", put(spend_coins))
         .layer(cors);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));

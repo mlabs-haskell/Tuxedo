@@ -670,26 +670,11 @@ pub async fn update_kitty_name(
                 }),
             };
 
-            let mut updated_kitty_fake: KittyData = input_kitty_info;
-            let mut array = [0; 4];
-            let kitty_name: &[u8; 4] = {
-                array.copy_from_slice("lily".as_bytes());
-                &array
-            };
-
-            updated_kitty_fake.name  = *kitty_name;
-            let output1 = Output {
-                payload: updated_kitty_fake.into(),
-                verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
-                    owner_pubkey: args.owner,
-                }),
-            };
-
             // Create the Transaction
             let transaction = Transaction {
                 inputs: inputs,
                 peeks: Vec::new(),
-                outputs: vec![output,output1],
+                outputs: vec![output],
                 checker: FreeKittyConstraintChecker::UpdateKittyName.into(),
             };
             transaction

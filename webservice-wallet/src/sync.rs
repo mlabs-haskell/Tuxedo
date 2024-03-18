@@ -259,7 +259,7 @@ pub(crate) async fn apply_block<F: Fn(&OuterVerifier) -> bool>(
     block_hash: H256,
     filter: &F,
 ) -> anyhow::Result<()> {
-    log::debug!("Applying Block {:?}, Block_Hash {:?}", b, block_hash);
+    log::info!("Applying Block {:?}, Block_Hash {:?}", b, block_hash);
     // Write the hash to the block_hashes table
     let wallet_block_hashes_tree = db.open_tree(BLOCK_HASHES)?;
     wallet_block_hashes_tree.insert(b.header.number.encode(), block_hash.encode())?;
