@@ -371,7 +371,7 @@ pub async fn list_kitty_for_sale(
 
     let tradable_kitty = TradableKittyData {
         kitty_basic_data: kitty_info,
-        price: Some(args.price),
+        price: args.price,
     };
 
     // Create the Output
@@ -387,7 +387,7 @@ pub async fn list_kitty_for_sale(
         inputs: inputs,
         peeks: Vec::new(),
         outputs: vec![output],
-        checker: TradableKittyConstraintChecker::ListKittyForSale.into(),
+        checker: TradableKittyConstraintChecker::ListKittiesForSale.into(),
     };
     send_tx(&mut transaction, &client, Some(&keystore)).await?;
     print_new_output(&transaction)?;
@@ -422,7 +422,7 @@ pub async fn delist_kitty_for_sale(
         inputs: inputs,
         peeks: Vec::new(),
         outputs: vec![output],
-        checker: TradableKittyConstraintChecker::DelistKittyFromSale.into(),
+        checker: TradableKittyConstraintChecker::DelistKittiesFromSale.into(),
     };
 
     send_tx(&mut transaction, &client, Some(&keystore)).await?;
@@ -549,7 +549,7 @@ pub async fn buy_kitty(
         };
         total_output_amount += amount;
         transaction.outputs.push(output);
-        if total_output_amount >= kitty_info.price.unwrap().into() {
+        if total_output_amount >= kitty_info.price.into() {
             break;
         }
     }
@@ -659,7 +659,7 @@ pub async fn update_kitty_name(
                 &array
             };
 
-            let inputs: Vec<Input> = vec![input_kitty_ref.clone(),input_kitty_ref];
+            let inputs: Vec<Input> = vec![input_kitty_ref];
 
             let mut updated_kitty: KittyData = input_kitty_info.clone();
             updated_kitty.name = *kitty_name;
@@ -670,27 +670,14 @@ pub async fn update_kitty_name(
                 }),
             };
 
-            let mut updated_kitty_fake: KittyData = input_kitty_info;
-            let mut array = [0; 4];
-            let kitty_name: &[u8; 4] = {
-                array.copy_from_slice("lily".as_bytes());
-                &array
-            };
 
-            updated_kitty_fake.name  = *kitty_name;
-            let output1 = Output {
-                payload: updated_kitty_fake.into(),
-                verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
-                    owner_pubkey: args.owner,
-                }),
-            };
 
             // Create the Transaction
             let transaction = Transaction {
                 inputs: inputs,
                 peeks: Vec::new(),
-                outputs: vec![output,output1],
-                checker: FreeKittyConstraintChecker::UpdateKittyName.into(),
+                outputs: vec![output],
+                checker: FreeKittyConstraintChecker::UpdateKittiesName.into(),
             };
             transaction
         }
@@ -725,7 +712,7 @@ pub async fn update_kitty_name(
                 inputs: inputs,
                 peeks: Vec::new(),
                 outputs: vec![output],
-                checker: TradableKittyConstraintChecker::UpdateKittyName.into(),
+                checker: TradableKittyConstraintChecker::UpdateKittiesName.into(),
             };
             transaction
         }
@@ -754,7 +741,7 @@ pub async fn update_kitty_price(
 
     let inputs: Vec<Input> = vec![kitty_ref];
     let mut updated_kitty: TradableKittyData = kitty_info;
-    updated_kitty.price = Some(args.price);
+    updated_kitty.price = args.price;
     let output = Output {
         payload: updated_kitty.into(),
         verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
@@ -767,7 +754,7 @@ pub async fn update_kitty_price(
         inputs: inputs,
         peeks: Vec::new(),
         outputs: vec![output],
-        checker: TradableKittyConstraintChecker::UpdateKittyName.into(),
+        checker: TradableKittyConstraintChecker::UpdateKittiesPrice.into(),
     };
 
     send_tx(&mut transaction, &client, Some(&keystore)).await?;

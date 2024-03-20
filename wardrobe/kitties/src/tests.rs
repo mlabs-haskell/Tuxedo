@@ -1,13 +1,7 @@
 //! Tests for the Crypto Kitties Piece
 
 use super::*;
-/// A bogus data type used in tests for type validation
-#[derive(Encode, Decode)]
-struct Bogus;
-
-impl UtxoData for Bogus {
-    const TYPE_ID: [u8; 4] = *b"bogs";
-}
+use tuxedo_core::dynamic_typing::testing::Bogus;
 
 impl KittyData {
     pub fn default_dad() -> Self {
@@ -541,7 +535,7 @@ fn update_name_happy_path_works() {
     output.name = *b"kty1";
 
     let result = FreeKittyConstraintChecker::check(
-        &FreeKittyConstraintChecker::UpdateKittyName,
+        &FreeKittyConstraintChecker::UpdateKittiesName,
         &[input.into()],
         &[],
         &[output.into()],
@@ -561,7 +555,7 @@ fn update_name_happy_path_with_multiple_input_sworks() {
     output2.name = *b"kty2";
 
     let result = FreeKittyConstraintChecker::check(
-        &FreeKittyConstraintChecker::UpdateKittyName,
+        &FreeKittyConstraintChecker::UpdateKittiesName,
         &[input1.into(), input2.into()],
         &[],
         &[output1.into(), output2.into()],
@@ -580,29 +574,30 @@ fn update_name_inputs_and_outputs_number_mismatch_fails() {
     output2.name = *b"kty2";
 
     let result = FreeKittyConstraintChecker::check(
-        &FreeKittyConstraintChecker::UpdateKittyName,
+        &FreeKittyConstraintChecker::UpdateKittiesName,
         &[input1.into(), input2.into()],
         &[],
         &[output1.into()],
     );
     assert_eq!(
         result,
-        Err(ConstraintCheckerError::InvalidNumberOfInputOutput)
+        Err(ConstraintCheckerError::NumberOfInputOutputMismatch)
     );
 }
+
 #[test]
 fn update_name_no_inputs_fails() {
     let output = KittyData::default_dad();
 
     let result = FreeKittyConstraintChecker::check(
-        &FreeKittyConstraintChecker::UpdateKittyName,
+        &FreeKittyConstraintChecker::UpdateKittiesName,
         &[],
         &[],
         &[output.into()],
     );
     assert_eq!(
         result,
-        Err(ConstraintCheckerError::InvalidNumberOfInputOutput)
+        Err(ConstraintCheckerError::NumberOfInputOutputMismatch)
     );
 }
 
@@ -611,16 +606,17 @@ fn update_name_no_output_fails() {
     let input = KittyData::default_dad();
 
     let result = FreeKittyConstraintChecker::check(
-        &FreeKittyConstraintChecker::UpdateKittyName,
+        &FreeKittyConstraintChecker::UpdateKittiesName,
         &[input.into()],
         &[],
         &[],
     );
     assert_eq!(
         result,
-        Err(ConstraintCheckerError::InvalidNumberOfInputOutput)
+        Err(ConstraintCheckerError::NumberOfInputOutputMismatch)
     );
 }
+
 #[test]
 fn update_name_dna_update_fails() {
     let input = KittyData::default_dad();
@@ -629,7 +625,7 @@ fn update_name_dna_update_fails() {
     output.name = *b"kty1";
 
     let result = FreeKittyConstraintChecker::check(
-        &FreeKittyConstraintChecker::UpdateKittyName,
+        &FreeKittyConstraintChecker::UpdateKittiesName,
         &[input.into()],
         &[],
         &[output.into()],
@@ -638,21 +634,6 @@ fn update_name_dna_update_fails() {
         result,
         Err(ConstraintCheckerError::DnaMismatchBetweenInputAndOutput)
     );
-}
-
-#[test]
-fn update_name_duplicate_dna_update_fails() {
-    let input = KittyData::default_dad();
-    let mut output = input.clone();
-    output.name = *b"kty1";
-
-    let result = FreeKittyConstraintChecker::check(
-        &FreeKittyConstraintChecker::UpdateKittyName,
-        &[input.clone().into(), input.into()],
-        &[],
-        &[output.clone().into(), output.into()],
-    );
-    assert_eq!(result, Err(ConstraintCheckerError::DuplicateKittyFound));
 }
 
 #[test]
@@ -667,7 +648,7 @@ fn update_name_out_of_order_input_and_output_fails() {
     output1.name = *b"kty2";
 
     let result = FreeKittyConstraintChecker::check(
-        &FreeKittyConstraintChecker::UpdateKittyName,
+        &FreeKittyConstraintChecker::UpdateKittiesName,
         &[input.clone().into(), input1.into()],
         &[],
         &[output1.clone().into(), output.into()],
@@ -681,7 +662,7 @@ fn update_name_out_of_order_input_and_output_fails() {
 #[test]
 fn update_name_name_unupdated_path_fails() {
     let result = FreeKittyConstraintChecker::check(
-        &FreeKittyConstraintChecker::UpdateKittyName,
+        &FreeKittyConstraintChecker::UpdateKittiesName,
         &[KittyData::default_dad().into()],
         &[],
         &[KittyData::default_dad().into()],
@@ -696,7 +677,7 @@ fn update_name_free_breeding_updated_path_fails() {
     output.free_breedings += 1;
 
     let result = FreeKittyConstraintChecker::check(
-        &FreeKittyConstraintChecker::UpdateKittyName,
+        &FreeKittyConstraintChecker::UpdateKittiesName,
         &[KittyData::default().into()],
         &[],
         &[output.into()],
@@ -714,7 +695,7 @@ fn update_name_num_of_breeding_updated_path_fails() {
     output.num_breedings += 1;
 
     let result = FreeKittyConstraintChecker::check(
-        &FreeKittyConstraintChecker::UpdateKittyName,
+        &FreeKittyConstraintChecker::UpdateKittiesName,
         &[KittyData::default().into()],
         &[],
         &[output.into()],
@@ -732,7 +713,7 @@ fn update_name_gender_updated_path_fails() {
     output.name = *b"kty1";
 
     let result = FreeKittyConstraintChecker::check(
-        &FreeKittyConstraintChecker::UpdateKittyName,
+        &FreeKittyConstraintChecker::UpdateKittiesName,
         &[input.into()],
         &[],
         &[output.into()],

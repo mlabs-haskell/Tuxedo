@@ -706,7 +706,7 @@ fn get_all_kitties_and_td_kitties_from_local_db<'a, T>(
     tree_name: &'a str,
 ) -> anyhow::Result<impl Iterator<Item = (H256, T)> + 'a>
 where
-    T: Decode + Default + Clone + std::fmt::Debug,
+    T: Decode + Clone + std::fmt::Debug,
 {
     let wallet_owned_tradable_kitty_tree = db.open_tree(tree_name)?;
 
@@ -727,7 +727,7 @@ fn get_data_from_local_db_based_on_name<T>(
     name_extractor: impl Fn(&T) -> &[u8; 4],
 ) -> anyhow::Result<Option<(T, OutputRef)>>
 where
-    T: Decode + Default + Clone + std::fmt::Debug,
+    T: Decode + Clone + std::fmt::Debug,
 {
     let wallet_owned_kitty_tree = db.open_tree(tree_name)?;
 
@@ -772,7 +772,7 @@ fn get_any_owned_kitties_from_local_db<'a, T>(
     owner_pubkey: &'a H256,
 ) -> anyhow::Result<impl Iterator<Item = (H256, T, OutputRef)> + 'a>
 where
-    T: Decode + Default + Clone + std::fmt::Debug,
+    T: Decode + Clone + std::fmt::Debug,
 {
     let wallet_owned_kitty_tree = db.open_tree(tree_name)?;
 
@@ -797,7 +797,7 @@ fn is_name_duplicate<T>(
     name_extractor: impl Fn(&T) -> &[u8; 4],
 ) -> anyhow::Result<Option<(bool)>>
 where
-    T: Decode + Default + Clone + std::fmt::Debug,
+    T: Decode + Clone + std::fmt::Debug,
 {
     let wallet_owned_kitty_tree = db.open_tree(tree_name)?;
     let mut array = [0; 4];
