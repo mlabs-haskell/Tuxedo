@@ -123,7 +123,8 @@ pub(crate) async fn synchronize<F: Fn(&OuterVerifier) -> bool>(
     client: &HttpClient,
     filter: &F,
 ) -> anyhow::Result<()> {
-    log::debug!("Synchronizing wallet with node.");
+    //log::info!("Synchronizing wallet with node.");
+    println!("Synchronizing wallet with node.");
 
     // Start the algorithm at the height that the wallet currently thinks is best.
     // Fetch the block hash at that height from both the wallet's local db and the node
@@ -138,7 +139,7 @@ pub(crate) async fn synchronize<F: Fn(&OuterVerifier) -> bool>(
     // When the wallet and the node agree on the best block, the wallet can re-sync following the node.
     // In the best case, where there is no re-org, this loop will execute zero times.
     while Some(wallet_hash) != node_hash {
-        log::debug!("Divergence at height {height}. Node reports block: {node_hash:?}. Reverting wallet block: {wallet_hash:?}.");
+        log::info!("Divergence at height {height}. Node reports block: {node_hash:?}. Reverting wallet block: {wallet_hash:?}.");
 
         unapply_highest_block(db).await?;
 
@@ -173,7 +174,10 @@ pub(crate) async fn synchronize<F: Fn(&OuterVerifier) -> bool>(
     }
 
     log::debug!("Done with forward sync up to {}", height - 1);
-
+    println!("Done with forward sync up to {}", height - 1);
+    if let Err(err) = db.flush() {
+        println!("Error flushing Sled database: {}", err);
+    }
     Ok(())
 }
 
@@ -259,7 +263,8 @@ pub(crate) async fn apply_block<F: Fn(&OuterVerifier) -> bool>(
     block_hash: H256,
     filter: &F,
 ) -> anyhow::Result<()> {
-    log::info!("Applying Block {:?}, Block_Hash {:?}", b, block_hash);
+    //log::info!("Applying Block {:?}, Block_Hash {:?}", b, block_hash);
+    //println!("Applying Block {:?}, Block_Hash {:?}", b, block_hash);
     // Write the hash to the block_hashes table
     let wallet_block_hashes_tree = db.open_tree(BLOCK_HASHES)?;
     wallet_block_hashes_tree.insert(b.header.number.encode(), block_hash.encode())?;
@@ -271,6 +276,9 @@ pub(crate) async fn apply_block<F: Fn(&OuterVerifier) -> bool>(
     // Iterate through each transaction
     for tx in b.extrinsics {
         apply_transaction(db, tx, filter).await?;
+    }
+    if let Err(err) = db.flush() {
+        println!("Error flushing Sled database: {}", err);
     }
 
     Ok(())
@@ -317,6 +325,10 @@ async fn apply_transaction<F: Fn(&OuterVerifier) -> bool>(
         spend_output(db, &output_ref)?;
         mark_as_used_kitties(db, &output_ref)?;
         mark_as_used_tradable_kitties(db, &output_ref)?;
+    }
+
+    if let Err(err) = db.flush() {
+        println!("Error flushing Sled database: {}", err);
     }
 
     Ok(())
@@ -743,11 +755,13 @@ where
             let (output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
             let (owner, kitty) = <(H256, T)>::decode(&mut &owner_kitty_ivec[..]).ok()?;
             let output_ref = OutputRef::decode(&mut &output_ref_ivec[..]).ok()?;
-            println!("Name : {:?}  -> output_ref {:?}", name, output_ref.clone());
+            println!("Owner  = {:?} Name : {:?}  -> output_ref {:?}", owner, name, output_ref.clone());
 
             if name_extractor(&kitty) == kitty_name {
+                println!(" Name : {:?}  matched", name);
                 Some((Some(kitty), output_ref))
             } else {
+                println!(" Name : {:?}  NOTmatched", name);
                 None
             }
         })
@@ -761,7 +775,7 @@ where
         )); // Use unwrap_or to handle the Option
 
     println!("output_ref = {:?}", output_ref);
-    println!("found_kitty = {:?}", found_kitty);
+    println!("kitty Name  {} found_status = {:?}", name,found_kitty);
 
     Ok(found_kitty.map(|kitty| (kitty, output_ref)))
 }

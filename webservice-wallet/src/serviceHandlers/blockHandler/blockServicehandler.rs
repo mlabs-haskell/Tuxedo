@@ -17,29 +17,34 @@ const DEFAULT_ENDPOINT: &str = "http://localhost:9944";
 use crate::{ keystore::SHAWN_PUB_KEY};
 
 
-use axum::{http::StatusCode, response::IntoResponse, routing::{get, post},Json, Router};
-use axum::{response::Html,};
+use axum::{http::StatusCode, response::IntoResponse, routing::{get, post},Json, Router,http::HeaderMap};
+
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
 use runtime::{opaque::Block as OpaqueBlock, Block};
 use anyhow::bail;
-
-
-#[derive(Debug, Deserialize)]
-pub struct BlockRequest {
-    pub number: u128,
-}
 
 #[derive(Debug, Serialize)]
 pub struct BlockResponse {
     pub message: String,
 }
 
-pub async fn get_block(body: Json<BlockRequest>) -> Json<BlockResponse> {
-    println!("Get block called fro block num {} ",body.number);
-    match get_blocks(body.number).await {
-        Ok(Some(node_genesis_block)) => Json(BlockResponse {
-            message: format!("block  found {:?}",node_genesis_block),
+pub async fn get_block(headers: HeaderMap) -> Json<BlockResponse> {
+    let block_number_header = headers.get("Block-Number").unwrap_or_else(|| {
+        panic!("Block-Number header is missing");
+    });
+    let block_number = block_number_header.to_str().unwrap_or_else(|_| {
+        panic!("Failed to parse Block-Number header");
+    });
+
+    // Convert the block number to the appropriate type if needed
+    let block_number: u128 = block_number.parse().unwrap_or_else(|_| {
+        panic!("Failed to parse block number as u128");
+    });
+
+    match get_blocks(block_number).await {
+        Ok(Some(node_block)) => Json(BlockResponse {
+            message: format!("block  found {:?}",node_block),
         }),
         
         Ok(None) => Json(BlockResponse {

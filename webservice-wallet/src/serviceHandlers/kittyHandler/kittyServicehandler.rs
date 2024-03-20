@@ -18,6 +18,7 @@ use crate::{ keystore::SHAWN_PUB_KEY};
 use crate::get_db;
 use crate::get_local_keystore;
 use crate::sync_and_get_db;
+use crate::original_get_db;
 
 
 use axum::{http::StatusCode, response::IntoResponse, routing::{get, post, put, patch},Json, Router};
@@ -56,7 +57,8 @@ pub struct CreateKittyResponse {
 pub async fn create_kitty(body: Json<CreateKittyRequest>) -> Result<Json<CreateKittyResponse>, Infallible> {
     println!("create_kitties called ");
     let client_result = HttpClientBuilder::default().build(DEFAULT_ENDPOINT);
-    let db = sync_and_get_db().await.expect("Error");
+    //let db = sync_and_get_db().await.expect("Error");
+    let db = original_get_db().await.expect("Error");
 
     let client = match client_result {
         Ok(client) => client,
@@ -115,7 +117,9 @@ pub struct ListKittyForSaleResponse {
 pub async fn list_kitty_for_sale (body: Json<ListKittyForSaleRequest>) -> Result<Json<ListKittyForSaleResponse>, Infallible> {
     println!("List kitties for sale is called {:?}",body);
     let client_result = HttpClientBuilder::default().build(DEFAULT_ENDPOINT);
-    let db = sync_and_get_db().await.expect("Error");
+    //let db = sync_and_get_db().await.expect("Error");
+    let db = original_get_db().await.expect("Error");
+    
 
     let client = match client_result {
         Ok(client) => client,
@@ -174,7 +178,8 @@ pub struct DelistKittyFromSaleResponse {
 pub async fn delist_kitty_from_sale (body: Json<DelistKittyFromSaleRequest>) -> Result<Json<DelistKittyFromSaleResponse>, Infallible> {
     println!("delist_kitty_from_sale is called {:?}",body);
     let client_result = HttpClientBuilder::default().build(DEFAULT_ENDPOINT);
-    let db = sync_and_get_db().await.expect("Error");
+    //let db = sync_and_get_db().await.expect("Error");
+    let db = original_get_db().await.expect("Error");
 
     let client = match client_result {
         Ok(client) => client,
