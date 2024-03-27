@@ -360,6 +360,8 @@ pub async fn create_kitty(
         ..Default::default()
     };
 
+    println!("DNA of created kitty is {:?}",child_kitty.dna);
+
     // Create the Output
     let output = Output {
         payload: child_kitty.clone().into(),

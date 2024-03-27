@@ -305,9 +305,12 @@ async fn apply_transaction<F: Fn(&OuterVerifier) -> bool>(
             Coin::<0>::TYPE_ID => {
                 crate::money::apply_transaction(db, tx_hash, index as u32, output)?;
             }
+
+            // I dont want to store the time stamp for now
             Timestamp::TYPE_ID => {
                 crate::timestamp::apply_transaction(db, output)?;
             }
+
             KittyData::TYPE_ID => {
                 crate::kitty::apply_transaction(db, tx_hash, index as u32, output)?;
             }
@@ -509,6 +512,7 @@ pub fn add_fresh_kitty_to_db(
     kitty: &KittyData,
 ) -> anyhow::Result<()> {
     let kitty_owned_tree = db.open_tree(FRESH_KITTY)?;
+    println!("add_fresh_kitty_to_db {:?}",kitty);
     kitty_owned_tree.insert(output_ref.encode(), (owner_pubkey, kitty).encode())?;
 
     Ok(())
@@ -521,6 +525,7 @@ pub fn add_fresh_tradable_kitty_to_db(
     kitty: &TradableKittyData,
 ) -> anyhow::Result<()> {
     let tradable_kitty_owned_tree = db.open_tree(FRESH_TRADABLE_KITTY)?;
+    println!("add_fresh_tradable_kitty_to_db {:?}",kitty);
     tradable_kitty_owned_tree.insert(output_ref.encode(), (owner_pubkey, kitty).encode())?;
 
     Ok(())
@@ -529,6 +534,7 @@ pub fn add_fresh_tradable_kitty_to_db(
 /// Remove an output from the database updating all tables.
 fn remove_used_kitty_from_db(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
     let kitty_owned_tree = db.open_tree(FRESH_KITTY)?;
+    println!("remove_used_kitty_from_db {:?}",output_ref);
     kitty_owned_tree.remove(output_ref.encode())?;
 
     Ok(())
@@ -537,6 +543,7 @@ fn remove_used_kitty_from_db(db: &Db, output_ref: &OutputRef) -> anyhow::Result<
 /// Remove an output from the database updating all tables.
 fn remove_used_tradable_kitty_from_db(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
     let tradable_kitty_owned_tree = db.open_tree(FRESH_TRADABLE_KITTY)?;
+    println!("remove_used_tradable_kitty_from_dbb {:?}",output_ref);
     tradable_kitty_owned_tree.remove(output_ref.encode())?;
 
     Ok(())
@@ -554,7 +561,7 @@ fn mark_as_used_kitties(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
 
     let (owner, kitty) = <(H256, KittyData)>::decode(&mut &ivec[..])?;
     used_kitty_tree.insert(output_ref.encode(), (owner, kitty).encode())?;
-
+    println!("mark_as_used_kitties is called ");
     Ok(())
 }
 
@@ -570,7 +577,7 @@ fn mark_as_used_tradable_kitties(db: &Db, output_ref: &OutputRef) -> anyhow::Res
 
     let (owner, kitty) = <(H256, KittyData)>::decode(&mut &ivec[..])?;
     used_tradable_kitty_tree.insert(output_ref.encode(), (owner, kitty).encode())?;
-
+    println!("mark_as_used_tradable_kitties is called ");
     Ok(())
 }
 
@@ -634,6 +641,25 @@ pub(crate) fn get_tradable_kitty_from_local_db_based_on_name(
         FRESH_TRADABLE_KITTY,
         name,
         |kitty: &TradableKittyData| &kitty.kitty_basic_data.name,
+    )
+}
+
+pub(crate) fn get_kitty_from_local_db_based_on_dna(
+    db: &Db,
+    name: &str,
+) -> anyhow::Result<Option<(KittyData, OutputRef)>> {
+    get_data_from_local_db_based_on_dna(db, FRESH_KITTY, name, |kitty: &KittyData| kitty.dna.clone())
+}
+
+pub(crate) fn get_tradable_kitty_from_local_db_based_on_dna(
+    db: &Db,
+    name: &str,
+) -> anyhow::Result<Option<(TradableKittyData, OutputRef)>> {
+    get_data_from_local_db_based_on_dna(
+        db,
+        FRESH_TRADABLE_KITTY,
+        name,
+        |kitty: &TradableKittyData| kitty.kitty_basic_data.dna.clone(),
     )
 }
 
@@ -730,6 +756,51 @@ where
 
             Some((owner, kitty))
         }))
+}
+
+fn get_data_from_local_db_based_on_dna<T>(
+    db: &Db,
+    tree_name: &str,
+    dna: &str,
+    dna_extractor: impl Fn(&T) -> KittyDNA,
+) -> anyhow::Result<Option<(T, OutputRef)>>
+where
+    T: Decode + Clone + std::fmt::Debug,
+{
+    let wallet_owned_kitty_tree = db.open_tree(tree_name)?;
+
+    let dna_bytes = hex::decode(dna).expect("Invalid hexadecimal string");
+    let kitty_dna = KittyDNA(H256::from_slice(&dna_bytes));
+
+    let (found_kitty, output_ref): (Option<T>, OutputRef) = wallet_owned_kitty_tree
+        .iter()
+        .filter_map(|raw_data| {
+            let (output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
+            let (owner, kitty) = <(H256, T)>::decode(&mut &owner_kitty_ivec[..]).ok()?;
+            let output_ref = OutputRef::decode(&mut &output_ref_ivec[..]).ok()?;
+            println!("Owner  = {:?} Dna : {:?}  -> output_ref {:?}", owner, kitty_dna, output_ref.clone());
+
+            if dna_extractor(&kitty) == kitty_dna {
+                println!(" Name : {:?}  matched", kitty_dna);
+                Some((Some(kitty), output_ref))
+            } else {
+                println!(" Name : {:?}  NOTmatched", kitty_dna);
+                None
+            }
+        })
+        .next()
+        .unwrap_or((
+            None,
+            OutputRef {
+                tx_hash: H256::zero(),
+                index: 0,
+            },
+        )); // Use unwrap_or to handle the Option
+
+    println!("output_ref = {:?}", output_ref);
+    println!("kitty dna  {:?} found_status = {:?}", kitty_dna,found_kitty);
+
+    Ok(found_kitty.map(|kitty| (kitty, output_ref)))
 }
 
 fn get_data_from_local_db_based_on_name<T>(

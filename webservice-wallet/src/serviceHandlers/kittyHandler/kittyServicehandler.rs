@@ -20,6 +20,8 @@ use crate::get_db;
 use crate::get_local_keystore;
 use crate::sync_and_get_db;
 use crate::original_get_db;
+use crate::sync::get_kitty_from_local_db_based_on_dna;
+use crate::sync::get_tradable_kitty_from_local_db_based_on_dna;
 
 
 
@@ -104,6 +106,154 @@ pub async fn create_kitty(body: Json<CreateKittyRequest>) -> Result<Json<CreateK
 }
 
 ////////////////////////////////////////////////////////////////////
+// Get kitty by DNA
+////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetKittyByDnaResponse {
+    pub message: String,
+    pub kitty:Option<KittyData>,
+}
+
+pub async fn get_kitty_by_dna(headers: HeaderMap) -> Json<GetKittyByDnaResponse> {
+    println!("Headers map = {:?}",headers);
+    let dna_header = headers
+        .get("kitty-dna")
+        .expect("Kitty DNA header is missing")
+        .to_str()
+        .expect("Failed to parse Kitty DNA header");
+    let db = original_get_db().await.expect("Error");
+    let mut found_kitty: Option<(KittyData, OutputRef)> = None;
+
+    if let Ok(Some((kitty_info, out_ref))) =
+        crate::sync::get_kitty_from_local_db_based_on_dna(&db,dna_header)
+    {
+        found_kitty = Some((kitty_info, out_ref));
+    }
+
+    let response = match found_kitty {
+        Some((kitty_info, _)) => GetKittyByDnaResponse {
+            message: format!("Success: Found Kitty with DNA {:?}", dna_header),
+            kitty: Some(kitty_info),
+        },
+        None => GetKittyByDnaResponse {
+            message: format!("Error: Can't find Kitty with DNA {:?}", dna_header),
+            kitty: None,
+        },
+    };
+
+    Json(response)
+}
+
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetTdKittyByDnaResponse {
+    pub message: String,
+    pub td_kitty:Option<TradableKittyData>,
+}
+
+pub async fn get_td_kitty_by_dna(headers: HeaderMap) -> Json<GetTdKittyByDnaResponse> {
+    println!("Headers map = in td kitty {:?}",headers);
+    let dna_header = headers
+        .get("td-kitty-dna")
+        .expect("Td-Kitty DNA header is missing")
+        .to_str()
+        .expect("Failed to parse Td-Kitty DNA header");
+    let db = original_get_db().await.expect("Error");
+    let mut found_td_kitty: Option<(TradableKittyData, OutputRef)> = None;
+
+    if let Ok(Some((td_kitty_info, out_ref))) =
+        crate::sync::get_tradable_kitty_from_local_db_based_on_dna(&db,dna_header)
+    {
+        found_td_kitty = Some((td_kitty_info, out_ref));
+    }
+
+    let response = match found_td_kitty {
+        Some((kitty_info, _)) => GetTdKittyByDnaResponse {
+            message: format!("Success: Found Tradable Kitty with DNA {:?}", dna_header),
+            td_kitty: Some(kitty_info),
+        },
+        None => GetTdKittyByDnaResponse {
+            message: format!("Error: Can't find Tradable Kitty with DNA {:?}", dna_header),
+            td_kitty: None,
+        },
+    };
+
+    Json(response)
+}
+
+////////////////////////////////////////////////////////////////////
+// Get all kitty List 
+////////////////////////////////////////////////////////////////////
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetAllKittiesResponse {
+    pub message: String,
+    pub kitty_list:Option<Vec<KittyData>>,
+}
+
+pub async fn get_all_kitty_list(headers: HeaderMap) -> Json<GetAllKittiesResponse> {
+    let db = original_get_db().await.expect("Error");
+
+    match crate::sync::get_all_kitties_from_local_db(&db) {
+        Ok(owned_kitties) => {
+            let kitty_list: Vec<KittyData> = owned_kitties.map(|(_, kitty)| kitty).collect();
+            
+            if !kitty_list.is_empty() {
+                return Json(GetAllKittiesResponse {
+                    message: format!("Success: Found Kitties"),
+                    kitty_list: Some(kitty_list),
+                });
+            }
+        },
+        Err(_) => {
+            return Json(GetAllKittiesResponse {
+                message: format!("Error: Can't find Kitties"),
+                kitty_list: None,
+            });
+        }
+    }
+
+    Json(GetAllKittiesResponse {
+        message: format!("Error: Can't find Kitties"),
+        kitty_list: None,
+    })
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetAllTdKittiesResponse {
+    pub message: String,
+    pub td_kitty_list:Option<Vec<TradableKittyData>>,
+}
+
+pub async fn get_all_td_kitty_list(headers: HeaderMap) -> Json<GetAllTdKittiesResponse> {
+    let db = original_get_db().await.expect("Error");
+
+    match crate::sync::get_all_tradable_kitties_from_local_db(&db) {
+        Ok(owned_kitties) => {
+            let tradable_kitty_list: Vec<TradableKittyData> = owned_kitties.map(|(_, kitty)| kitty).collect();
+            
+            if !tradable_kitty_list.is_empty() {
+                return Json(GetAllTdKittiesResponse {
+                    message: format!("Success: Found TradableKitties"),
+                    td_kitty_list: Some(tradable_kitty_list),
+                });
+            }
+        },
+        Err(_) => {
+            return Json(GetAllTdKittiesResponse {
+                message: format!("Error: Can't find TradableKitties"),
+                td_kitty_list: None,
+            });
+        }
+    }
+
+    Json(GetAllTdKittiesResponse {
+        message: format!("Error: Can't find Kitties"),
+        td_kitty_list: None,
+    })
+}
+
+////////////////////////////////////////////////////////////////////
 // List kitty for Sale 
 ////////////////////////////////////////////////////////////////////
 
@@ -150,22 +300,7 @@ pub async fn get_txn_and_inpututxolist_for_list_kitty_for_sale(headers: HeaderMa
 
     let public_key_bytes = hex::decode(publick_key_str.clone()).expect("Invalid hexadecimal string");
     let public_key_h256 = H256::from_slice(&public_key_bytes);
-
-    let client_result = HttpClientBuilder::default().build(DEFAULT_ENDPOINT);
-    //let db = sync_and_get_db().await.expect("Error");
     let db = original_get_db().await.expect("Error");
-    
-    let client = match client_result {
-        Ok(client) => client,
-        Err(err) => {
-            return Json(GetTxnAndUtxoListForListKittyForSaleResponse {
-                message: format!("Error creating HTTP client: {:?}", err),
-                transaction:None,
-                input_utxo_list:None
-            });
-        }
-    };
-
     match kitty::create_txn_for_list_kitty(&db, 
         name_str.to_string(),
         price_number,
@@ -173,6 +308,17 @@ pub async fn get_txn_and_inpututxolist_for_list_kitty_for_sale(headers: HeaderMa
     ).await {
         Ok(Some(txn)) => {
             // Convert created_kitty to JSON and include it in the response
+            let client_result = HttpClientBuilder::default().build(DEFAULT_ENDPOINT);
+            let client = match client_result {
+                Ok(client) => client,
+                Err(err) => {
+                    return Json(GetTxnAndUtxoListForListKittyForSaleResponse {
+                        message: format!("Error creating HTTP client: {:?}", err),
+                        transaction:None,
+                        input_utxo_list:None
+                    });
+                }
+            };
             let utxo_list = kitty::create_inpututxo_list(&mut txn.clone(),&client).await;
 
             let response = GetTxnAndUtxoListForListKittyForSaleResponse {
@@ -195,86 +341,6 @@ pub async fn get_txn_and_inpututxolist_for_list_kitty_for_sale(headers: HeaderMa
     }
 }
 
-pub async fn debug_get_signed_txn_for_list_kitty_for_sale(headers: HeaderMap) -> Json<GetTxnAndUtxoListForListKittyForSaleResponse> {
-    // create_tx_for_list_kitty
-    println!("Headers map = {:?}",headers);
-    let name_header = headers.get("kitty-name").unwrap_or_else(|| {
-        panic!("Kitty name is missing");
-    });
-
-    let name_str = name_header.to_str().unwrap_or_else(|_| {
-        panic!("Failed to parse name header");
-    });
-
-    // -------------------------------
-    let price_header = headers.get("kitty-price").unwrap_or_else(|| {
-        panic!("Kitty price is missing");
-    });
-    let price_str = price_header.to_str().unwrap_or_else(|_| {
-        panic!("Failed to parse priceheader");
-    });
-
-    // Convert the block number to the appropriate type if needed
-    let price_number: u128 = price_str.parse().unwrap_or_else(|_| {
-        panic!("Failed to parse price number as u128");
-    });
-
-    // -------------------------------
-
-    let publick_key_header = headers.get("owner_public_key").unwrap_or_else(|| {
-        panic!("publick_key_header is missing");
-    });
-
-    let publick_key_str = publick_key_header.to_str().unwrap_or_else(|_| {
-        panic!("publick_key_header to parse");
-    });
-
-    let public_key_bytes = hex::decode(publick_key_str.clone()).expect("Invalid hexadecimal string");
-    let public_key_h256 = H256::from_slice(&public_key_bytes);
-
-    let client_result = HttpClientBuilder::default().build(DEFAULT_ENDPOINT);
-    //let db = sync_and_get_db().await.expect("Error");
-    let db = original_get_db().await.expect("Error");
-    
-    let client = match client_result {
-        Ok(client) => client,
-        Err(err) => {
-            return Json(GetTxnAndUtxoListForListKittyForSaleResponse {
-                message: format!("Error creating HTTP client: {:?}", err),
-                transaction:None,
-                input_utxo_list:None
-            });
-        }
-    };
-    match kitty::create_signed_txn_for_list_kitty(&db, 
-        name_str.to_string(),
-        price_number,
-        public_key_h256,
-        &client,
-    ).await {
-        Ok(Some(txn)) => {
-            // Convert created_kitty to JSON and include it in the response
-            let utxo_list = kitty::create_inpututxo_list(&mut txn.clone(),&client).await;
-
-            let response = GetTxnAndUtxoListForListKittyForSaleResponse {
-                message: format!("Kitty listed for sale successfully"),
-                transaction: Some(txn), 
-                input_utxo_list:utxo_list.expect("Cant crate the Utxo List"),
-            };
-            Json(response)
-        },
-        Ok(None) => Json(GetTxnAndUtxoListForListKittyForSaleResponse {
-            message: format!("Kitty listing forsale  failed: No input returned"),
-            transaction:None,
-            input_utxo_list:None
-        }),
-        Err(err) => Json(GetTxnAndUtxoListForListKittyForSaleResponse {
-            message: format!("Error!! listing forsale: {:?}", err),
-            transaction:None,
-            input_utxo_list:None
-        }),
-    }
-}
 
 #[derive(Debug, Deserialize)]
 pub struct ListKittyForSaleRequest {
@@ -705,6 +771,90 @@ pub async fn breed_kitty(body: Json<BreedKittyRequest>) -> Result<Json<BreedKitt
             dad_kitty:None,
             child_kitty:None,
         })),
+    }
+}
+
+// Below are test purpose 
+
+
+pub async fn debug_get_signed_txn_for_list_kitty_for_sale(headers: HeaderMap) -> Json<GetTxnAndUtxoListForListKittyForSaleResponse> {
+    // create_tx_for_list_kitty
+    println!("Headers map = {:?}",headers);
+    let name_header = headers.get("kitty-name").unwrap_or_else(|| {
+        panic!("Kitty name is missing");
+    });
+
+    let name_str = name_header.to_str().unwrap_or_else(|_| {
+        panic!("Failed to parse name header");
+    });
+
+    // -------------------------------
+    let price_header = headers.get("kitty-price").unwrap_or_else(|| {
+        panic!("Kitty price is missing");
+    });
+    let price_str = price_header.to_str().unwrap_or_else(|_| {
+        panic!("Failed to parse priceheader");
+    });
+
+    // Convert the block number to the appropriate type if needed
+    let price_number: u128 = price_str.parse().unwrap_or_else(|_| {
+        panic!("Failed to parse price number as u128");
+    });
+
+    // -------------------------------
+
+    let publick_key_header = headers.get("owner_public_key").unwrap_or_else(|| {
+        panic!("publick_key_header is missing");
+    });
+
+    let publick_key_str = publick_key_header.to_str().unwrap_or_else(|_| {
+        panic!("publick_key_header to parse");
+    });
+
+    let public_key_bytes = hex::decode(publick_key_str.clone()).expect("Invalid hexadecimal string");
+    let public_key_h256 = H256::from_slice(&public_key_bytes);
+
+    let client_result = HttpClientBuilder::default().build(DEFAULT_ENDPOINT);
+    //let db = sync_and_get_db().await.expect("Error");
+    let db = original_get_db().await.expect("Error");
+    
+    let client = match client_result {
+        Ok(client) => client,
+        Err(err) => {
+            return Json(GetTxnAndUtxoListForListKittyForSaleResponse {
+                message: format!("Error creating HTTP client: {:?}", err),
+                transaction:None,
+                input_utxo_list:None
+            });
+        }
+    };
+    match kitty::create_signed_txn_for_list_kitty(&db, 
+        name_str.to_string(),
+        price_number,
+        public_key_h256,
+        &client,
+    ).await {
+        Ok(Some(txn)) => {
+            // Convert created_kitty to JSON and include it in the response
+            let utxo_list = kitty::create_inpututxo_list(&mut txn.clone(),&client).await;
+
+            let response = GetTxnAndUtxoListForListKittyForSaleResponse {
+                message: format!("Kitty listed for sale successfully"),
+                transaction: Some(txn), 
+                input_utxo_list:utxo_list.expect("Cant crate the Utxo List"),
+            };
+            Json(response)
+        },
+        Ok(None) => Json(GetTxnAndUtxoListForListKittyForSaleResponse {
+            message: format!("Kitty listing forsale  failed: No input returned"),
+            transaction:None,
+            input_utxo_list:None
+        }),
+        Err(err) => Json(GetTxnAndUtxoListForListKittyForSaleResponse {
+            message: format!("Error!! listing forsale: {:?}", err),
+            transaction:None,
+            input_utxo_list:None
+        }),
     }
 }
 

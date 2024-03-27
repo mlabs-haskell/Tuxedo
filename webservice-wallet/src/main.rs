@@ -60,6 +60,10 @@ use serviceHandlers::kittyHandler::kittyServicehandler::{
     GetTxnAndUtxoListForListKittyForSaleResponse, get_txn_and_inpututxolist_for_list_kitty_for_sale,
     debug_get_signed_txn_for_list_kitty_for_sale,// added just for debug
     ListKittyForSaleRequest, ListKittyForSaleResponse, list_kitty_for_sale,
+    GetKittyByDnaResponse, get_kitty_by_dna,
+    GetTdKittyByDnaResponse, get_td_kitty_by_dna,
+    GetAllKittiesResponse,get_all_kitty_list,
+    GetAllTdKittiesResponse, get_all_td_kitty_list,
     DelistKittyFromSaleRequest, DelistKittyFromSaleResponse, delist_kitty_from_sale,
     UpdateKittyNameRequest, UpdateKittyNameResponse, update_kitty_name,
     UpdateTdKittyNameRequest, UpdateTdKittyNameResponse, update_td_kitty_name,
@@ -93,8 +97,15 @@ async fn main() {
         .route("/mint-coins", post(mint_coins))
         .route("/create-kitty", post(create_kitty))
         .route("/get-txn-and-inpututxolist-for-listkitty-forsale", get(get_txn_and_inpututxolist_for_list_kitty_for_sale))
-        .route("/debug-get-signed-for-listkitty", get(debug_get_signed_txn_for_list_kitty_for_sale))
         .route("/listkitty-for-sale", post(list_kitty_for_sale))
+        .route("/debug-get-signed-for-listkitty", get(debug_get_signed_txn_for_list_kitty_for_sale))
+        .route("/get-kitty-by-dna", get(get_kitty_by_dna))
+        .route("/get-tradable-kitty-by-dna", get(get_td_kitty_by_dna))
+        .route("/get-all-kitty-list", get(get_all_kitty_list))
+        .route("/get-all-tradable-kitty-list", get(get_all_td_kitty_list))
+       // .route("/get-owned-kitty-list", get(get_owned_kitty_list))
+       // .route("/get-owned-tradable-kitty-list", get(get_owned_td_kitty_list))
+
         //.route("/spend-coins", put(spend_coins))
         .layer(cors);
 
@@ -147,7 +158,7 @@ async fn original_get_db() -> anyhow::Result<Db> {
 
     sync::synchronize(&db, &client, &keystore_filter).await?;
 
-    log::info!(
+    println!(
         "Wallet database synchronized with node to height {:?}",
         sync::height(&db)?.expect("We just synced, so there is a height available")
     );
