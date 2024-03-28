@@ -21,14 +21,14 @@ pub const DEFAULT_KITTY_NAME: &str = "    ";
 
 /// The default gender of the kitty to be created.
 pub const DEFAULT_KITTY_GENDER: &str = "female";
-use crate::keystore;
+
 
 
 fn parse_recipient_coins(s: &str) -> Result<(H256, Vec<u128>), &'static str> {
     println!("In parse_recipient_coins");
     let parts: Vec<&str> = s.split_whitespace().collect();
     if parts.len() >= 2 {
-        let mut recipient = h256_from_string(parts[0]);
+        let recipient = h256_from_string(parts[0]);
         let coins = parts[1..].iter().filter_map(|&c| c.parse().ok()).collect();
         match recipient {
             Ok(r) => {
@@ -81,7 +81,7 @@ pub struct Cli {
 pub enum Command {
     /// Print the block based on block height.
     /// get the block hash ad print the block.
-    getBlock {
+    GetBlock {
         /// Input the blockheight to be retrived.
         block_height: Option<u32>, // fixme
     },

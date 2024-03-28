@@ -23,10 +23,10 @@ use crate::get_local_keystore;
 
 use runtime::{
     kitties::{
-        DadKittyStatus, FreeKittyConstraintChecker, KittyDNA, KittyData, KittyHelpers,
+        DadKittyStatus, FreeKittyConstraintChecker, KittyDNA, KittyData,
         MomKittyStatus, Parent,
     },
-    money::{Coin, MoneyConstraintChecker},
+    money::{Coin},
     tradable_kitties::{TradableKittyConstraintChecker, TradableKittyData},
     OuterVerifier, Transaction,
 };
@@ -34,7 +34,7 @@ use runtime::{
 use crate::cli::DEFAULT_KITTY_NAME;
 
 use crate::cli::{
-    BreedKittyArgs, BuyKittyArgs, CreateKittyArgs, DelistKittyFromSaleArgs, ListKittyForSaleArgs,
+    BreedKittyArgs, BuyKittyArgs, CreateKittyArgs, DelistKittyFromSaleArgs, 
     UpdateKittyNameArgs, UpdateKittyPriceArgs,
 };
 use parity_scale_codec::Decode;
@@ -384,7 +384,6 @@ pub async fn create_kitty(
 
 pub async fn list_kitty_for_sale(
     signed_transaction: &Transaction,
-    db: &Db,
     client: &HttpClient,
 ) -> anyhow::Result<Option<TradableKittyData>> {
     let tradable_kitty: TradableKittyData = signed_transaction.outputs[0].payload
@@ -528,7 +527,7 @@ pub async fn buy_kitty(
 
     let inputs: Vec<Input> = vec![kitty_ref];
     // Create the KittyData
-    let mut output_kitty = kitty_info.clone();
+    let output_kitty = kitty_info.clone();
 
     let output = Output {
         payload: output_kitty.into(),
@@ -887,7 +886,7 @@ pub async fn create_txn_for_list_kitty(
     };
 
     // Create the Transaction
-    let mut transaction = Transaction {
+    let transaction = Transaction {
         inputs: inputs,
         peeks: Vec::new(),
         outputs: vec![output],

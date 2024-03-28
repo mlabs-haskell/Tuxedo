@@ -2,48 +2,41 @@ use serde::{Deserialize, Serialize};
 
 
 use jsonrpsee::http_client::HttpClientBuilder;
-use parity_scale_codec::{Decode, Encode};
-use std::path::PathBuf;
-use sled::Db;
+
+
+
 use crate::kitty;
 use sp_core::H256;
 
-use crate::cli::{CreateKittyArgs, ListKittyForSaleArgs, 
+use crate::cli::{CreateKittyArgs,
     DelistKittyFromSaleArgs, UpdateKittyNameArgs, UpdateKittyPriceArgs, 
     BuyKittyArgs, BreedKittyArgs};
 
 /// The default RPC endpoint for the wallet to connect to
 const DEFAULT_ENDPOINT: &str = "http://localhost:9944";
-use crate::{ keystore::SHAWN_PUB_KEY};
 
-use crate::get_db;
+
+
 use crate::get_local_keystore;
 use crate::sync_and_get_db;
 use crate::original_get_db;
-use crate::sync::get_kitty_from_local_db_based_on_dna;
-use crate::sync::get_tradable_kitty_from_local_db_based_on_dna;
 
 
 
-use axum::{http::StatusCode, response::IntoResponse, routing::{get, post, put, patch},Json, Router,http::HeaderMap};
+
+
+use axum::{Json,http::HeaderMap};
 
 use std::convert::Infallible;
-use axum::{response::Html,};
-use std::net::SocketAddr;
-use tower_http::cors::{Any, CorsLayer};
-use runtime::{opaque::Block as OpaqueBlock, Block};
-use anyhow::bail;
-//use parity_scale_codec::Input;
-use tuxedo_core::types::Input;
+
 
 
 use runtime::{
     kitties::{
-        DadKittyStatus, FreeKittyConstraintChecker, KittyDNA, KittyData, KittyHelpers,
-        MomKittyStatus, Parent,
+        KittyData,
     },
-    money::{Coin, MoneyConstraintChecker},
-    tradable_kitties::{TradableKittyConstraintChecker, TradableKittyData},
+    money::{Coin},
+    tradable_kitties::{TradableKittyData},
     OuterVerifier, Transaction,
 };
 use tuxedo_core::types::OutputRef;
@@ -191,12 +184,12 @@ pub struct GetAllKittiesResponse {
     pub kitty_list:Option<Vec<KittyData>>,
 }
 
-pub async fn get_all_kitty_list(headers: HeaderMap) -> Json<GetAllKittiesResponse> {
+pub async fn get_all_kitty_list() -> Json<GetAllKittiesResponse> {
     let db = original_get_db().await.expect("Error");
 
     match crate::sync::get_all_kitties_from_local_db(&db) {
-        Ok(owned_kitties) => {
-            let kitty_list: Vec<KittyData> = owned_kitties.map(|(_, kitty)| kitty).collect();
+        Ok(all_kitties) => {
+            let kitty_list: Vec<KittyData> = all_kitties.map(|(_, kitty)| kitty).collect();
             
             if !kitty_list.is_empty() {
                 return Json(GetAllKittiesResponse {
@@ -225,7 +218,7 @@ pub struct GetAllTdKittiesResponse {
     pub td_kitty_list:Option<Vec<TradableKittyData>>,
 }
 
-pub async fn get_all_td_kitty_list(headers: HeaderMap) -> Json<GetAllTdKittiesResponse> {
+pub async fn get_all_td_kitty_list() -> Json<GetAllTdKittiesResponse> {
     let db = original_get_db().await.expect("Error");
 
     match crate::sync::get_all_tradable_kitties_from_local_db(&db) {
@@ -249,6 +242,107 @@ pub async fn get_all_td_kitty_list(headers: HeaderMap) -> Json<GetAllTdKittiesRe
 
     Json(GetAllTdKittiesResponse {
         message: format!("Error: Can't find Kitties"),
+        td_kitty_list: None,
+    })
+}
+////////////////////////////////////////////////////////////////////
+// Get owned kitties  
+////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetOwnedKittiesResponse {
+    pub message: String,
+    pub public_key: String,
+    pub kitty_list:Option<Vec<KittyData>>,
+}
+
+pub async fn get_owned_kitty_list(headers: HeaderMap) -> Json<GetOwnedKittiesResponse> {
+    let public_key_header = headers.get("owner_public_key").unwrap_or_else(|| {
+        panic!("public_key_header is missing");
+    });
+
+    let public_key_str = public_key_header.to_str().unwrap_or_else(|_| {
+        panic!("public_key_header to parse");
+    });
+
+    let public_key_bytes = hex::decode(public_key_str.clone()).expect("Invalid hexadecimal string");
+    let public_key_h256 = H256::from_slice(&public_key_bytes);
+
+    let db = original_get_db().await.expect("Error");
+
+
+    match crate::sync::get_owned_kitties_from_local_db(&db,&public_key_h256) {
+        Ok(owned_kitties) => {
+            let kitty_list: Vec<KittyData> = owned_kitties.map(|(_, kitty,_)| kitty).collect();
+            
+            if !kitty_list.is_empty() {
+                return Json(GetOwnedKittiesResponse {
+                    message: format!("Success: Found Kitties"),
+                    public_key:public_key_h256.to_string(),
+                    kitty_list: Some(kitty_list),
+                });
+            }
+        },
+        Err(_) => {
+            return Json(GetOwnedKittiesResponse {
+                message: format!("Error: Can't find Kitties"),
+                public_key:public_key_h256.to_string(),
+                kitty_list: None,
+            });
+        }
+    }
+
+    Json(GetOwnedKittiesResponse {
+        message: format!("Error: Can't find Kitties"),
+        public_key:public_key_h256.to_string(),
+        kitty_list: None,
+    })
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetOwnedTdKittiesResponse {
+    pub message: String,
+    pub public_key: String,
+    pub td_kitty_list:Option<Vec<TradableKittyData>>,
+}
+
+pub async fn get_owned_td_kitty_list(headers: HeaderMap) -> Json<GetOwnedTdKittiesResponse> {
+    let public_key_header = headers.get("owner_public_key").unwrap_or_else(|| {
+        panic!("public_key_header is missing");
+    });
+
+    let public_key_str = public_key_header.to_str().unwrap_or_else(|_| {
+        panic!("public_key_header to parse");
+    });
+
+    let public_key_bytes = hex::decode(public_key_str.clone()).expect("Invalid hexadecimal string");
+    let public_key_h256 = H256::from_slice(&public_key_bytes);
+    let db = original_get_db().await.expect("Error");
+
+    match crate::sync::get_owned_tradable_kitties_from_local_db(&db,&public_key_h256) {
+        Ok(owned_kitties) => {
+            let tradable_kitty_list: Vec<TradableKittyData> = owned_kitties.map(|(_, kitty, _)| kitty).collect();
+            
+            if !tradable_kitty_list.is_empty() {
+                return Json(GetOwnedTdKittiesResponse {
+                    message: format!("Success: Found TradableKitties"),
+                    public_key: public_key_h256.to_string(),
+                    td_kitty_list: Some(tradable_kitty_list),
+                });
+            }
+        },
+        Err(_) => {
+            return Json(GetOwnedTdKittiesResponse {
+                message: format!("Error: Can't find TradableKitties"),
+                public_key: public_key_h256.to_string(),
+                td_kitty_list: None,
+            });
+        }
+    }
+
+    Json(GetOwnedTdKittiesResponse {
+        message: format!("Error: Can't find td Kitties"),
+        public_key: public_key_h256.to_string(),
         td_kitty_list: None,
     })
 }
@@ -357,9 +451,7 @@ pub struct ListKittyForSaleResponse {
 pub async fn list_kitty_for_sale (body: Json<ListKittyForSaleRequest>) -> Result<Json<ListKittyForSaleResponse>, Infallible> {
     println!("List kitties for sale is called {:?}",body);
     let client_result = HttpClientBuilder::default().build(DEFAULT_ENDPOINT);
-    //let db = sync_and_get_db().await.expect("Error");
-    let db = original_get_db().await.expect("Error");
-    
+
     let client = match client_result {
         Ok(client) => client,
         Err(err) => {
@@ -371,7 +463,7 @@ pub async fn list_kitty_for_sale (body: Json<ListKittyForSaleRequest>) -> Result
     };
 
     match kitty::list_kitty_for_sale(&body.signed_transaction,
-        &db, &client).await {
+        &client).await {
         Ok(Some(listed_kitty)) => {
             // Convert created_kitty to JSON and include it in the response
             let response = ListKittyForSaleResponse {

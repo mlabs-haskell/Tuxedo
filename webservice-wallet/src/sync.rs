@@ -18,14 +18,14 @@ use anyhow::anyhow;
 use parity_scale_codec::{Decode, Encode};
 use sled::Db;
 use sp_core::H256;
-use sp_runtime::traits::{BlakeTwo256, Hash, Zero};
+use sp_runtime::traits::{BlakeTwo256, Hash};
 use tuxedo_core::{
     dynamic_typing::UtxoData,
     types::{Input, OutputRef},
 };
 
-use crate::cli::ShowOwnedKittyArgs;
-use anyhow::Error;
+
+
 use jsonrpsee::http_client::HttpClient;
 use runtime::kitties::KittyDNA;
 use runtime::kitties::KittyData;
@@ -667,25 +667,25 @@ pub(crate) fn get_tradable_kitty_from_local_db_based_on_dna(
 /// on a per-address basis.
 pub(crate) fn get_owned_kitties_from_local_db<'a>(
     db: &'a Db,
-    args: &'a ShowOwnedKittyArgs,
+    owner_pub_key: &'a H256,
 ) -> anyhow::Result<impl Iterator<Item = (H256, KittyData, OutputRef)> + 'a> {
-    get_any_owned_kitties_from_local_db(db, FRESH_KITTY, &args.owner)
+    get_any_owned_kitties_from_local_db(db, FRESH_KITTY, &owner_pub_key)
 }
 
 /// Iterate the entire owned tradable kitty
 /// on a per-address basis.
 pub(crate) fn get_owned_tradable_kitties_from_local_db<'a>(
     db: &'a Db,
-    args: &'a ShowOwnedKittyArgs,
+    owner_pub_key: &'a H256,
 ) -> anyhow::Result<impl Iterator<Item = (H256, TradableKittyData, OutputRef)> + 'a> {
-    get_any_owned_kitties_from_local_db(db, FRESH_TRADABLE_KITTY, &args.owner)
+    get_any_owned_kitties_from_local_db(db, FRESH_TRADABLE_KITTY, &owner_pub_key)
 }
 
 pub(crate) fn is_kitty_name_duplicate(
     db: &Db,
     name: String,
     owner_pubkey: &H256,
-) -> anyhow::Result<Option<(bool)>> {
+) -> anyhow::Result<Option<bool>> {
     is_name_duplicate(db, name, owner_pubkey, FRESH_KITTY, |kitty: &KittyData| {
         &kitty.name
     })
@@ -695,7 +695,7 @@ pub(crate) fn is_td_kitty_name_duplicate(
     db: &Db,
     name: String,
     owner_pubkey: &H256,
-) -> anyhow::Result<Option<(bool)>> {
+) -> anyhow::Result<Option<bool>> {
     is_name_duplicate(
         db,
         name,
@@ -864,7 +864,6 @@ where
     Ok(wallet_owned_kitty_tree.iter().filter_map(move |raw_data| {
         let (output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
         let (owner, kitty) = <(H256, T)>::decode(&mut &owner_kitty_ivec[..]).ok()?;
-        let output_ref_str = hex::encode(output_ref_ivec.clone());
         let output_ref = OutputRef::decode(&mut &output_ref_ivec[..]).ok()?;
         if owner == *owner_pubkey {
             Some((owner, kitty, output_ref))
@@ -880,7 +879,7 @@ fn is_name_duplicate<T>(
     owner_pubkey: &H256,
     tree_name: &str,
     name_extractor: impl Fn(&T) -> &[u8; 4],
-) -> anyhow::Result<Option<(bool)>>
+) -> anyhow::Result<Option<bool>>
 where
     T: Decode + Clone + std::fmt::Debug,
 {
@@ -891,7 +890,7 @@ where
         &array
     };
 
-    let found_kitty: (Option<T>) = wallet_owned_kitty_tree
+    let found_kitty: Option<T> = wallet_owned_kitty_tree
         .iter()
         .filter_map(move |raw_data| {
             let (output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;

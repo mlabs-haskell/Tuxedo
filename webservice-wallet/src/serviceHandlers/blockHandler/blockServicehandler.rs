@@ -1,27 +1,24 @@
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 
 use jsonrpsee::http_client::HttpClientBuilder;
-use parity_scale_codec::{Decode, Encode};
-use runtime::OuterVerifier;
-use std::path::PathBuf;
-use sled::Db;
-use crate::money;
-use sp_core::H256;
+
+
+
+
+
+
 use crate::rpc;
 
-use crate::cli::MintCoinArgs;
-use crate::cli::CreateKittyArgs;
+
 
 /// The default RPC endpoint for the wallet to connect to
 const DEFAULT_ENDPOINT: &str = "http://localhost:9944";
-use crate::{ keystore::SHAWN_PUB_KEY};
+
+use axum::{Json,http::HeaderMap};
 
 
-use axum::{http::StatusCode, response::IntoResponse, routing::{get, post},Json, Router,http::HeaderMap};
 
-use std::net::SocketAddr;
-use tower_http::cors::{Any, CorsLayer};
-use runtime::{opaque::Block as OpaqueBlock, Block};
+use runtime::{Block};
 use anyhow::bail;
 
 #[derive(Debug, Serialize)]
@@ -52,9 +49,6 @@ pub async fn get_block(headers: HeaderMap) -> Json<BlockResponse> {
         }),
         Err(err) => Json(BlockResponse {
             message: format!("Error getting the block: {:?}", err),
-        }),
-        Err(_) => Json(BlockResponse {
-            message: format!("Unknown Error getting the block: "),
         }),
     }
 }

@@ -59,14 +59,14 @@ pub async fn mint_coins(client: &HttpClient, args: MintCoinArgs) -> anyhow::Resu
     Ok(())
 }
 use sp_core::H256;
-struct recipient_output {
+struct RecipientOutput {
     pub recipient:H256,
     pub output_amount:Vec<u128>
 }
-fn extract_recipient_list_from_args(args: SpendArgs,) -> Vec<recipient_output> {
-    let mut recipient_list:Vec<recipient_output> = Vec::new();
+fn extract_recipient_list_from_args(args: SpendArgs,) -> Vec<RecipientOutput> {
+    let mut recipient_list:Vec<RecipientOutput> = Vec::new();
     for i in args.recipients {
-        let rec_pient = recipient_output {
+        let rec_pient = RecipientOutput {
             recipient:i.0,
             output_amount:i.1,
         };
@@ -90,7 +90,7 @@ pub async fn spend_coins(
         checker: OuterConstraintChecker::Money(MoneyConstraintChecker::Spend),
     };
 
-    let mut recipient_list:Vec<recipient_output> = extract_recipient_list_from_args(args.clone());
+    let recipient_list:Vec<RecipientOutput> = extract_recipient_list_from_args(args.clone());
 
     let mut total_output_amount = 0;
     for recipient in &recipient_list {

@@ -1,9 +1,9 @@
 //! A simple CLI wallet. For now it is a toy just to start testing things out.
 
-use clap::Parser;
+
 use jsonrpsee::http_client::HttpClientBuilder;
-use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
-use parity_scale_codec::{Decode, Encode};
+use jsonrpsee::{http_client::HttpClient};
+use parity_scale_codec::{Decode};
 use runtime::OuterVerifier;
 use std::path::PathBuf;
 use sled::Db;
@@ -13,9 +13,7 @@ use sp_core::H256;
 use sc_keystore::LocalKeystore;
 
 //mod amoeba;
-mod TradableKitties;
 mod cli;
-mod req_resp;
 mod keystore;
 mod kitty;
 mod money;
@@ -23,10 +21,6 @@ mod output_filter;
 mod rpc;
 mod sync;
 mod timestamp;
-
-use cli::{Cli, Command};
-use crate::cli::MintCoinArgs;
-use crate::cli::CreateKittyArgs;
 
 //use moneyServicehandler::{MintCoinsRequest, MintCoinsResponse};
 mod serviceHandlers {
@@ -49,43 +43,40 @@ mod serviceHandlers {
 }
 
 use serviceHandlers::keyHandler::keyServicehandler::{
-    GenerateKeyRequest, GenerateKeyResponse, generate_key,
-    GetKeyResponse, get_keys,
+    generate_key,
+    get_keys,
 };
 
-use serviceHandlers::moneyHandler::moneyServicehandler::{MintCoinsRequest, MintCoinsResponse, mint_coins};
+use serviceHandlers::moneyHandler::moneyServicehandler::{mint_coins};
 
 use serviceHandlers::kittyHandler::kittyServicehandler::{
-    CreateKittyRequest, CreateKittyResponse, create_kitty,
-    GetTxnAndUtxoListForListKittyForSaleResponse, get_txn_and_inpututxolist_for_list_kitty_for_sale,
+    create_kitty,
+    get_txn_and_inpututxolist_for_list_kitty_for_sale,
     debug_get_signed_txn_for_list_kitty_for_sale,// added just for debug
-    ListKittyForSaleRequest, ListKittyForSaleResponse, list_kitty_for_sale,
-    GetKittyByDnaResponse, get_kitty_by_dna,
-    GetTdKittyByDnaResponse, get_td_kitty_by_dna,
-    GetAllKittiesResponse,get_all_kitty_list,
-    GetAllTdKittiesResponse, get_all_td_kitty_list,
-    DelistKittyFromSaleRequest, DelistKittyFromSaleResponse, delist_kitty_from_sale,
-    UpdateKittyNameRequest, UpdateKittyNameResponse, update_kitty_name,
-    UpdateTdKittyNameRequest, UpdateTdKittyNameResponse, update_td_kitty_name,
-    UpdateTdKittyPriceRequest, UpdateTdKittyPriceResponse, update_td_kitty_price,
-    BuyTdKittyRequest, BuyTdKittyResponse, buy_kitty,
-    BreedKittyRequest, BreedKittyResponse, breed_kitty,
+    list_kitty_for_sale,
+    get_kitty_by_dna,
+    get_td_kitty_by_dna,
+    get_all_kitty_list,
+    get_all_td_kitty_list,
+    get_owned_kitty_list,
+    get_owned_td_kitty_list,
+    /*delist_kitty_from_sale,
+    update_kitty_name,
+    update_td_kitty_name,
+    update_td_kitty_price,
+    buy_kitty,
+    breed_kitty,*/
 };
 
-use serviceHandlers::blockHandler::blockServicehandler::{ BlockResponse, get_block};
+use serviceHandlers::blockHandler::blockServicehandler::{  get_block};
 
 /// The default RPC endpoint for the wallet to connect to
 const DEFAULT_ENDPOINT: &str = "http://localhost:9944";
-use crate::{ keystore::SHAWN_PUB_KEY};
 
+use axum::{routing::{get, post, put}, Router};
 
-use axum::{http::StatusCode, response::IntoResponse, routing::{get, post, put},Json, Router};
-use axum::{response::Html,};
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
-use runtime::{opaque::Block as OpaqueBlock, Block};
-use anyhow::bail;
-use serde::{Deserialize, Serialize};
 
 
 #[tokio::main]
@@ -98,13 +89,16 @@ async fn main() {
         .route("/create-kitty", post(create_kitty))
         .route("/get-txn-and-inpututxolist-for-listkitty-forsale", get(get_txn_and_inpututxolist_for_list_kitty_for_sale))
         .route("/listkitty-for-sale", post(list_kitty_for_sale))
-        .route("/debug-get-signed-for-listkitty", get(debug_get_signed_txn_for_list_kitty_for_sale))
         .route("/get-kitty-by-dna", get(get_kitty_by_dna))
         .route("/get-tradable-kitty-by-dna", get(get_td_kitty_by_dna))
         .route("/get-all-kitty-list", get(get_all_kitty_list))
         .route("/get-all-tradable-kitty-list", get(get_all_td_kitty_list))
-       // .route("/get-owned-kitty-list", get(get_owned_kitty_list))
-       // .route("/get-owned-tradable-kitty-list", get(get_owned_td_kitty_list))
+        .route("/get-owned-kitty-list", get(get_owned_kitty_list))
+        .route("/get-owned-tradable-kitty-list", get(get_owned_td_kitty_list))
+        // below arr for debug purpose only.
+        .route("/debug-get-signed-for-listkitty", get(debug_get_signed_txn_for_list_kitty_for_sale))
+        .route("/generate-key", post(generate_key))
+        .route("/get-keys", get(get_keys))
 
         //.route("/spend-coins", put(spend_coins))
         .layer(cors);
@@ -119,8 +113,6 @@ async fn main() {
 
 
 async fn original_get_db() -> anyhow::Result<Db> {
-
-    let keystore = get_local_keystore().await.unwrap_or_else(|_| panic!("Error in extracting local key store"));
 
     let client = HttpClientBuilder::default().build(DEFAULT_ENDPOINT)?;
 

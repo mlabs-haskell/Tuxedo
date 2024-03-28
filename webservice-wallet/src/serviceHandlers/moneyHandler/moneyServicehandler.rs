@@ -1,10 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 use jsonrpsee::http_client::HttpClientBuilder;
-use parity_scale_codec::{Decode, Encode};
-use runtime::OuterVerifier;
-use std::path::PathBuf;
-use sled::Db;
 use crate::money;
 use sp_core::H256;
 
@@ -12,15 +8,11 @@ use crate::cli::MintCoinArgs;
 
 /// The default RPC endpoint for the wallet to connect to
 const DEFAULT_ENDPOINT: &str = "http://localhost:9944";
-use crate::{ keystore::SHAWN_PUB_KEY};
 
 
-use axum::{http::StatusCode, response::IntoResponse, routing::{get, post},Json, Router};
-use axum::{response::Html,};
-use std::net::SocketAddr;
-use tower_http::cors::{Any, CorsLayer};
-use runtime::{opaque::Block as OpaqueBlock, Block};
-use anyhow::bail;
+
+use axum::{Json};
+
 
 
 #[derive(Debug, Deserialize)]

@@ -1,17 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-use sp_core::H256;
+
 use crate::keystore;
 
-use crate::{ keystore::SHAWN_PUB_KEY};
 
-use axum::{http::StatusCode, response::IntoResponse, routing::{get, post},Json, Router};
-use axum::{response::Html,};
-use std::net::SocketAddr;
-use tower_http::cors::{Any, CorsLayer};
-use runtime::{opaque::Block as OpaqueBlock, Block};
-use anyhow::bail;
 
+use axum::{Json};
 
 #[derive(Debug, Deserialize)]
 pub struct GenerateKeyRequest {
