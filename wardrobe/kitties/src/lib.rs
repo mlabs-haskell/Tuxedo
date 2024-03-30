@@ -200,7 +200,7 @@ pub struct KittyDNA(pub H256);
 /// parent: 1 mom kitty and 1 dad kitty.
 /// free_breedings: Maximum free breeding allowed for a kitty.
 /// dna: It's unique per kitty.
-/// num_breedings: Current count of remaining free breedings.
+/// num_breedings: Current count of breedings.
 /// name: Name of kitty.
 #[derive(
     Serialize,
@@ -255,7 +255,7 @@ impl Default for KittyData {
             parent: Parent::Mom(MomKittyStatus::RearinToGo),
             free_breedings: 2,
             dna: KittyDNA(H256::from_slice(b"mom_kitty_1asdfasdfasdfasdfasdfa")),
-            num_breedings: 3,
+            num_breedings: 0,
             name: *b"kity",
         }
     }

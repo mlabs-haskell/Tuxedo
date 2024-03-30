@@ -52,18 +52,23 @@ use serviceHandlers::moneyHandler::moneyServicehandler::{mint_coins};
 use serviceHandlers::kittyHandler::kittyServicehandler::{
     create_kitty,
     get_txn_and_inpututxolist_for_list_kitty_for_sale,
-    debug_get_signed_txn_for_list_kitty_for_sale,// added just for debug
     list_kitty_for_sale,
+    get_txn_and_inpututxolist_for_delist_kitty_from_sale,
+    delist_kitty_from_sale,
+    get_txn_and_inpututxolist_for_kitty_name_update,
+    update_kitty_name,
+    get_txn_and_inpututxolist_for_td_kitty_name_update,
+    update_td_kitty_name,
+    get_txn_and_inpututxolist_for_td_kitty_price_update,
+    update_td_kitty_price,
     get_kitty_by_dna,
     get_td_kitty_by_dna,
     get_all_kitty_list,
     get_all_td_kitty_list,
     get_owned_kitty_list,
     get_owned_td_kitty_list,
+    
     /*delist_kitty_from_sale,
-    update_kitty_name,
-    update_td_kitty_name,
-    update_td_kitty_price,
     buy_kitty,
     breed_kitty,*/
 };
@@ -89,14 +94,21 @@ async fn main() {
         .route("/create-kitty", post(create_kitty))
         .route("/get-txn-and-inpututxolist-for-listkitty-forsale", get(get_txn_and_inpututxolist_for_list_kitty_for_sale))
         .route("/listkitty-for-sale", post(list_kitty_for_sale))
+        .route("/get-txn-and-inpututxolist-for-delist-kitty-from-sale", get(get_txn_and_inpututxolist_for_delist_kitty_from_sale))
+        .route("/delist-kitty-from-sale", post(delist_kitty_from_sale))
+        .route("/get-txn-and-inpututxolist-for-kitty-name-update", get(get_txn_and_inpututxolist_for_kitty_name_update))
+        .route("/update-kitty-name", post(update_kitty_name))
+        .route("/get-txn-and-inpututxolist-for-td-kitty-name-update", get(get_txn_and_inpututxolist_for_td_kitty_name_update))
+        .route("/update-td-kitty-name", post(update_td_kitty_name))
+        .route("/get-txn-and-inpututxolist-for-td-kitty-price-update", get(get_txn_and_inpututxolist_for_td_kitty_price_update))
+        .route("/update-td-kitty-price", post(update_td_kitty_price))
         .route("/get-kitty-by-dna", get(get_kitty_by_dna))
         .route("/get-tradable-kitty-by-dna", get(get_td_kitty_by_dna))
         .route("/get-all-kitty-list", get(get_all_kitty_list))
         .route("/get-all-tradable-kitty-list", get(get_all_td_kitty_list))
         .route("/get-owned-kitty-list", get(get_owned_kitty_list))
         .route("/get-owned-tradable-kitty-list", get(get_owned_td_kitty_list))
-        // below arr for debug purpose only.
-        .route("/debug-get-signed-for-listkitty", get(debug_get_signed_txn_for_list_kitty_for_sale))
+
         .route("/generate-key", post(generate_key))
         .route("/get-keys", get(get_keys))
 

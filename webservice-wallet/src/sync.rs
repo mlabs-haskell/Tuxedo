@@ -646,19 +646,19 @@ pub(crate) fn get_tradable_kitty_from_local_db_based_on_name(
 
 pub(crate) fn get_kitty_from_local_db_based_on_dna(
     db: &Db,
-    name: &str,
+    dna: &str,
 ) -> anyhow::Result<Option<(KittyData, OutputRef)>> {
-    get_data_from_local_db_based_on_dna(db, FRESH_KITTY, name, |kitty: &KittyData| kitty.dna.clone())
+    get_data_from_local_db_based_on_dna(db, FRESH_KITTY, dna, |kitty: &KittyData| kitty.dna.clone())
 }
 
 pub(crate) fn get_tradable_kitty_from_local_db_based_on_dna(
     db: &Db,
-    name: &str,
+    dna: &str,
 ) -> anyhow::Result<Option<(TradableKittyData, OutputRef)>> {
     get_data_from_local_db_based_on_dna(
         db,
         FRESH_TRADABLE_KITTY,
-        name,
+        dna,
         |kitty: &TradableKittyData| kitty.kitty_basic_data.dna.clone(),
     )
 }
