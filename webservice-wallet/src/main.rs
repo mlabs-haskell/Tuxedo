@@ -43,8 +43,8 @@ mod serviceHandlers {
 }
 
 use serviceHandlers::keyHandler::keyServicehandler::{
-    generate_key,
-    get_keys,
+    debug_generate_key,
+    debug_get_keys,
 };
 
 use serviceHandlers::moneyHandler::moneyServicehandler::{mint_coins};
@@ -67,6 +67,9 @@ use serviceHandlers::kittyHandler::kittyServicehandler::{
     get_all_td_kitty_list,
     get_owned_kitty_list,
     get_owned_td_kitty_list,
+    get_txn_and_inpututxolist_for_breed_kitty,
+    breed_kitty,
+
     
     /*delist_kitty_from_sale,
     buy_kitty,
@@ -101,6 +104,8 @@ async fn main() {
         .route("/get-txn-and-inpututxolist-for-td-kitty-name-update", get(get_txn_and_inpututxolist_for_td_kitty_name_update))
         .route("/update-td-kitty-name", post(update_td_kitty_name))
         .route("/get-txn-and-inpututxolist-for-td-kitty-price-update", get(get_txn_and_inpututxolist_for_td_kitty_price_update))
+        .route("/get-txn-and-inpututxolist-for-breed-kitty", get(get_txn_and_inpututxolist_for_breed_kitty))
+        .route("/breed-kitty", post(breed_kitty))
         .route("/update-td-kitty-price", post(update_td_kitty_price))
         .route("/get-kitty-by-dna", get(get_kitty_by_dna))
         .route("/get-tradable-kitty-by-dna", get(get_td_kitty_by_dna))
@@ -109,8 +114,9 @@ async fn main() {
         .route("/get-owned-kitty-list", get(get_owned_kitty_list))
         .route("/get-owned-tradable-kitty-list", get(get_owned_td_kitty_list))
 
-        .route("/generate-key", post(generate_key))
-        .route("/get-keys", get(get_keys))
+
+        .route("/debug-generate-key", post(debug_generate_key))
+        .route("/debug-get-keys", get(debug_get_keys))
 
         //.route("/spend-coins", put(spend_coins))
         .layer(cors);

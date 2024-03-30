@@ -724,8 +724,6 @@ pub async fn get_txn_and_inpututxolist_for_td_kitty_price_update(headers: Header
 
     let db = original_get_db().await.expect("Error");
 
-    // -------------------------------
-
     let public_key_header = headers
         .get("owner_public_key")
         .expect("public_key_header is missing");
@@ -815,6 +813,130 @@ pub async fn update_td_kitty_price(body: Json<SignedTxnRequest>) -> Result<Json<
     }
 }
 
+////////////////////////////////////////////////////////////////////
+// Breed kitty
+////////////////////////////////////////////////////////////////////
+
+pub async fn get_txn_and_inpututxolist_for_breed_kitty(headers: HeaderMap) -> Json<GetTxnAndUtxoListForList> {
+    println!("Headers map = {:?}",headers);
+    let mom_dna = headers
+        .get("mom-dna")
+        .expect("MOM DNA header is missing")
+        .to_str()
+        .expect("Failed to parse MOM DNA header");
+
+    let dad_dna = headers
+        .get("dad-dna")
+        .expect("Dad DNA header is missing")
+        .to_str()
+        .expect("Failed to parse Dad DNA header");
+
+    let child_kitty_name = headers
+        .get("child-kitty-name")
+        .expect("Child Kitty name is missing");
+
+    let db = original_get_db().await.expect("Error");
+
+    let public_key_header = headers
+        .get("owner_public_key")
+        .expect("public_key_header is missing");
+
+    let public_key_h256 = H256::from_str(public_key_header
+            .to_str()
+            .expect("Failed to convert to H256"));
+
+    match kitty::create_txn_for_breed_kitty(
+        &db, 
+        mom_dna,
+        dad_dna,
+        child_kitty_name.to_str().expect("Failed to parse name header").to_string(),
+        public_key_h256.unwrap(),
+    ).await {
+        Ok(Some(txn)) => {
+            // Convert created_kitty to JSON and include it in the response
+            let client_result = HttpClientBuilder::default().build(DEFAULT_ENDPOINT);
+            let client = match client_result {
+                Ok(client) => client,
+                Err(err) => {
+                    return Json(GetTxnAndUtxoListForList {
+                        message: format!("Error creating HTTP client: {:?}", err),
+                        transaction:None,
+                        input_utxo_list:None
+                    });
+                }
+            };
+            let utxo_list = kitty::create_inpututxo_list(&mut txn.clone(),&client).await;
+
+            let response = GetTxnAndUtxoListForList {
+                message: format!("Kitty name update txn created successfully"),
+                transaction: Some(txn), 
+                input_utxo_list:utxo_list.expect("Cant crate the Utxo List"),
+            };
+            Json(response)
+        },
+        Ok(None) => Json(GetTxnAndUtxoListForList {
+            message: format!("Kitty name update txn creation failed: No input returned"),
+            transaction:None,
+            input_utxo_list:None
+        }),
+        Err(err) => Json(GetTxnAndUtxoListForList {
+            message: format!("Error!! Kitty name update txn creation: {:?}", err),
+            transaction:None,
+            input_utxo_list:None
+        }),
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct BreedKittyResponse {
+    pub message: String,
+    pub mom_kitty:Option<KittyData>,
+    pub dad_kitty:Option<KittyData>,
+    pub child_kitty:Option<KittyData>,
+}
+
+pub async fn breed_kitty(body: Json<SignedTxnRequest>) -> Result<Json<BreedKittyResponse>, Infallible> {
+    let client_result = HttpClientBuilder::default().build(DEFAULT_ENDPOINT);
+
+    let client = match client_result {
+        Ok(client) => client,
+        Err(err) => {
+            return Ok(Json(BreedKittyResponse {
+                message: format!("Error creating HTTP client: {:?}", err),
+                mom_kitty: None,
+                dad_kitty: None, 
+                child_kitty: None, 
+            }));
+        }
+    };
+
+    match kitty::breed_kitty(&body.signed_transaction,
+        &client).await {
+        Ok(Some(kitty_family)) => {
+            // Convert created_kitty to JSON and include it in the response
+            let response = BreedKittyResponse {
+                message: format!("Kitty breeding done successfully"),
+                mom_kitty: Some(kitty_family[0].clone()),
+                dad_kitty: Some(kitty_family[1].clone()), 
+                child_kitty: Some(kitty_family[2].clone()), 
+
+            };
+            Ok(Json(response))
+        },
+        Ok(None) => Ok(Json(BreedKittyResponse {
+            message: format!("Kitty breeding failed: No data returned"),
+            mom_kitty: None,
+            dad_kitty: None, 
+            child_kitty: None, 
+        })),
+        Err(err) => Ok(Json(BreedKittyResponse {
+            message: format!("Error in kitty breed: {:?}", err),
+            mom_kitty: None,
+            dad_kitty: None, 
+            child_kitty: None, 
+        })),
+    }
+}
 
 ////////////////////////////////////////////////////////////////////
 // Buy kitty
@@ -886,25 +1008,7 @@ pub async fn buy_kitty(body: Json<BuyTdKittyRequest>) -> Result<Json<BuyTdKittyR
 }
 
 
-////////////////////////////////////////////////////////////////////
-// Breed kitty
-////////////////////////////////////////////////////////////////////
-
-#[derive(Debug, Deserialize)]
-pub struct BreedKittyRequest {
-    pub mom_name: String,
-    pub dad_name: String,
-    pub owner_public_key:String,
-}
-
-#[derive(Debug, Serialize)]
-pub struct BreedKittyResponse {
-    pub message: String,
-    pub mom_kitty:Option<KittyData>,
-    pub dad_kitty:Option<KittyData>,
-    pub child_kitty:Option<KittyData>,
-}
-
+/*
 pub async fn breed_kitty(body: Json<BreedKittyRequest>) -> Result<Json<BreedKittyResponse>, Infallible> {
     println!("update_td_kitty_price is called {:?}",body);
     let client_result = HttpClientBuilder::default().build(DEFAULT_ENDPOINT);
@@ -957,3 +1061,4 @@ pub async fn breed_kitty(body: Json<BreedKittyRequest>) -> Result<Json<BreedKitt
         })),
     }
 }
+*/

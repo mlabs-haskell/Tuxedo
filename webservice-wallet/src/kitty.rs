@@ -303,14 +303,14 @@ fn create_new_family(
     new_child: &mut KittyData,
 ) -> anyhow::Result<()> {
     new_mom.parent = Parent::Mom(MomKittyStatus::RearinToGo);
-    if new_mom.num_breedings >= 2 {
+    if new_mom.num_breedings >= 0 {
         new_mom.parent = Parent::Mom(MomKittyStatus::HadBirthRecently);
     }
     new_mom.num_breedings = new_mom.num_breedings.checked_add(1).expect("REASON");
     new_mom.free_breedings = new_mom.free_breedings.checked_sub(1).expect("REASON");
 
     new_dad.parent = Parent::Dad(DadKittyStatus::RearinToGo);
-    if new_dad.num_breedings >= 2 {
+    if new_dad.num_breedings >= 0 {
         new_dad.parent = Parent::Dad(DadKittyStatus::Tired);
     }
 
@@ -450,84 +450,30 @@ pub async fn delist_kitty_from_sale(
 
 
 pub async fn breed_kitty(
-    db: &Db,
+    signed_transaction: &Transaction,
     client: &HttpClient,
-    keystore: &LocalKeystore,
-    args: BreedKittyArgs,
 ) -> anyhow::Result<Option<Vec<KittyData>>> {
-    log::info!("The Breed kittyArgs are:: {:?}", args);
+    let mom_kitty: KittyData = signed_transaction.outputs[0].payload
+        .extract::<KittyData>()
+        .map_err(|_| anyhow!("Invalid output, Expected KittyData"))?;
+    
+    let dad_kitty: KittyData = signed_transaction.outputs[1].payload
+        .extract::<KittyData>()
+        .map_err(|_| anyhow!("Invalid output, Expected KittyData"))?;
 
-    let Ok((mom_kitty_info, mom_ref)) =
-        create_tx_input_based_on_kitty_name(db, args.mom_name.clone())
-    else {
-        return Err(anyhow!("No kitty with name {} in localdb", args.mom_name));
-    };
-
-    let Ok((dad_kitty_info, dad_ref)) =
-        create_tx_input_based_on_kitty_name(db, args.dad_name.clone())
-    else {
-        return Err(anyhow!("No kitty with name {} in localdb", args.dad_name));
-    };
-
-    let inputs: Vec<Input> = vec![mom_ref, dad_ref];
-
-    let mut new_mom: KittyData = mom_kitty_info;
-
-    let mut new_dad = dad_kitty_info;
-
-    let mut child: KittyData = Default::default();
-
-    create_new_family(&mut new_mom, &mut new_dad, &mut child)?;
-    // Create the Output mom
-    println!("New mom Dna = {:?}", new_mom.dna);
-    println!("New Dad Dna = {:?}", new_dad.dna);
-    println!("Child Dna = {:?}", child.dna);
-
-    let output_mom = Output {
-        payload: new_mom.clone().into(),
-        verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
-            owner_pubkey: args.owner,
-        }),
-    };
-
-    // Create the Output dada
-    let output_dad = Output {
-        payload: new_dad.clone().into(),
-        verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
-            owner_pubkey: args.owner,
-        }),
-    };
-
-    let output_child = Output {
-        payload: child.clone().into(),
-        verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
-            owner_pubkey: args.owner,
-        }),
-    };
-
-    let new_family = Box::new(vec![output_mom, output_dad, output_child]);
-
-    // Create the Transaction
-    let mut transaction = Transaction {
-        inputs: inputs,
-        peeks: Vec::new(),
-        outputs: (&[
-            new_family[0].clone(),
-            new_family[1].clone(),
-            new_family[2].clone(),
-        ])
-            .to_vec(),
-        checker: FreeKittyConstraintChecker::Breed.into(),
-    };
-
-    send_tx(&mut transaction, &client, Some(&keystore)).await?;
-    print_new_output(&transaction)?;
+    let child_kitty: KittyData = signed_transaction.outputs[2].payload
+        .extract::<KittyData>()
+        .map_err(|_| anyhow!("Invalid output, Expected KittyData"))?;
+    
+    send_signed_tx(&signed_transaction, &client).await?;
+    print_new_output(&signed_transaction)?;
     Ok(vec![
-        new_mom.clone(),
-        new_dad.clone(),
-        child.clone(),
+        mom_kitty.clone(),
+        dad_kitty.clone(),
+        child_kitty.clone(),
     ].into())
 }
+
 
 pub async fn buy_kitty(
     db: &Db,
@@ -1032,6 +978,105 @@ pub async fn create_txn_for_td_kitty_price_update(
     Ok(Some(transaction))
 }
 
+
+pub async fn create_txn_for_breed_kitty(
+    db: &Db,
+    mom_dna: &str,
+    dad_dna: &str,
+    child_name: String,
+    owner_public_key:H256,
+) -> anyhow::Result<Option<Transaction>> {
+    // Need to filter based on name and publick key.
+    // Ideally need to filter based on DNA.
+    let mut mom_kitty: Option<(KittyData, OutputRef)> = None;
+
+    if let Ok(Some((kitty_info, out_ref))) =
+        crate::sync::get_kitty_from_local_db_based_on_dna(&db,mom_dna)
+    {
+        mom_kitty = Some((kitty_info, out_ref));
+    } else {
+        return Err(anyhow!("No kitty with MOM DNA {} in localdb", mom_dna));
+    }
+
+    let mom_input = Input {
+        output_ref: mom_kitty.clone().unwrap().1,
+        redeemer: vec![], 
+    };
+
+    let mut dad_kitty: Option<(KittyData, OutputRef)> = None;
+
+    if let Ok(Some((kitty_info, out_ref))) =
+        crate::sync::get_kitty_from_local_db_based_on_dna(&db,dad_dna)
+    {
+        dad_kitty = Some((kitty_info, out_ref));
+    } else {
+        return Err(anyhow!("No kitty with DAD DNA {} in localdb", dad_dna));
+    }
+
+    let dad_input = Input {
+        output_ref: dad_kitty.clone().unwrap().1,
+        redeemer: vec![],
+    };
+
+    let inputs: Vec<Input> = vec![mom_input,dad_input];
+
+    let mut child_kitty_name = [0; 4];
+    convert_name_string_tostr_slice(child_name,&mut child_kitty_name)?;
+
+    let mut new_mom: KittyData = mom_kitty.clone().unwrap().0;
+
+    let mut new_dad = dad_kitty.clone().unwrap().0;
+
+    let mut child_kitty: KittyData = Default::default();
+
+    create_new_family(&mut new_mom, &mut new_dad, &mut child_kitty)?;
+    // Create the Output mom
+    println!("New mom Dna = {:?}", new_mom.dna);
+    println!("New Dad Dna = {:?}", new_dad.dna);
+    println!("Child Dna = {:?}", child_kitty.dna);
+    child_kitty.name = child_kitty_name;
+
+    let output_mom = Output {
+        payload: new_mom.clone().into(),
+        verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
+            owner_pubkey: owner_public_key,
+        }),
+    };
+
+    // Create the Output dada
+    let output_dad = Output {
+        payload: new_dad.clone().into(),
+        verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
+            owner_pubkey: owner_public_key,
+        }),
+    };
+
+    let output_child = Output {
+        payload: child_kitty.clone().into(),
+        verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
+            owner_pubkey: owner_public_key,
+        }),
+    };
+
+    let new_family = Box::new(vec![output_mom, output_dad, output_child]);
+
+    // Create the Transaction
+    let mut transaction = Transaction {
+        inputs: inputs,
+        peeks: Vec::new(),
+        outputs: (&[
+            new_family[0].clone(),
+            new_family[1].clone(),
+            new_family[2].clone(),
+        ])
+        .to_vec(),
+        checker: FreeKittyConstraintChecker::Breed.into(),
+    };
+
+    print_debug_signed_txn_with_local_ks(transaction.clone(),owner_public_key).await?;
+    Ok(Some(transaction))
+}
+
 pub async fn create_inpututxo_list(
     transaction: &mut Transaction,
     client: &HttpClient,
@@ -1081,78 +1126,85 @@ pub async fn print_debug_signed_txn_with_local_ks(
     Ok(Some(transaction.clone()))
 }
 
-
-
 /*
-pub async fn create_inputs_for_list_kitty(
-    db: &Db,
-    name: String,
-    publick_key:H256,
-) -> anyhow::Result<Option<Vec<Input>>> {
-    // Need to filter based on name and publick key.
-    // Ideally need to filter based on DNA.
-    let Ok((kitty_info, input)) = create_tx_input_based_on_kitty_name(db, name.clone()) else {
-        return Err(anyhow!("No kitty with name {} in localdb", name));
-    };
 
-    let inputs: Vec<Input> = vec![input];
-
-    Ok(Some(inputs))
-}
-pub async fn list_kitty_for_sale_based_on_inputs(
-    db: &Db,
-    name: String,
-    price: u128,
-    inputs: Vec<Input>,
-    public_key:H256,
-) -> anyhow::Result<Option<Vec<Input>>> {
-    // Need to filter based on name and publick key.
-    // Ideally need to filter based on DNA.
-    let Ok((kitty_info, input)) = create_tx_input_based_on_kitty_name(db, name.clone()) else {
-        return Err(anyhow!("No kitty with name {} in localdb", name));
-    };
-
-    let inputs: Vec<Input> = vec![input];
-
-
-    Ok(Some(inputs))
-}
-pub async fn list_kitty_for_sale(
+pub async fn breed_kitty_bk(
     db: &Db,
     client: &HttpClient,
     keystore: &LocalKeystore,
-    args: ListKittyForSaleArgs,
-) -> anyhow::Result<Option<TradableKittyData>> {
-    log::info!("The list_kitty_for_sale args : {:?}", args);
+    args: BreedKittyArgs,
+) -> anyhow::Result<Option<Vec<KittyData>>> {
+    log::info!("The Breed kittyArgs are:: {:?}", args);
 
-    let Ok((kitty_info, input)) = create_tx_input_based_on_kitty_name(db, args.name.clone()) else {
-        return Err(anyhow!("No kitty with name {} in localdb", args.name));
+    let Ok((mom_kitty_info, mom_ref)) =
+        create_tx_input_based_on_kitty_name(db, args.mom_name.clone())
+    else {
+        return Err(anyhow!("No kitty with name {} in localdb", args.mom_name));
     };
 
-    let inputs: Vec<Input> = vec![input];
-
-    let tradable_kitty = TradableKittyData {
-        kitty_basic_data: kitty_info,
-        price: args.price,
+    let Ok((dad_kitty_info, dad_ref)) =
+        create_tx_input_based_on_kitty_name(db, args.dad_name.clone())
+    else {
+        return Err(anyhow!("No kitty with name {} in localdb", args.dad_name));
     };
 
-    // Create the Output
-    let output = Output {
-        payload: tradable_kitty.clone().into(),
+    let inputs: Vec<Input> = vec![mom_ref, dad_ref];
+
+    let mut new_mom: KittyData = mom_kitty_info;
+
+    let mut new_dad = dad_kitty_info;
+
+    let mut child: KittyData = Default::default();
+
+    create_new_family(&mut new_mom, &mut new_dad, &mut child)?;
+    // Create the Output mom
+    println!("New mom Dna = {:?}", new_mom.dna);
+    println!("New Dad Dna = {:?}", new_dad.dna);
+    println!("Child Dna = {:?}", child.dna);
+
+    let output_mom = Output {
+        payload: new_mom.clone().into(),
         verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
             owner_pubkey: args.owner,
         }),
     };
 
+    // Create the Output dada
+    let output_dad = Output {
+        payload: new_dad.clone().into(),
+        verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
+            owner_pubkey: args.owner,
+        }),
+    };
+
+    let output_child = Output {
+        payload: child.clone().into(),
+        verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
+            owner_pubkey: args.owner,
+        }),
+    };
+
+    let new_family = Box::new(vec![output_mom, output_dad, output_child]);
+
     // Create the Transaction
     let mut transaction = Transaction {
         inputs: inputs,
         peeks: Vec::new(),
-        outputs: vec![output],
-        checker: TradableKittyConstraintChecker::ListKittiesForSale.into(),
+        outputs: (&[
+            new_family[0].clone(),
+            new_family[1].clone(),
+            new_family[2].clone(),
+        ])
+            .to_vec(),
+        checker: FreeKittyConstraintChecker::Breed.into(),
     };
+
     send_tx(&mut transaction, &client, Some(&keystore)).await?;
     print_new_output(&transaction)?;
-    Ok(Some(tradable_kitty))
+    Ok(vec![
+        new_mom.clone(),
+        new_dad.clone(),
+        child.clone(),
+    ].into())
 }
 */
