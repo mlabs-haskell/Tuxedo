@@ -474,8 +474,21 @@ pub async fn breed_kitty(
     ].into())
 }
 
-
 pub async fn buy_kitty(
+    signed_transaction: &Transaction,
+    client: &HttpClient,
+) -> anyhow::Result<Option<TradableKittyData>> {
+    let traded_kitty: TradableKittyData = signed_transaction.outputs[0].payload
+        .extract::<TradableKittyData>()
+        .map_err(|_| anyhow!("Invalid output, Expected TradableKittyData"))?;
+    
+    
+    send_signed_tx(&signed_transaction, &client).await?;
+    print_new_output(&signed_transaction)?;
+    Ok(Some(traded_kitty))
+}
+
+pub async fn buy_kitty1(
     db: &Db,
     client: &HttpClient,
     keystore: &LocalKeystore,
@@ -783,7 +796,7 @@ pub async fn create_txn_for_list_kitty(
         outputs: vec![output],
         checker: TradableKittyConstraintChecker::ListKittiesForSale.into(),
     };
-    print_debug_signed_txn_with_local_ks(transaction.clone(),public_key).await?;
+    print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
 
     Ok(Some(transaction))
 }
@@ -824,7 +837,7 @@ pub async fn create_txn_for_delist_kitty(
         outputs: vec![output],
         checker: TradableKittyConstraintChecker::DelistKittiesFromSale.into(),
     };
-    print_debug_signed_txn_with_local_ks(transaction.clone(),public_key).await?;
+    print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
     Ok(Some(transaction))
 }
 
@@ -874,7 +887,7 @@ pub async fn create_txn_for_kitty_name_update(
         checker: FreeKittyConstraintChecker::UpdateKittiesName.into(),
     };
 
-    print_debug_signed_txn_with_local_ks(transaction.clone(),public_key).await?;
+    print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
     Ok(Some(transaction))
 }
 
@@ -926,7 +939,7 @@ pub async fn create_txn_for_td_kitty_name_update(
         checker: TradableKittyConstraintChecker::UpdateKittiesName.into(),
     };
 
-    print_debug_signed_txn_with_local_ks(transaction.clone(),public_key).await?;
+    print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
     Ok(Some(transaction))
 }
 
@@ -974,10 +987,9 @@ pub async fn create_txn_for_td_kitty_price_update(
         outputs: vec![output],
         checker: TradableKittyConstraintChecker::UpdateKittiesPrice.into(),
     };
-    print_debug_signed_txn_with_local_ks(transaction.clone(),public_key).await?;
+    print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
     Ok(Some(transaction))
 }
-
 
 pub async fn create_txn_for_breed_kitty(
     db: &Db,
@@ -1073,9 +1085,106 @@ pub async fn create_txn_for_breed_kitty(
         checker: FreeKittyConstraintChecker::Breed.into(),
     };
 
-    print_debug_signed_txn_with_local_ks(transaction.clone(),owner_public_key).await?;
+    print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
     Ok(Some(transaction))
 }
+
+
+
+
+pub async fn create_txn_for_buy_kitty(
+    db: &Db,
+    input_coins:Vec<OutputRef>,
+    kitty_dna: &str,
+    buyer_public_key:H256,
+    seller_public_key:H256,
+    output_amount: & Vec<u128>,
+    client: &HttpClient,
+) -> anyhow::Result<Option<Transaction>> {
+    // Need to filter based on name and publick key.
+    // Ideally need to filter based on DNA.
+    let mut found_kitty: Option<(TradableKittyData, OutputRef)> = None;
+
+    if let Ok(Some((kitty_info, out_ref))) =
+        crate::sync::get_tradable_kitty_from_local_db_based_on_dna(&db,kitty_dna) {
+        found_kitty = Some((kitty_info, out_ref));
+    } else {
+        return Err(anyhow!("No kitty with DNA {} in localdb", kitty_dna));
+    }
+
+    let input = Input {
+        output_ref: found_kitty.clone().unwrap().1,
+        redeemer: vec![], // We will sign the total transaction so this should be empty
+    };
+
+    let inputs: Vec<Input> = vec![input];
+    
+    let mut output_kitty = found_kitty.clone().unwrap().0; 
+
+    let output = Output {
+        payload: output_kitty.into(),
+        verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
+            owner_pubkey: buyer_public_key,
+        }),
+    };
+
+    let mut transaction = Transaction {
+        inputs: inputs,
+        peeks: Vec::new(),
+        outputs: vec![output],
+        checker: TradableKittyConstraintChecker::Buy.into(),
+    };
+
+    // Construct each output and then push to the transactions for Money
+    let mut total_output_amount = 0;
+    for amount in output_amount {
+        let output = Output {
+            payload: Coin::<0>::new(*amount).into(),
+            verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
+                owner_pubkey: seller_public_key,
+            }),
+        };
+        total_output_amount += amount;
+        transaction.outputs.push(output);
+        if total_output_amount >= found_kitty.clone().unwrap().0.price.into() {
+            break;
+        }
+    }
+
+    let mut total_input_amount = 0;
+    let mut all_input_refs = input_coins;
+    for output_ref in &all_input_refs {
+        let (_buyer_pubkey, amount) = sync::get_unspent(db, output_ref)?.ok_or(anyhow!(
+            "user-specified output ref not found in local database"
+        ))?;
+        total_input_amount += amount;
+    }
+
+    if total_input_amount < total_output_amount {
+        match sync::get_arbitrary_unspent_set(db, total_output_amount - total_input_amount)? {
+            Some(more_inputs) => {
+                all_input_refs.extend(more_inputs);
+            }
+            None => Err(anyhow!(
+                "Not enough value in database to construct transaction"
+            ))?,
+        }
+    }
+
+    // Make sure each input decodes and is still present in the node's storage,
+    // and then push to transaction.
+    for output_ref in &all_input_refs {
+        get_coin_from_storage(output_ref, client).await?;
+        transaction.inputs.push(Input {
+            output_ref: output_ref.clone(),
+            redeemer: vec![], // We will sign the total transaction so this should be empty
+        });
+    }
+    
+    print_debug_signed_txn_with_local_ks(transaction.clone()).await?; // this is just for debug purpose.
+    Ok(Some(transaction))
+}
+
 
 pub async fn create_inpututxo_list(
     transaction: &mut Transaction,
@@ -1097,7 +1206,6 @@ use crate::HttpClientBuilder;
 const DEFAULT_ENDPOINT: &str = "http://localhost:9944";
 pub async fn print_debug_signed_txn_with_local_ks(
     mut transaction:Transaction,
-    publick_key:H256,
 ) -> anyhow::Result<Option<Transaction>> {
     // Need to filter based on name and publick key.
 
@@ -1125,86 +1233,3 @@ pub async fn print_debug_signed_txn_with_local_ks(
     println!("signed_transaction {:?}",transaction.clone());
     Ok(Some(transaction.clone()))
 }
-
-/*
-
-pub async fn breed_kitty_bk(
-    db: &Db,
-    client: &HttpClient,
-    keystore: &LocalKeystore,
-    args: BreedKittyArgs,
-) -> anyhow::Result<Option<Vec<KittyData>>> {
-    log::info!("The Breed kittyArgs are:: {:?}", args);
-
-    let Ok((mom_kitty_info, mom_ref)) =
-        create_tx_input_based_on_kitty_name(db, args.mom_name.clone())
-    else {
-        return Err(anyhow!("No kitty with name {} in localdb", args.mom_name));
-    };
-
-    let Ok((dad_kitty_info, dad_ref)) =
-        create_tx_input_based_on_kitty_name(db, args.dad_name.clone())
-    else {
-        return Err(anyhow!("No kitty with name {} in localdb", args.dad_name));
-    };
-
-    let inputs: Vec<Input> = vec![mom_ref, dad_ref];
-
-    let mut new_mom: KittyData = mom_kitty_info;
-
-    let mut new_dad = dad_kitty_info;
-
-    let mut child: KittyData = Default::default();
-
-    create_new_family(&mut new_mom, &mut new_dad, &mut child)?;
-    // Create the Output mom
-    println!("New mom Dna = {:?}", new_mom.dna);
-    println!("New Dad Dna = {:?}", new_dad.dna);
-    println!("Child Dna = {:?}", child.dna);
-
-    let output_mom = Output {
-        payload: new_mom.clone().into(),
-        verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
-            owner_pubkey: args.owner,
-        }),
-    };
-
-    // Create the Output dada
-    let output_dad = Output {
-        payload: new_dad.clone().into(),
-        verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
-            owner_pubkey: args.owner,
-        }),
-    };
-
-    let output_child = Output {
-        payload: child.clone().into(),
-        verifier: OuterVerifier::Sr25519Signature(Sr25519Signature {
-            owner_pubkey: args.owner,
-        }),
-    };
-
-    let new_family = Box::new(vec![output_mom, output_dad, output_child]);
-
-    // Create the Transaction
-    let mut transaction = Transaction {
-        inputs: inputs,
-        peeks: Vec::new(),
-        outputs: (&[
-            new_family[0].clone(),
-            new_family[1].clone(),
-            new_family[2].clone(),
-        ])
-            .to_vec(),
-        checker: FreeKittyConstraintChecker::Breed.into(),
-    };
-
-    send_tx(&mut transaction, &client, Some(&keystore)).await?;
-    print_new_output(&transaction)?;
-    Ok(vec![
-        new_mom.clone(),
-        new_dad.clone(),
-        child.clone(),
-    ].into())
-}
-*/

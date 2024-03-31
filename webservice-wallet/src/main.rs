@@ -47,7 +47,11 @@ use serviceHandlers::keyHandler::keyServicehandler::{
     debug_get_keys,
 };
 
-use serviceHandlers::moneyHandler::moneyServicehandler::{mint_coins};
+use serviceHandlers::moneyHandler::moneyServicehandler::{
+    mint_coins,
+    get_all_coins,
+    get_owned_coins,
+};
 
 use serviceHandlers::kittyHandler::kittyServicehandler::{
     create_kitty,
@@ -69,6 +73,8 @@ use serviceHandlers::kittyHandler::kittyServicehandler::{
     get_owned_td_kitty_list,
     get_txn_and_inpututxolist_for_breed_kitty,
     breed_kitty,
+    get_txn_and_inpututxolist_for_buy_kitty,
+    buy_kitty,
 
     
     /*delist_kitty_from_sale,
@@ -82,7 +88,6 @@ use serviceHandlers::blockHandler::blockServicehandler::{  get_block};
 const DEFAULT_ENDPOINT: &str = "http://localhost:9944";
 
 use axum::{routing::{get, post, put}, Router};
-
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -106,6 +111,8 @@ async fn main() {
         .route("/get-txn-and-inpututxolist-for-td-kitty-price-update", get(get_txn_and_inpututxolist_for_td_kitty_price_update))
         .route("/get-txn-and-inpututxolist-for-breed-kitty", get(get_txn_and_inpututxolist_for_breed_kitty))
         .route("/breed-kitty", post(breed_kitty))
+        .route("/get-txn-and-inpututxolist-for-buy-kitty", get(get_txn_and_inpututxolist_for_buy_kitty))
+        .route("/buy-kitty", post(buy_kitty))
         .route("/update-td-kitty-price", post(update_td_kitty_price))
         .route("/get-kitty-by-dna", get(get_kitty_by_dna))
         .route("/get-tradable-kitty-by-dna", get(get_td_kitty_by_dna))
@@ -113,6 +120,8 @@ async fn main() {
         .route("/get-all-tradable-kitty-list", get(get_all_td_kitty_list))
         .route("/get-owned-kitty-list", get(get_owned_kitty_list))
         .route("/get-owned-tradable-kitty-list", get(get_owned_td_kitty_list))
+        .route("/get-all-coins", get(get_all_coins))
+        .route("/get-owned-coins", get(get_owned_coins))
 
 
         .route("/debug-generate-key", post(debug_generate_key))
@@ -261,7 +270,16 @@ pub(crate) fn h256_from_string(s: &str) -> anyhow::Result<H256> {
     Ok(H256::from(bytes))
 }
 
+use std::error::Error;
 /// Parse an output ref from a string
+pub(crate) fn convert_output_ref_from_string(s: &str) -> Result<OutputRef, Box<dyn Error>> {
+    let s = strip_0x_prefix(s);
+    let bytes = hex::decode(s)?;
+
+    OutputRef::decode(&mut &bytes[..])
+        .map_err(|_| "Failed to decode OutputRef from string".into())
+}
+
 fn output_ref_from_string(s: &str) -> Result<OutputRef, clap::Error> {
     let s = strip_0x_prefix(s);
     let bytes =

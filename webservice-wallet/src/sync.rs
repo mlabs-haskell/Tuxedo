@@ -681,6 +681,39 @@ pub(crate) fn get_owned_tradable_kitties_from_local_db<'a>(
     get_any_owned_kitties_from_local_db(db, FRESH_TRADABLE_KITTY, &owner_pub_key)
 }
 
+pub(crate) fn get_all_coins(db: &Db) -> anyhow::Result<Vec<(String, H256, u128)>> {
+    let wallet_unspent_tree = db.open_tree(UNSPENT)?;
+    let mut result = Vec::new();
+
+    for x in wallet_unspent_tree.iter() {
+        let (output_ref_ivec, owner_amount_ivec) = x?;
+        let output_ref = hex::encode(output_ref_ivec);
+        let (owner_pubkey, amount) = <(H256, u128)>::decode(&mut &owner_amount_ivec[..])?;
+
+        result.push((output_ref, owner_pubkey, amount));
+    }
+
+    Ok(result)
+}
+
+pub(crate) fn get_owned_coins(db: &Db, owner_pub_key: &H256) -> anyhow::Result<Vec<(String, H256, u128)>> {
+    let wallet_unspent_tree = db.open_tree(UNSPENT)?;
+    let mut result = Vec::new();
+
+    for x in wallet_unspent_tree.iter() {
+        let (output_ref_ivec, owner_amount_ivec) = x?;
+        let output_ref = hex::encode(output_ref_ivec);
+        let (coin_owner_pubkey, amount) = <(H256, u128)>::decode(&mut &owner_amount_ivec[..])?;
+
+        // Check if the coin's owner public key matches the provided owner_pub_key
+        if &coin_owner_pubkey == owner_pub_key {
+            result.push((output_ref, coin_owner_pubkey, amount));
+        }
+    }
+
+    Ok(result)
+}
+
 pub(crate) fn is_kitty_name_duplicate(
     db: &Db,
     name: String,

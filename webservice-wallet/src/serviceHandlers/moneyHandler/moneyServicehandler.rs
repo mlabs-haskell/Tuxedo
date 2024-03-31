@@ -5,13 +5,13 @@ use crate::money;
 use sp_core::H256;
 
 use crate::cli::MintCoinArgs;
+use crate::original_get_db;
 
 /// The default RPC endpoint for the wallet to connect to
 const DEFAULT_ENDPOINT: &str = "http://localhost:9944";
 
 
-
-use axum::{Json};
+use axum::{Json,http::HeaderMap};
 
 
 
@@ -57,4 +57,68 @@ pub async fn mint_coins(body: Json<MintCoinsRequest>) -> Json<MintCoinsResponse>
             message: format!("Error minting coins: {:?}", err),
         }),
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetCoinsResponse {
+    pub message: String,
+    pub coins:Option<Vec<(String, H256, u128)>>,
+}
+
+pub async fn get_all_coins() -> Json<GetCoinsResponse> {
+    let db = original_get_db().await.expect("Error");
+
+    match crate::sync::get_all_coins(&db) {
+        Ok(all_coins) => {
+            
+            if !all_coins.is_empty() {
+                return Json(GetCoinsResponse {
+                    message: format!("Success: Found Coins"),
+                    coins: Some(all_coins),
+                });
+            }
+        },
+        Err(_) => {
+            return Json(GetCoinsResponse {
+                message: format!("Error: Can't find coins"),
+                coins: None,
+            });
+        }
+    }
+
+    Json(GetCoinsResponse {
+        message: format!("Error: Can't find coins"),
+        coins: None,
+    })
+}
+
+use std::str::FromStr;
+pub async fn get_owned_coins(headers: HeaderMap) -> Json<GetCoinsResponse> {
+    let public_key_header = headers.get("owner_public_key").expect("public_key_header is missing");
+    let public_key_h256 = H256::from_str(public_key_header.to_str().expect("Failed to convert to H256"));
+
+    let db = original_get_db().await.expect("Error");
+
+    match crate::sync::get_owned_coins(&db,&public_key_h256.unwrap()) {
+        Ok(all_coins) => {
+            
+            if !all_coins.is_empty() {
+                return Json(GetCoinsResponse {
+                    message: format!("Success: Found Coins"),
+                    coins: Some(all_coins),
+                });
+            }
+        },
+        Err(_) => {
+            return Json(GetCoinsResponse {
+                message: format!("Error: Can't find coins"),
+                coins: None,
+            });
+        }
+    }
+
+    Json(GetCoinsResponse {
+        message: format!("Error: Can't find coins"),
+        coins: None,
+    })
 }

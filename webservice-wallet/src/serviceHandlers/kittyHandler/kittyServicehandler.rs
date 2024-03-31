@@ -17,6 +17,7 @@ const DEFAULT_ENDPOINT: &str = "http://localhost:9944";
 use crate::get_local_keystore;
 use crate::sync_and_get_db;
 use crate::original_get_db;
+use crate::convert_output_ref_from_string;
 
 use axum::{Json,http::HeaderMap};
 
@@ -942,13 +943,108 @@ pub async fn breed_kitty(body: Json<SignedTxnRequest>) -> Result<Json<BreedKitty
 // Buy kitty
 ////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Deserialize)]
-pub struct BuyTdKittyRequest {
-    pub input_coins: Vec<OutputRef>,
-    pub kitty_name: String,
-    pub owner_public_key:String,
-    pub seller_public_key:String,
-    pub output_amount: Vec<u128>,
+pub async fn get_txn_and_inpututxolist_for_buy_kitty(headers: HeaderMap) -> Json<GetTxnAndUtxoListForList> {
+    println!("Headers map = {:?}",headers);
+
+    let input_coins: Vec<OutputRef> = headers
+        .get_all("input-coins")
+        .iter()
+        // Convert each coin string to an OutputRef, filter out errors
+        .filter_map(|header| {
+            let coin_str = header.to_str().unwrap_or_default();
+            match convert_output_ref_from_string(coin_str) {
+                Ok(output_ref) => Some(output_ref),
+                Err(err) => {
+                    // Print error message and skip this coin
+                    eprintln!("Error converting input coin: {}", err);
+                    None
+                }
+            }
+        })
+        .collect();
+        println!("Input coins: {:?}", input_coins);
+    let output_amount: Vec<u128> = headers
+        .get("output_amount")
+        .map_or_else(|| Vec::new(), |header| {
+            header
+                .to_str()
+                .unwrap_or_default()
+                .split(',')
+                .filter_map(|amount_str| amount_str.parse().ok())
+                .collect()
+        });
+    // Use the converted coins Vec<OutputRef> as needed
+        println!("output_amount: {:?}", output_amount);
+
+    let kitty_dna = headers
+        .get("kitty-dna")
+        .expect("Kitty DNA header is missing")
+        .to_str()
+        .expect("Failed to parse Kitty DNA header");
+
+
+    let db = original_get_db().await.expect("Error");
+
+    let buyer_public_key = headers
+        .get("buyer_public_key")
+        .expect("buyer_public_key is missing");
+
+    let buyer_public_key_h256 = H256::from_str(buyer_public_key
+            .to_str()
+            .expect("Failed to convert buyer_public_keyto H256"));
+
+    let seller_public_key = headers
+        .get("seller_public_key")
+        .expect("seller_public_key is missing");
+
+    let seller_public_key_h256 = H256::from_str(seller_public_key
+            .to_str()
+            .expect("Failed to convert seller_public_key to H256"));
+
+    let client_result = HttpClientBuilder::default().build(DEFAULT_ENDPOINT);
+
+    let client = match client_result {
+        Ok(client) => client,
+        Err(err) => {
+            return Json(GetTxnAndUtxoListForList {
+                message: format!("Error creating HTTP client: {:?}", err),
+                transaction:None,
+                input_utxo_list:None
+            });
+        }
+    };
+
+    match kitty::create_txn_for_buy_kitty(
+        &db, 
+        input_coins,
+        &kitty_dna,
+        buyer_public_key_h256.unwrap(),
+        seller_public_key_h256.unwrap(),
+        &output_amount,
+        &client,
+    ).await {
+        Ok(Some(txn)) => {
+            // Convert created_kitty to JSON and include it in the response
+            let utxo_list = kitty::create_inpututxo_list(&mut txn.clone(),&client).await;
+
+            let response = GetTxnAndUtxoListForList {
+                message: format!("Kitty name update txn created successfully"),
+                transaction: Some(txn), 
+                input_utxo_list:utxo_list.expect("Cant crate the Utxo List"),
+            };
+            Json(response)
+        },
+        Ok(None) => Json(GetTxnAndUtxoListForList {
+            message: format!("Kitty name update txn creation failed: No input returned"),
+            transaction:None,
+            input_utxo_list:None
+        }),
+        Err(err) => Json(GetTxnAndUtxoListForList {
+            message: format!("Error!! Kitty name update txn creation: {:?}", err),
+            transaction:None,
+            input_utxo_list:None
+        }),
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -957,10 +1053,9 @@ pub struct BuyTdKittyResponse {
     pub td_kitty:Option<TradableKittyData>
 }
 
-pub async fn buy_kitty(body: Json<BuyTdKittyRequest>) -> Result<Json<BuyTdKittyResponse>, Infallible> {
-    println!("update_td_kitty_price is called {:?}",body);
+
+pub async fn buy_kitty(body: Json<SignedTxnRequest>) -> Result<Json<BuyTdKittyResponse>, Infallible> {
     let client_result = HttpClientBuilder::default().build(DEFAULT_ENDPOINT);
-    let db = sync_and_get_db().await.expect("Error");
 
     let client = match client_result {
         Ok(client) => client,
@@ -972,40 +1067,27 @@ pub async fn buy_kitty(body: Json<BuyTdKittyRequest>) -> Result<Json<BuyTdKittyR
         }
     };
 
-    // Convert the hexadecimal string to bytes
-    let public_key_bytes = hex::decode(body.owner_public_key.clone()).expect("Invalid hexadecimal string");
-    let public_key_h256_of_owner = H256::from_slice(&public_key_bytes);
-
-    let public_key_bytes = hex::decode(body.seller_public_key.clone()).expect("Invalid hexadecimal string");
-    let public_key_h256_of_seller = H256::from_slice(&public_key_bytes);
-
-    let ks = get_local_keystore().await.expect("Error");
-
-    match kitty::buy_kitty(&db, &client, &ks,BuyKittyArgs {
-        input: body.input_coins.clone(),
-        kitty_name: body.kitty_name.clone(),
-        seller: public_key_h256_of_seller,
-        owner: public_key_h256_of_owner,
-        output_amount: body.output_amount.clone(),
-    }).await {
-        Ok(Some(updated_td_kitty)) => {
+    match kitty::buy_kitty(&body.signed_transaction,
+        &client).await {
+        Ok(Some(traded_kitty)) => {
             // Convert created_kitty to JSON and include it in the response
             let response = BuyTdKittyResponse {
-                message: format!("Kitty listed for sale successfully"),
-                td_kitty: Some(updated_td_kitty),
+                message: format!("Kitty traded successfully"),
+                td_kitty: Some(traded_kitty), // Include the created kitty in the response
             };
             Ok(Json(response))
         },
         Ok(None) => Ok(Json(BuyTdKittyResponse {
-            message: format!("Kitty listing forsale  failed: No data returned"),
+            message: format!("Kitty trade failed: No data returned"),
             td_kitty:None,
         })),
         Err(err) => Ok(Json(BuyTdKittyResponse {
-            message: format!("Error listing forsale: {:?}", err),
+            message: format!("Error in trading: {:?}", err),
             td_kitty:None,
         })),
     }
 }
+
 
 
 /*

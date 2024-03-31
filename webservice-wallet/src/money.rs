@@ -17,6 +17,7 @@ use tuxedo_core::{
     types::{Input, Output, OutputRef},
     verifier::Sr25519Signature,
 };
+use crate::original_get_db;
 
 /// Create and send a transaction that mints the coins on the network
 pub async fn mint_coins(client: &HttpClient, args: MintCoinArgs) -> anyhow::Result<()> {
