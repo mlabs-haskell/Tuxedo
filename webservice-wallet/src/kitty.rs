@@ -796,7 +796,7 @@ pub async fn create_txn_for_list_kitty(
         outputs: vec![output],
         checker: TradableKittyConstraintChecker::ListKittiesForSale.into(),
     };
-    print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
+    //print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
 
     Ok(Some(transaction))
 }
@@ -837,7 +837,7 @@ pub async fn create_txn_for_delist_kitty(
         outputs: vec![output],
         checker: TradableKittyConstraintChecker::DelistKittiesFromSale.into(),
     };
-    print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
+    //print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
     Ok(Some(transaction))
 }
 
@@ -887,7 +887,7 @@ pub async fn create_txn_for_kitty_name_update(
         checker: FreeKittyConstraintChecker::UpdateKittiesName.into(),
     };
 
-    print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
+   // print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
     Ok(Some(transaction))
 }
 
@@ -939,7 +939,7 @@ pub async fn create_txn_for_td_kitty_name_update(
         checker: TradableKittyConstraintChecker::UpdateKittiesName.into(),
     };
 
-    print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
+    //print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
     Ok(Some(transaction))
 }
 
@@ -987,7 +987,7 @@ pub async fn create_txn_for_td_kitty_price_update(
         outputs: vec![output],
         checker: TradableKittyConstraintChecker::UpdateKittiesPrice.into(),
     };
-    print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
+    //print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
     Ok(Some(transaction))
 }
 
@@ -1085,7 +1085,7 @@ pub async fn create_txn_for_breed_kitty(
         checker: FreeKittyConstraintChecker::Breed.into(),
     };
 
-    print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
+    //print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
     Ok(Some(transaction))
 }
 
@@ -1181,7 +1181,7 @@ pub async fn create_txn_for_buy_kitty(
         });
     }
     
-    print_debug_signed_txn_with_local_ks(transaction.clone()).await?; // this is just for debug purpose.
+    //print_debug_signed_txn_with_local_ks(transaction.clone()).await?; // this is just for debug purpose.
     Ok(Some(transaction))
 }
 
