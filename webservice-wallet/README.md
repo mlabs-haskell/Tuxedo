@@ -14,6 +14,17 @@ However, the Indexer is designed so that this notion of "relevance" is generaliz
 This design allows developers building chains with Tuxedo to extend the Indexer for their own needs.
 However, because this is a rest API-based web service, it is likely to be used by DApps which will leverage the REST API to achieve results.
 
+The overall idea behind the web service architecture: https://github.com/mlabs-haskell/TuxedoDapp/issues/35
+
+Links :
+**Sequence dig for API flow:** https://github.com/mlabs-haskell/TuxedoDapp/issues/35#issuecomment-2020211287
+
+**Algorithm to create the redeemer:** https://github.com/mlabs-haskell/TuxedoDapp/issues/35#issuecomment-2015171702
+
+**The overall procedure required from DApp**: https://github.com/mlabs-haskell/TuxedoDapp/issues/35#issuecomment-2011277263
+
+**Difference between signed transaction and unsigned transaction example:** https://github.com/mlabs-haskell/TuxedoDapp/issues/35#issuecomment-2020399526
+
 ## REST Documentation
 
 Webservice can be run by using 
@@ -402,4 +413,6 @@ curl -X GET -H "Content-Type: application/json" -H "owner_public_key: fab33c8c12
 
 ```
 
+My test results of buy kitty: https://github.com/mlabs-haskell/TuxedoDapp/issues/27#issuecomment-2029302071
 
+Please also see the below link for how to achieve the buy transaction which involves of signing from both buyer and seller in the same transaction :  https://github.com/Off-Narrative-Labs/Tuxedo/issues/169
