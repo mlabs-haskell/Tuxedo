@@ -28,9 +28,10 @@ This guided tour shows orest apis usage and curl command used to hit the end poi
 
 ### Minting coins 
 
-Rest apis for minting coins 
-Amount to mint : 6000
-Public_key of owner: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+Rest apis for minting coins
+**end point:**: mint-coins
+**Amount to mint:** 6000
+**Public_key of owner:** d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
 
 ```sh
 $ curl -X POST -H "Content-Type: application/json" -d '{"amount": 6000,"owner_public_key":"d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}' http://localhost:3000/mint-coins
