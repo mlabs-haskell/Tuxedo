@@ -19,7 +19,7 @@ However, because this is a rest API-based web service, it is likely to be used b
 Webservice can be run by using 
 
 ```sh
-$ cargo run ``
+$ cargo run ```
 
 REST APIS:
 
