@@ -52,7 +52,7 @@ $ curl -X GET -H "Content-Type: application/json" http://localhost:3000/get-all-
 
 ```
 
-### Get all woned coins 
+### Get all owned coins 
 
 Rest API for getting all the coins owned by a particular user or public key  in the web service. Web service stores all the coin utxos which are synced from the genesis block to the current height. Webservice will filter the coin UTXO filtered by the supplied public jey.
 
@@ -64,3 +64,45 @@ Rest API for getting all the coins owned by a particular user or public key  in 
 $ curl -X GET -H "Content-Type: application/json" -H "owner_public_key: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67" http://localhost:3000/get-owned-coins
 
 ```
+
+### Create kitty:
+
+Rest API for creating the kitty 
+
+**end point:**:create-kitty
+
+**Name of kitty to be created:**:amit
+
+**Public_key of owner of kitty:** d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+
+
+```sh
+$ curl -X POST -H "Content-Type: application/json" -d '{"name": "amit","owner_public_key":"d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}' http://localhost:3000/create-kitty
+
+```
+
+### Get all kitties:
+
+Rest API forgetting all the kitties stored in the local db. It returns all the kitties irrespective of onwer.
+
+**end point:**:get-all-kitty-list
+
+```sh
+$ curl -X GET -H "Content-Type: application/json"  http://localhost:3000/get-all-kitty-list
+
+```
+
+### Get owned kitties:
+
+Rest API forgetting all the owned kitties by any particular owner i.e. public key stored in the local db.
+
+**end point:**:get-owned-kitty-list
+
+**Public_key of owner of kitty:** d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+
+
+```sh
+$ curl -X GET -H "Content-Type: application/json" -H "owner_public_key: 563b6da067f38dc194cbe41ce0b840a985dcbef92b1e5b0a6e04f35544ddfd16" http://localhost:3000/get-owned-kitty-list
+
+```
+
