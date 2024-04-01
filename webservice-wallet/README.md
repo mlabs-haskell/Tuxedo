@@ -1,32 +1,27 @@
-# Tuxedo Template Wallet
+# Tuxedo webservice for wallet functionality
 
-A cli wallet for the Tuxedo Node Template
+A REST API for communicating with Tuxedo node template.
 
 ## Overview
 
-This wallet works with the Tuxedo Node Template and Tuxedo Template Runtime which is also contained in this repository.
+Cryptokitties is a decentralized application (DApp) built on the Tuxedo Blockchain that allows users to create, trade, breed, and manage virtual cats known as "Kitties". This README provides an overview of the available operations and REST APIs for interacting with the Cryptokitties platform.
 
-Like many UTXO wallets, this one synchronizes a local-to-the-wallet database of UTXOs that exist on the current best chain.
-The wallet does not sync the entire blockchain state.
+Like many UTXO wallets, this web service synchronizes a local-to-the-wallet database of UTXOs that exist on the current best chain.Let's call this as Indexer from now on.
+The Indexer does not sync the entire blockchain state.
 Rather, it syncs a subset of the state that it considers "relevant".
-Currently, the wallet syncs any UTXOs that contain tokens owned by a key in the wallet's keystore.
-However, the wallet is designed so that this notion of "relevance" is generalizeable.
-This design allows developers building chains with Tuxedo to extend the wallet for their own needs.
-However, because this is a text- based wallet, it is likely not well-suited for end users of popular dapps.
+Currently, the Indexer syncs all relevant UTXOs i.e. Coins, KittyData, TradableKittyData, Timestamps. 
+However, the Indexer is designed so that this notion of "relevance" is generalizable.
+This design allows developers building chains with Tuxedo to extend the Indexer for their own needs.
+However, because this is a rest API-based web service, it is likely to be used by DApps which will leverage the REST API to achieve results.
 
-## CLI Documentation
+## REST Documentation
 
-The node application has a thorough help page that you can access on the CLI. It also has help pages for all subcommands. Please explore and read these docs thoroughly.
+Webservice can be run by using 
 
 ```sh
-# Show the wallet's main help page
-$ tuxedo-template-wallet --help
+$ cargo run
 
-A simple example / template wallet built for the tuxedo template runtime
-
-Usage: tuxedo-template-wallet [OPTIONS] <COMMAND>
-
-Commands:
+REST APIS:
 
 ...
 
