@@ -29,8 +29,11 @@ This guided tour shows orest apis usage and curl command used to hit the end poi
 ### Minting coins 
 
 Rest apis for minting coins
+
 **end point:**: mint-coins
+
 **Amount to mint:** 6000
+
 **Public_key of owner:** d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
 
 ```sh
