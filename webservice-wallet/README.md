@@ -94,7 +94,7 @@ $ curl -X POST -H "Content-Type: application/json" -d '{"name": "amit","owner_pu
 
 ```
 
-### Get all kitties/tradablekitties:
+### Get all kitties/Tradable kitties:
 
 Rest API forgetting all the kitties stored in the local db. It returns all the kitties irrespective of onwer.
 
@@ -111,7 +111,7 @@ $curl -X GET -H "Content-Type: application/json"  http://localhost:3000/get-all-
 
 ```
 
-### Get owned kitties/TradableKitties:
+### Get owned kitties/Tradable kitties:
 
 Rest API forgetting all the owned kitties/tradable kitties  by any particular owner i.e. public key stored in the local db.
 
@@ -130,7 +130,7 @@ $curl -X GET -H "Content-Type: application/json" -H "owner_public_key: d2bf4b844
 
 
 ```
-### Get kitty/Tradable details by DNA :
+### Get kitty/Tradable kitty details by DNA :
 
 Rest API for getting all the details of the kitty by DNA.
 
