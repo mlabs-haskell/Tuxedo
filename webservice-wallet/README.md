@@ -122,12 +122,14 @@ $ curl -X GET -H "Content-Type: application/json" -H "kitty-dna: 95b951b609a4434
 **1. Get Transaction and Input UTXO List:**
  Retrieves the transaction and input list required for generating the Redeemer by the web DApp. This call is not routed to the blockchain but is handled entirely by the web service.
 
- **2. Perform Actual Operation:**
+ **2. Perform Actual Operation i.e send the signed transaction to the blockchain via web service :**
  Sends the signed transaction to the blockchain via web service for verification and validation using the verifier and constraint checker, respectively.
 
 
 ### List kitty for sale :
 Rest API uised for listing a Kitty for sale, converting it into a TradableKitty with an associated price.
+
+**1. Get Transaction and Input UTXO List for list kitty for sale:**
 
 **end point:**:get-txn-and-inpututxolist-for-listkitty-forsale
 
@@ -139,5 +141,15 @@ Rest API uised for listing a Kitty for sale, converting it into a TradableKitty 
 
 ```sh
 $ curl -X GET -H "Content-Type: application/json" -H "kitty-dna: 394bd079207af3e0b1a9b1eb1dc40d5d5694bd1fd904d56b96d6fad0039b1f7c" -H "kitty-price: 100" -H "owner_public_key: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67" http://localhost:3000/get-txn-and-inpututxolist-for-listkitty-forsale
+
+```
+ **2. Perform Actual Operation i.e send the signed transaction to the blockchain via web service:**
+
+ ```sh
+$ curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "signed_transaction": {"inputs":[{"output_ref":{"tx_hash":"0x0367d974927186bdeb3f1f1c111352711d9e1106a68bde6e4cfd0e64722e4f3a","index":0},"**redeemer**":[198, 69, 78, 148, 249, 1, 63, 2, 217, 105, 106, 87, 179, 252, 24, 66, 129, 190, 253, 17, 31, 87, 71, 231, 100, 31, 9, 81, 93, 141, 7, 81, 155, 0, 27, 38, 87, 16, 30, 55, 164, 220, 174, 37, 207, 163, 82, 216, 155, 195, 166, 253, 67, 95, 47, 240, 74, 20, 108, 160, 185, 71, 199, 129]}],"peeks":[],"outputs":[{"payload":{"data":[1,0,2,0,0,0,0,0,0,0,57,75,208,121,32,122,243,224,177,169,177,235,29,196,13,93,86,148,189,31,217,4,213,107,150,214,250,208,3,155,31,124,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,109,105,116,100,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"type_id":[116,100,107,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}],"checker":{"TradableKitty":"ListKittiesForSale"}},"input_utxo_list":[{"payload":{"data":[1,0,2,0,0,0,0,0,0,0,57,75,208,121,32,122,243,224,177,169,177,235,29,196,13,93,86,148,189,31,217,4,213,107,150,214,250,208,3,155,31,124,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,109,105,116],"type_id":[75,105,116,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}]}' \
+  http://localhost:3000/listkitty-for-sale
 
 ```
