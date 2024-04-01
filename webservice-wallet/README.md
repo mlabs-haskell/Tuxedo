@@ -19,27 +19,7 @@ However, because this is a rest API-based web service, it is likely to be used b
 Webservice can be run by using 
 
 ```sh
-$ cargo run ```
-
-REST APIS:
-
-...
-
-# Show the help for a subcommand
-$ tuxedo-template-wallet verify-coin --help
-Verify that a particular coin exists.
-
-Show its value and owner from both chain storage and the local database.
-
-Usage: tuxedo-template-wallet verify-coin <OUTPUT_REF>
-
-Arguments:
-  <OUTPUT_REF>
-          A hex-encoded output reference
-
-Options:
-  -h, --help
-          Print help (see a summary with '-h')
+$ cargo run
 ```
 
 ## Guided Tour
