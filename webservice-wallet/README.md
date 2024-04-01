@@ -1,4 +1,4 @@
-# Tuxedo webservice functionality
+# Tuxedo web service functionality
 
 A REST API for communicating with Tuxedo node template.
 
@@ -94,38 +94,49 @@ $ curl -X POST -H "Content-Type: application/json" -d '{"name": "amit","owner_pu
 
 ```
 
-### Get all kitties:
+### Get all kitties/tradablekitties:
 
 Rest API forgetting all the kitties stored in the local db. It returns all the kitties irrespective of onwer.
 
 **end point:**:get-all-kitty-list
 
-**Returns:** All basic kitties irrespective of owner.
+**end point:**:get-all-tradable-kitty-list
+
+**Returns:** All basic kitties/tradableKitties irrespective of owner.
 
 ```sh
 $ curl -X GET -H "Content-Type: application/json"  http://localhost:3000/get-all-kitty-list
 
+$curl -X GET -H "Content-Type: application/json"  http://localhost:3000/get-all-tradable-kitty-list
+
 ```
 
-### Get owned kitties:
+### Get owned kitties/TradableKitties:
 
-Rest API forgetting all the owned kitties by any particular owner i.e. public key stored in the local db.
+Rest API forgetting all the owned kitties/tradable kitties  by any particular owner i.e. public key stored in the local db.
 
-**end point:**:get-owned-kitty-list
+**end point for kitty :**:get-owned-kitty-list
+
+**end point for tradable kitty :**:get-owned-tradable-kitty-list
 
 **Public_key of owner of kitty:**  Public key of owner: Note it should start without 0X. Example : d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
 
-**Returns:** All the kitties owned by the user i.e public key.
+**Returns:** All the kitties/tradable owned by the user i.e public key.
 
 ```sh
 $ curl -X GET -H "Content-Type: application/json" -H "owner_public_key: 563b6da067f38dc194cbe41ce0b840a985dcbef92b1e5b0a6e04f35544ddfd16" http://localhost:3000/get-owned-kitty-list
 
+$curl -X GET -H "Content-Type: application/json" -H "owner_public_key: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67" http://localhost:3000/get-owned-tradable-kitty-list
+
+
 ```
-### Get kitty details by DNA :
+### Get kitty/Tradable details by DNA :
 
 Rest API for getting all the details of the kitty by DNA.
 
-**end point:**:get-kitty-by-dna
+**end point for basic kitty :**:get-kitty-by-dna
+
+**end point for tradable kitty :**: get-tradable-kitty-by-dna
 
 **DNA of kitty:**  Input the DNA of kitty. Note it should start without 0X. Example 95b951b609a4434b19eb4435dc4fe3eb6f0102ff3448922d933e6edf6b14f6de
 
@@ -133,6 +144,8 @@ Rest API for getting all the details of the kitty by DNA.
 
 ```sh
 $ curl -X GET -H "Content-Type: application/json" -H "kitty-dna: 95b951b609a4434b19eb4435dc4fe3eb6f0102ff3448922d933e6edf6b14f6de" http://localhost:3000/get-kitty-by-dna
+
+$ curl -X GET -H "Content-Type: application/json" -H "td-kitty-dna: 95b951b609a4434b19eb4435dc4fe3eb6f0102ff3448922d933e6edf6b14f6de" http://localhost:3000/get-tradable-kitty-by-dna
 
 ```
 ## From now on all the below APIS will have two API Calls in Sequence for one operation: 
