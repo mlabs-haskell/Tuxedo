@@ -35,7 +35,7 @@ $ cargo run
 
 ## Guided tour for REST APIS usage 
 
-This guided tour shows orest apis usage and curl command used to hit the end points :
+This guided tour shows REST apis usage and curl command used to hit the endpoints :
 
 ### Minting coins 
 
