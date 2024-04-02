@@ -82,7 +82,7 @@ Rest API for creating the kitty
 
 **end point:**:create-kitty
 
-**Name of kitty to be created:**:amit
+**Name of kitty to be created:**: Any 4 char name ex: amit, lili,etc. 
 
 **Public_key of owner of kitty:** Public key of owner: Note it should start without 0X. Example: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
 
@@ -204,7 +204,7 @@ Rest API is used for updating the name of tradable kitty.
 
 **Public_key of owner of tradable kitty:**  Public key of owner: Note it should start without 0X. Example: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
 
-**kitty-new-name:**  New name of the kitty
+**kitty-new-name:**  New name of the kitty(4 char len)
 
 **Returns:** Transaction with tradable kitty name update without redeemer.
 
