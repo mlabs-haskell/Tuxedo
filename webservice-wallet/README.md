@@ -43,7 +43,7 @@ Rest apis for minting coins
 
 **end point:**: mint-coins
 
-**Amount to mint:** 6000
+**Amount to mint:** : CAn be any value Ex: 6000
 
 **Public_key of owner:** d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
 
@@ -54,7 +54,7 @@ $ curl -X POST -H "Content-Type: application/json" -d '{"amount": 6000,"owner_pu
 
 ### Get all coins 
 
-Rest apis for getting all the coins stored in the web service. Basically web service stores all the coin UTXO which are synced from the genesis block to the current height.
+REST APIs for getting all the coins stored in the web service. Web service stores all the coin UTXO which are synced from the genesis block to the current height.
 
 **end point:**: get-all-coins
 
