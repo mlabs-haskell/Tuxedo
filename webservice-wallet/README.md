@@ -41,14 +41,14 @@ This guided tour shows REST apis usage and curl command used to hit the endpoint
 
 Rest apis for minting coins
 
-**end point:**: mint-coins
+**end point:**: post-mint-coin
 
 **Amount to mint:** 6000
 
 **Public_key of owner:** d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
 
 ```sh
-$ curl -X POST -H "Content-Type: application/json" -d '{"amount": 6000,"owner_public_key":"d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}' http://localhost:3000/mint-coins
+$ curl -X POST -H "Content-Type: application/json" -d '{"amount": 6000,"owner_public_key":"d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}' http://localhost:3000/post-mint-coin
 
 ```
 
@@ -180,6 +180,7 @@ $ curl -X POST \
 
 ```
 
+
 ### Tradable kitty name update :
 Rest API is used for updating the name of tradable kitty.
 
@@ -196,59 +197,61 @@ Rest API is used for updating the name of tradable kitty.
 **Returns:** Transaction with tradable kitty name update without redeemer.
 
 ```sh
-$ curl -X GET -H "Content-Type: application/json" -H "kitty-dna: 394bd079207af3e0b1a9b1eb1dc40d5d5694bd1fd904d56b96d6fad0039b1f7c" -H "kitty-new-name: jbbl" -H "owner_public_key: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67" http://localhost:3000/get-txn-and-inpututxolist-for-td-kitty-name-update
+$ curl -X GET -H "Content-Type: application/json" -H "kitty-dna: e3a7c32f2297032d04af849464cbf9d300e326607b9ed546fd9ddd2b6f803c90" -H "kitty-new-name: jbbl" -H "owner_public_key: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67" http://localhost:3000/get-txn-and-inpututxolist-for-td-kitty-name-update
 
 ```
  **2. Perform Actual Operation i.e send the signed transaction to the blockchain via web service:**
 
- **end point:**:update-td-kitty-name
+ **end point:**:patch-update-td-kitty-name
 
 **signed_transaction:**: Send the signed transaction. i.e all inputs should have a redeemer to prove the ownership of spending or usage.
 
  **Returns:** Tradable kitty with updated name.
 
  ```sh
-$ curl -X POST \
+$ curl -X PATCH \
   -H "Content-Type: application/json" \
   -d '{
-    "signed_transaction": {"inputs":[{"output_ref":{"tx_hash":"0xb696b071fdbdca1adcec9149d21a167a04d851693e97b70900ac7547e23c0d0e","index":0},"redeemer":[232, 135, 109, 225, 49, 100, 3, 154, 233, 14, 37, 46, 219, 87, 87, 126, 194, 46, 21, 194, 58, 138, 235, 176, 121, 59, 164, 20, 98, 31, 165, 109, 121, 81, 63, 97, 243, 214, 105, 123, 163, 143, 8, 179, 52, 18, 168, 140, 193, 238, 120, 215, 59, 174, 231, 168, 22, 92, 124, 114, 78, 51, 15, 129]}],"peeks":[],"outputs":[{"payload":{"data":[1,0,2,0,0,0,0,0,0,0,57,75,208,121,32,122,243,224,177,169,177,235,29,196,13,93,86,148,189,31,217,4,213,107,150,214,250,208,3,155,31,124,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,106,98,98,108,231,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"type_id":[116,100,107,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}],"checker":{"TradableKitty":"UpdateKittiesName"}},"input_utxo_list":[{"payload":{"data":[1,0,2,0,0,0,0,0,0,0,57,75,208,121,32,122,243,224,177,169,177,235,29,196,13,93,86,148,189,31,217,4,213,107,150,214,250,208,3,155,31,124,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,109,105,116,231,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"type_id":[116,100,107,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}]}' \
-  http://localhost:3000/update-td-kitty-name
+    "signed_transaction": {"inputs":[{"output_ref":{"tx_hash":"0xd876e07116639ccc2e1aff0e99de2843f28b682d8ed2f72748060cff673dfa4e","index":0},"redeemer":[76, 152, 233, 6, 117, 88, 222, 255, 204, 185, 124, 203, 32, 71, 28, 54, 188, 201, 83, 161, 48, 127, 47, 122, 175, 140, 180, 245, 241, 5, 118, 53, 125, 174, 99, 78, 231, 115, 73, 243, 48, 94, 62, 50, 16, 20, 19, 121, 178, 190, 248, 53, 59, 125, 11, 82, 145, 96, 122, 90, 36, 232, 176, 133]}],"peeks":[],"outputs":[{"payload":{"data":[0,0,2,0,0,0,0,0,0,0,227,167,195,47,34,151,3,45,4,175,132,148,100,203,249,211,0,227,38,96,123,158,213,70,253,157,221,43,111,128,60,144,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,106,98,98,108,100,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"type_id":[116,100,107,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}],"checker":{"TradableKitty":"UpdateKittiesName"}},"input_utxo_list":[{"payload":{"data":[0,0,2,0,0,0,0,0,0,0,227,167,195,47,34,151,3,45,4,175,132,148,100,203,249,211,0,227,38,96,123,158,213,70,253,157,221,43,111,128,60,144,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,109,105,116,100,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"type_id":[116,100,107,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}]}' \
+  http://localhost:3000/patch-update-td-kitty-name
 
 ```
+
 ### Tradable kitty price update :
 Rest API is used for updating the price of tradable kitty.
 
 **1. Get Transaction and Input UTXO List for price update of tradable kitty:**
 
-**end point:**:get-txn-and-inpututxolist-for-td-kitty-name-update
+**end point:**:get-txn-and-inpututxolist-for-td-kitty-price-update
 
-**DNA of kitty:**  Input the DNA of kitty. Note it should start without 0X. Example 95b951b609a4434b19eb4435dc4fe3eb6f0102ff3448922d933e6edf6b14f6de
+**DNA of kitty:**  Input the DNA of kitty. Note it should start without 0X. Example e3a7c32f2297032d04af849464cbf9d300e326607b9ed546fd9ddd2b6f803c90
 
 **Public_key of owner of kitty:**  Public key of owner: Note it should start without 0X. Example: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
 
-**kitty-new-name:**  New name of the kitty
+**kitty-price:**  New price of kitty
 
 **Returns:** Transaction with tradable kitty price update without redeemer.
 
 ```sh
-$ curl -X GET -H "Content-Type: application/json" -H "kitty-dna: 394bd079207af3e0b1a9b1eb1dc40d5d5694bd1fd904d56b96d6fad0039b1f7c" -H "kitty-new-name: jbbl" -H "owner_public_key: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67" http://localhost:3000/get-txn-and-inpututxolist-for-td-kitty-name-update
+$ curl -X GET -H "Content-Type: application/json" -H "kitty-dna: e3a7c32f2297032d04af849464cbf9d300e326607b9ed546fd9ddd2b6f803c90" -H "kitty-price: 101" -H "owner_public_key: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67" http://localhost:3000/get-txn-and-inpututxolist-for-td-kitty-price-update
 
 ```
  **2. Perform Actual Operation i.e send the signed transaction to the blockchain via web service:**
 
- **end point:**:update-td-kitty-name
+ **end point:**:patch-update-td-kitty-price
 
 **signed_transaction:**: Send the signed transaction. i.e all inputs should have a redeemer to prove the ownership of spending or usage.
 
  **Returns:** Tradable kitty with updated price.
 
  ```sh
-$ curl -X POST \
+$ curl -X PATCH \
   -H "Content-Type: application/json" \
   -d '{
-    "signed_transaction": {"inputs":[{"output_ref":{"tx_hash":"0xb696b071fdbdca1adcec9149d21a167a04d851693e97b70900ac7547e23c0d0e","index":0},"redeemer":[232, 135, 109, 225, 49, 100, 3, 154, 233, 14, 37, 46, 219, 87, 87, 126, 194, 46, 21, 194, 58, 138, 235, 176, 121, 59, 164, 20, 98, 31, 165, 109, 121, 81, 63, 97, 243, 214, 105, 123, 163, 143, 8, 179, 52, 18, 168, 140, 193, 238, 120, 215, 59, 174, 231, 168, 22, 92, 124, 114, 78, 51, 15, 129]}],"peeks":[],"outputs":[{"payload":{"data":[1,0,2,0,0,0,0,0,0,0,57,75,208,121,32,122,243,224,177,169,177,235,29,196,13,93,86,148,189,31,217,4,213,107,150,214,250,208,3,155,31,124,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,106,98,98,108,231,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"type_id":[116,100,107,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}],"checker":{"TradableKitty":"UpdateKittiesName"}},"input_utxo_list":[{"payload":{"data":[1,0,2,0,0,0,0,0,0,0,57,75,208,121,32,122,243,224,177,169,177,235,29,196,13,93,86,148,189,31,217,4,213,107,150,214,250,208,3,155,31,124,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,109,105,116,231,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"type_id":[116,100,107,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}]}' \
-  http://localhost:3000/update-td-kitty-name
+    "signed_transaction": {"inputs":[{"output_ref":{"tx_hash":"0x0c107ce6272fb5bd2da225dbbc8c60f0a94eb49c674f7808cc32721da7b8f751","index":0},"redeemer":[156, 45, 121, 232, 235, 7, 200, 99, 35, 110, 163, 45, 124, 107, 60, 60, 98, 164, 31, 54, 132, 137, 79, 129, 219, 57, 59, 58, 144, 44, 16, 97, 162, 76, 25, 115, 178, 188, 35, 161, 149, 71, 51, 109, 192, 187, 145, 144, 52, 49, 196, 123, 138, 115, 164, 93, 189, 78, 250, 1, 242, 127, 1, 129]}],"peeks":[],"outputs":[{"payload":{"data":[0,0,2,0,0,0,0,0,0,0,227,167,195,47,34,151,3,45,4,175,132,148,100,203,249,211,0,227,38,96,123,158,213,70,253,157,221,43,111,128,60,144,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,106,98,98,108,101,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"type_id":[116,100,107,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}],"checker":{"TradableKitty":"UpdateKittiesPrice"}},"input_utxo_list":[{"payload":{"data":[0,0,2,0,0,0,0,0,0,0,227,167,195,47,34,151,3,45,4,175,132,148,100,203,249,211,0,227,38,96,123,158,213,70,253,157,221,43,111,128,60,144,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,106,98,98,108,100,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"type_id":[116,100,107,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}]}' \
+  http://localhost:3000/patch-update-td-kitty-price
 ```
+
 
 ### De-List kitty from sale :
 Rest API is used for removing a tradable Kitty from the sale, converting it back to a Basic Kitty without an associated price.
@@ -257,30 +260,30 @@ Rest API is used for removing a tradable Kitty from the sale, converting it back
 
 **end point:**:get-txn-and-inpututxolist-for-delist-kitty-from-sale
 
-**DNA of kitty:**  Input the DNA of kitty. Note it should start without 0X. Example 95b951b609a4434b19eb4435dc4fe3eb6f0102ff3448922d933e6edf6b14f6de
+**DNA of kitty:**  Input the DNA of kitty. Note it should start without 0X. Example e3a7c32f2297032d04af849464cbf9d300e326607b9ed546fd9ddd2b6f803c90
 
 **Public_key of owner of kitty:**  Public key of owner: Note it should start without 0X. Example: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
 
  **Returns:** Transaction with a delisted  kitty without redeemer..
 
 ```sh
-$ curl -X GET -H "Content-Type: application/json" -H "kitty-dna:95b951b609a4434b19eb4435dc4fe3eb6f0102ff3448922d933e6edf6b14f6de" -H "owner_public_key: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67" http://localhost:3000/get-txn-and-inpututxolist-for-delist-kitty-from-sale
+$ curl -X GET -H "Content-Type: application/json" -H "kitty-dna:e3a7c32f2297032d04af849464cbf9d300e326607b9ed546fd9ddd2b6f803c90" -H "owner_public_key: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67" http://localhost:3000/get-txn-and-inpututxolist-for-delist-kitty-from-sale
 
 ```
  **2. Perform Actual Operation i.e send the signed transaction to the blockchain via web service:**
 
- **end point:**:update-td-kitty-name
+ **end point:**:put-delist-kitty-from-sale
 
 **signed_transaction:**: Send the signed transaction. i.e all inputs should have a redeemer to prove the ownership of spending or usage.
 
  **Returns:** Basic kitty.
 
  ```sh
-$ curl -X POST \
+$ curl -X PUT \
   -H "Content-Type: application/json" \
   -d '{
-    "signed_transaction": {"inputs":[{"output_ref":{"tx_hash":"0xe680ce989ddaa35c7ed9f3ec1f48ff956457e00a9f4635bd97f2e682cf7e300a","index":0},"redeemer":[74, 200, 62, 251, 42, 74, 130, 155, 97, 200, 209, 13, 99, 178, 179, 5, 181, 124, 177, 221, 67, 131, 151, 81, 188, 224, 7, 56, 253, 244, 36, 76, 23, 177, 67, 218, 177, 229, 88, 178, 78, 42, 182, 143, 133, 172, 75, 96, 169, 132, 83, 203, 16, 210, 96, 190, 19, 118, 84, 78, 40, 56, 236, 128]}],"peeks":[],"outputs":[{"payload":{"data":[1,0,2,0,0,0,0,0,0,0,57,75,208,121,32,122,243,224,177,169,177,235,29,196,13,93,86,148,189,31,217,4,213,107,150,214,250,208,3,155,31,124,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,106,98,98,108],"type_id":[75,105,116,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}],"checker":{"TradableKitty":"DelistKittiesFromSale"}},"input_utxo_list":[{"payload":{"data":[1,0,2,0,0,0,0,0,0,0,57,75,208,121,32,122,243,224,177,169,177,235,29,196,13,93,86,148,189,31,217,4,213,107,150,214,250,208,3,155,31,124,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,106,98,98,108,231,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"type_id":[116,100,107,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}]}' \
-  http://localhost:3000/delist-kitty-from-sale
+    "signed_transaction": {"inputs":[{"output_ref":{"tx_hash":"0x102e8575f9fc33061fbfa5a3787f264b934d2f05ab7714324a27d73b3c9aeb13","index":0},"redeemer":[240, 72, 218, 57, 203, 151, 58, 22, 2, 159, 101, 110, 99, 3, 80, 129, 188, 215, 41, 165, 48, 204, 137, 39, 107, 119, 121, 206, 47, 193, 165, 77, 134, 8, 19, 205, 32, 43, 52, 165, 120, 119, 235, 13, 48, 213, 122, 13, 62, 36, 113, 72, 12, 243, 53, 236, 166, 165, 209, 2, 199, 102, 101, 142]}],"peeks":[],"outputs":[{"payload":{"data":[0,0,2,0,0,0,0,0,0,0,227,167,195,47,34,151,3,45,4,175,132,148,100,203,249,211,0,227,38,96,123,158,213,70,253,157,221,43,111,128,60,144,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,106,98,98,108],"type_id":[75,105,116,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}],"checker":{"TradableKitty":"DelistKittiesFromSale"}},"input_utxo_list":[{"payload":{"data":[0,0,2,0,0,0,0,0,0,0,227,167,195,47,34,151,3,45,4,175,132,148,100,203,249,211,0,227,38,96,123,158,213,70,253,157,221,43,111,128,60,144,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,106,98,98,108,101,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"type_id":[116,100,107,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}]}' \
+  http://localhost:3000/put-delist-kitty-from-sale
 
 ```
 
@@ -291,7 +294,7 @@ Rest API is used for updating the name of basic kitty.
 
 **end point:**:get-txn-and-inpututxolist-for-kitty-name-update
 
-**DNA of kitty:**  Input the DNA of kitty. Note it should start without 0X. Example 95b951b609a4434b19eb4435dc4fe3eb6f0102ff3448922d933e6edf6b14f6de
+**DNA of kitty:**  Input the DNA of kitty. Note it should start without 0X. Example e3a7c32f2297032d04af849464cbf9d300e326607b9ed546fd9ddd2b6f803c90
 
 **Public_key of owner of kitty:**  Public key of owner: Note it should start without 0X. Example: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
 
@@ -300,24 +303,23 @@ Rest API is used for updating the name of basic kitty.
 **Returns:** Transaction with kitty name update without redeemer.
 
 ```sh
-$ curl -X GET -H "Content-Type: application/json" -H "kitty-dna: 95b951b609a4434b19eb4435dc4fe3eb6f0102ff3448922d933e6edf6b14f6de" -H "kitty-new-name: jram" -H "owner_public_key: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67" http://localhost:3000/get-txn-and-inpututxolist-for-kitty-name-update
+$ curl -X GET -H "Content-Type: application/json" -H "kitty-dna: e3a7c32f2297032d04af849464cbf9d300e326607b9ed546fd9ddd2b6f803c90" -H "kitty-new-name: jram" -H "owner_public_key: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67" http://localhost:3000/get-txn-and-inpututxolist-for-kitty-name-update
 
 ```
  **2. Perform Actual Operation i.e send the signed transaction to the blockchain via web service:**
 
- **end point:**:update-kitty-name
+ **end point:**:patch-update-kitty-name
 
 **signed_transaction:**: Send the signed transaction. i.e all inputs should have a redeemer to prove the ownership of spending or usage.
 
 **Returns:** Kitty with an updated name.
 
  ```sh
-$ curl -X POST \
+$ curl -X PATCH \
   -H "Content-Type: application/json" \
   -d '{
-    "signed_transaction": {"inputs":[{"output_ref":{"tx_hash":"0x9492d8c80fb5a8cf2720c0072d00c91c821502894fa4482a9c99fc027bf22daf","index":0},"redeemer":[132, 84, 163, 3, 64, 12, 74, 150, 176, 70, 223, 124, 252, 222, 23, 187, 141, 55, 207, 97, 55, 172, 128, 201, 147, 148, 8, 228, 108, 113, 36, 24, 10, 118, 178, 195, 8, 124, 127, 238, 172, 23, 127, 249, 203, 109, 196, 101, 76, 64, 162, 102, 184, 93, 63, 187, 193, 247, 129, 94, 44, 84, 200, 141]}],"peeks":[],"outputs":[{"payload":{"data":[1,0,2,0,0,0,0,0,0,0,57,75,208,121,32,122,243,224,177,169,177,235,29,196,13,93,86,148,189,31,217,4,213,107,150,214,250,208,3,155,31,124,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,106,114,97,109],"type_id":[75,105,116,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}],"checker":{"FreeKitty":"UpdateKittiesName"}}}' \
-  http://localhost:3000/update-kitty-name
-
+    "signed_transaction": {"inputs":[{"output_ref":{"tx_hash":"0x49ae6667d5f89d2a20da1704e751e206fb93ea109585c30da307f2832f96d808","index":0},"redeemer":[62, 143, 195, 20, 176, 220, 208, 33, 255, 203, 197, 239, 59, 88, 129, 185, 18, 132, 21, 4, 138, 49, 85, 117, 192, 68, 136, 216, 16, 215, 220, 66, 221, 217, 182, 236, 154, 160, 75, 212, 8, 120, 234, 43, 222, 58, 13, 50, 58, 175, 129, 241, 141, 234, 212, 222, 57, 203, 165, 198, 183, 220, 74, 137]}],"peeks":[],"outputs":[{"payload":{"data":[0,0,2,0,0,0,0,0,0,0,227,167,195,47,34,151,3,45,4,175,132,148,100,203,249,211,0,227,38,96,123,158,213,70,253,157,221,43,111,128,60,144,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,106,114,97,109],"type_id":[75,105,116,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}],"checker":{"FreeKitty":"UpdateKittiesName"}},"input_utxo_list":[{"payload":{"data":[0,0,2,0,0,0,0,0,0,0,227,167,195,47,34,151,3,45,4,175,132,148,100,203,249,211,0,227,38,96,123,158,213,70,253,157,221,43,111,128,60,144,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,106,98,98,108],"type_id":[75,105,116,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}]}' \
+  http://localhost:3000/patch-update-kitty-name
 ```
 
 ### Breed kitty :
@@ -327,9 +329,9 @@ Rest API is used for breeding a new Kitty from two parent Kitties, creating a ch
 
 **end point:**:get-txn-and-inpututxolist-for-breed-kitty
 
-**DNA of mom kitty:**  Input the DNA of kitty. Note it should start without 0X. Example  e9243fb13a45a51d221cfca21a1a197aa35a1f0723cae3497fda971c825cb1d6
+**DNA of mom kitty:**  Input the DNA of kitty. Note it should start without 0X. Example  e3a7c32f2297032d04af849464cbf9d300e326607b9ed546fd9ddd2b6f803c90
 
-**DNA of dad kitty:**  Input the DNA of kitty. Note it should start without 0X. Example 9741b6456f4b82bb243adfe5e887de9ce3a70e01d7ab39c0f9f565b24a2b059b
+**DNA of dad kitty:**  Input the DNA of kitty. Note it should start without 0X. Example 1c0d2c1f1b5055581414d781c162962ff37d7abc2e3c4580cd3321723eba2415
 
 **Public_key of the owner of kitties:**  Public key of owner: Note it should start without 0X. Example: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
 
@@ -338,12 +340,12 @@ Rest API is used for breeding a new Kitty from two parent Kitties, creating a ch
 **Returns:** Transaction with breeding info such as mom, dad, child i.e. new family without a redeemer.
 
 ```sh
-$ curl -X GET -H "Content-Type: application/json" -H "mom-dna: e9243fb13a45a51d221cfca21a1a197aa35a1f0723cae3497fda971c825cb1d6" -H "dad-dna: 9741b6456f4b82bb243adfe5e887de9ce3a70e01d7ab39c0f9f565b24a2b059b" -H "child-kitty-name: jram" -H "owner_public_key: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67" http://localhost:3000/get-txn-and-inpututxolist-for-breed-kitty
+$ curl -X GET -H "Content-Type: application/json" -H "mom-dna: e3a7c32f2297032d04af849464cbf9d300e326607b9ed546fd9ddd2b6f803c90" -H "dad-dna: 1c0d2c1f1b5055581414d781c162962ff37d7abc2e3c4580cd3321723eba2415" -H "child-kitty-name: jram" -H "owner_public_key: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67" http://localhost:3000/get-txn-and-inpututxolist-for-breed-kitty
 
 ```
  **2. Perform Actual Operation i.e send the signed transaction to the blockchain via web service:**
 
- **end point:**:breed-kitty
+ **end point:**:post-breed-kitty
 
 **signed_transaction:**: Send the signed transaction. i.e all inputs should have a redeemer to prove the ownership of spending or usage.
 
@@ -353,14 +355,14 @@ $ curl -X GET -H "Content-Type: application/json" -H "mom-dna: e9243fb13a45a51d2
 $ curl -X POST \
   -H "Content-Type: application/json" \
   -d '{
-    "signed_transaction": {"inputs":[{"output_ref":{"tx_hash":"0x8f83929cfc36c5ea445787421278f0688a2e7b482e71bd75d5ac7f36028c575b","index":0},"redeemer":[238, 126, 35, 95, 5, 149, 96, 160, 143, 172, 139, 56, 130, 116, 141, 93, 52, 181, 62, 9, 81, 32, 56, 199, 30, 48, 28, 186, 247, 72, 180, 125, 163, 197, 198, 5, 254, 86, 113, 164, 20, 112, 49, 37, 217, 91, 175, 248, 183, 126, 250, 169, 118, 165, 213, 242, 27, 47, 249, 32, 158, 89, 232, 141]},{"output_ref":{"tx_hash":"0x6bb11e2df46081e9252787342116b0b32be9d3302ca1dac535df85642ba46242","index":0},"redeemer":[112, 18, 73, 37, 101, 45, 254, 161, 83, 84, 12, 135, 125, 65, 6, 235, 200, 84, 16, 109, 12, 247, 240, 52, 116, 11, 46, 109, 86, 241, 69, 26, 223, 154, 215, 190, 247, 110, 248, 75, 246, 71, 126, 223, 23, 180, 233, 209, 98, 9, 178, 82, 46, 52, 110, 251, 52, 223, 232, 182, 82, 226, 5, 143]}],"peeks":[],"outputs":[{"payload":{"data":[0,1,1,0,0,0,0,0,0,0,233,36,63,177,58,69,165,29,34,28,252,162,26,26,25,122,163,90,31,7,35,202,227,73,127,218,151,28,130,92,177,214,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,109,105,116],"type_id":[75,105,116,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}},{"payload":{"data":[1,1,1,0,0,0,0,0,0,0,151,65,182,69,111,75,130,187,36,58,223,229,232,135,222,156,227,167,14,1,215,171,57,192,249,245,101,178,74,43,5,155,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,109,116,105],"type_id":[75,105,116,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}},{"payload":{"data":[0,0,2,0,0,0,0,0,0,0,191,64,163,127,195,246,227,90,81,218,5,243,219,78,156,51,82,162,4,192,66,249,180,130,64,229,219,239,136,216,243,153,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,106,114,97,109],"type_id":[75,105,116,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}],"checker":{"FreeKitty":"Breed"}}}' \
-  http://localhost:3000/breed-kitty
+    "signed_transaction": {"inputs":[{"output_ref":{"tx_hash":"0xd3d22fba6dc77681382597dd1cf211a4224f3f9b61d243211ef3e568a53a8b4d","index":0},"redeemer":[130, 105, 164, 215, 55, 250, 158, 123, 55, 224, 1, 254, 2, 202, 3, 8, 130, 150, 121, 22, 173, 84, 207, 98, 207, 193, 175, 158, 127, 203, 173, 115, 68, 251, 206, 161, 116, 204, 125, 82, 211, 196, 175, 251, 3, 252, 157, 179, 97, 20, 97, 202, 231, 98, 29, 42, 213, 30, 243, 100, 214, 250, 105, 136]},{"output_ref":{"tx_hash":"0x2fff23770c669bb7d8f3be701c9c13f2a537e35a306df7d413376713b845c91e","index":0},"redeemer":[240, 39, 153, 183, 73, 88, 183, 29, 85, 199, 155, 119, 221, 131, 86, 240, 114, 216, 11, 145, 73, 76, 141, 93, 106, 218, 51, 73, 52, 183, 2, 32, 232, 176, 205, 136, 168, 165, 235, 37, 186, 218, 75, 110, 37, 223, 188, 72, 131, 187, 100, 50, 28, 211, 37, 78, 92, 51, 43, 40, 19, 114, 209, 137]}],"peeks":[],"outputs":[{"payload":{"data":[0,1,1,0,0,0,0,0,0,0,227,167,195,47,34,151,3,45,4,175,132,148,100,203,249,211,0,227,38,96,123,158,213,70,253,157,221,43,111,128,60,144,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,106,114,97,109],"type_id":[75,105,116,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}},{"payload":{"data":[1,1,1,0,0,0,0,0,0,0,28,13,44,31,27,80,85,88,20,20,215,129,193,98,150,47,243,125,122,188,46,60,69,128,205,51,33,114,62,186,36,21,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,109,105,116],"type_id":[75,105,116,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}},{"payload":{"data":[0,0,2,0,0,0,0,0,0,0,198,109,250,226,133,108,197,53,184,120,210,139,76,35,109,156,100,214,242,113,227,227,174,38,22,37,65,198,241,250,122,72,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,106,114,97,109],"type_id":[75,105,116,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}],"checker":{"FreeKitty":"Breed"}},"input_utxo_list":[{"payload":{"data":[0,0,2,0,0,0,0,0,0,0,227,167,195,47,34,151,3,45,4,175,132,148,100,203,249,211,0,227,38,96,123,158,213,70,253,157,221,43,111,128,60,144,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,106,114,97,109],"type_id":[75,105,116,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}},{"payload":{"data":[1,0,2,0,0,0,0,0,0,0,28,13,44,31,27,80,85,88,20,20,215,129,193,98,150,47,243,125,122,188,46,60,69,128,205,51,33,114,62,186,36,21,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,109,105,116],"type_id":[75,105,116,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}]}' \
+  http://localhost:3000/post-breed-kitty
 
 ```
 **The output message of breed looks like the below :**
  ```sh
 $O/P message :
-{"message":"Kitty breeding done successfully","mom_kitty":{"parent":{"Mom":"HadBirthRecently"},"free_breedings":1,"dna":"0xe9243fb13a45a51d221cfca21a1a197aa35a1f0723cae3497fda971c825cb1d6","num_breedings":1,"name":[97,109,105,116]},"dad_kitty":{"parent":{"Dad":"Tired"},"free_breedings":1,"dna":"0x9741b6456f4b82bb243adfe5e887de9ce3a70e01d7ab39c0f9f565b24a2b059b","num_breedings":1,"name":[97,109,116,105]},"child_kitty":{"parent":{"Mom":"RearinToGo"},"free_breedings":2,"dna":"0xbf40a37fc3f6e35a51da05f3db4e9c3352a204c042f9b48240e5dbef88d8f399","num_breedings":0,"name":[106,114,97,109]}}
+{"message":"Kitty breeding done successfully","mom_kitty":{"parent":{"Mom":"HadBirthRecently"},"free_breedings":1,"dna":"0xe3a7c32f2297032d04af849464cbf9d300e326607b9ed546fd9ddd2b6f803c90","num_breedings":1,"name":[106,114,97,109]},"dad_kitty":{"parent":{"Dad":"Tired"},"free_breedings":1,"dna":"0x1c0d2c1f1b5055581414d781c162962ff37d7abc2e3c4580cd3321723eba2415","num_breedings":1,"name":[97,109,105,116]},"child_kitty":{"parent":{"Mom":"RearinToGo"},"free_breedings":2,"dna":"0xc66dfae2856cc535b878d28b4c236d9c64d6f271e3e3ae26162541c6f1fa7a48","num_breedings":0,"name":[106,114,97,109]}}
 
 ```
 
@@ -369,7 +371,7 @@ Rest API that allows buying a Tradable Kitty from a seller using cryptocurrency 
 
 **1. Get Transaction and Input UTXO List for buying tradable kitty:**
 
-**end point:**:get-txn-and-inpututxolist-for-buy-kitty
+**end point:** get-txn-and-inpututxolist-for-buy-kitty
 
 **DNA of kitty:**  Input the DNA of kitty. Note it should start without 0X. Example 95b951b609a4434b19eb4435dc4fe3eb6f0102ff3448922d933e6edf6b14f6de
 
@@ -389,7 +391,7 @@ $ curl -X GET -H "Content-Type: application/json" -H "kitty-dna: bc147303f7d0a36
 ```
  **2. Perform Actual Operation i.e send the signed transaction to the blockchain via web service:**
 
- **end point:**:/buy_kitty
+ **end point:**:/patch-buy-kitty
 
 **signed_transaction:**: Send the signed transaction. i.e all inputs should have a redeemer to prove the ownership of spending or usage.
 
@@ -400,7 +402,7 @@ $ curl -X POST \
   -H "Content-Type: application/json" \
   -d '{
     "signed_transaction": {"inputs":[{"output_ref":{"tx_hash":"0x9bffe2abf274e0008f3f34af60cd083e909f884f2064e10f25ca46166306ae81","index":0},"redeemer":[134, 152, 55, 235, 162, 163, 255, 144, 247, 94, 237, 234, 127, 220, 149, 66, 226, 223, 43, 116, 16, 156, 165, 251, 221, 234, 13, 136, 132, 189, 187, 27, 206, 197, 48, 23, 188, 43, 41, 94, 103, 242, 174, 100, 249, 158, 206, 55, 88, 199, 103, 246, 227, 126, 138, 252, 205, 7, 132, 3, 112, 239, 52, 129]},{"output_ref":{"tx_hash":"0x4d732d8b0d0995151617c5c3beb600dc07a9e1be9fc8e95d9c792be42d659110","index":0},"redeemer":[166, 2, 32, 88, 200, 30, 54, 252, 155, 169, 122, 237, 29, 44, 33, 22, 102, 77, 71, 128, 35, 214, 84, 147, 193, 59, 45, 110, 69, 52, 25, 75, 5, 248, 227, 232, 110, 165, 177, 178, 218, 240, 235, 61, 25, 248, 242, 132, 106, 115, 62, 88, 57, 238, 39, 150, 202, 64, 237, 111, 147, 210, 215, 131]}],"peeks":[],"outputs":[{"payload":{"data":[0,0,2,0,0,0,0,0,0,0,188,20,115,3,247,208,163,97,172,34,165,11,242,202,46,197,19,217,38,163,39,237,103,136,39,201,13,101,18,254,173,214,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,109,105,116,200,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"type_id":[116,100,107,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}},{"payload":{"data":[200,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"type_id":[99,111,105,0]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xfab33c8c12f8df78fa515faa2fcc4bbf7829804a4d187984e13253660a9c1223"}}}],"checker":{"TradableKitty":"Buy"}}}' \
-  http://localhost:3000/buy_kitty
+  http://localhost:3000/patch-buy-kitty
 ```
 
 After the transaction is success.We can verify the kitty is transferred to buyer and coins are transferred to the seller using the below rest APIS :
