@@ -1,11 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-
 use crate::keystore;
 
-
-
-use axum::{Json};
+use axum::Json;
 
 #[derive(Debug, Deserialize)]
 pub struct GenerateKeyRequest {
@@ -35,7 +32,7 @@ pub async fn debug_generate_key(body: Json<GenerateKeyRequest>) -> Json<Generate
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// get keys 
+// get keys
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Serialize)]

@@ -8,11 +8,11 @@ use sc_keystore::LocalKeystore;
 use sp_core::{
     crypto::Pair as PairT,
     sr25519::{Pair, Public},
-    H256,
+    //    H256,
 };
 use sp_keystore::Keystore;
 use sp_runtime::KeyTypeId;
-use std::path::Path;
+
 use crate::get_local_keystore;
 /// A KeyTypeId to use in the keystore for Tuxedo transactions. We'll use this everywhere
 /// until it becomes clear that there is a reason to use multiple of them
@@ -24,7 +24,7 @@ pub const SHAWN_PHRASE: &str =
     "news slush supreme milk chapter athlete soap sausage put clutch what kitten";
 
 /// The public key corresponding to the default seed above.
-pub const SHAWN_PUB_KEY: &str = "d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67";
+//pub const SHAWN_PUB_KEY: &str = "d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67";
 
 /// Insert the example "Shawn" key into the keystore for the current session only.
 pub fn insert_development_key_for_this_session(keystore: &LocalKeystore) -> anyhow::Result<()> {
@@ -40,7 +40,6 @@ pub fn sign_with(
     public: &Public,
     message: &[u8],
 ) -> anyhow::Result<Vec<u8>> {
-    
     let sig = keystore
         .sr25519_sign(KEY_TYPE, public, message)?
         .ok_or(anyhow!("Key doesn't exist in keystore"))?;
@@ -65,7 +64,7 @@ pub fn insert_key(keystore: &LocalKeystore, seed: &str) -> anyhow::Result<()> {
 /// TODO there is no password support when using keys later when signing.
 /*
 pub fn generate_key(keystore: &LocalKeystore, password: Option<String>) -> anyhow::Result<()> {
-    
+
     let (pair, phrase, _) = Pair::generate_with_phrase(password.as_deref());
     println!("Generated public key is {:?}", pair.public());
     println!("Generated Phrase is {}", phrase);
@@ -94,37 +93,41 @@ pub fn get_keys(keystore: &LocalKeystore) -> anyhow::Result<impl Iterator<Item =
 }
 */
 pub async fn generate_key(password: Option<String>) -> anyhow::Result<(String, String)> {
-    let keystore = get_local_keystore().await.unwrap_or_else(|_| panic!("Error in extracting local key store"));
+    let keystore = get_local_keystore()
+        .await
+        .unwrap_or_else(|_| panic!("Error in extracting local key store"));
     let (pair, phrase, _) = Pair::generate_with_phrase(password.as_deref());
     println!("Generated public key is {:?}", pair.public());
     println!("Generated Phrase is {}", phrase);
-    
+
     // Insert the generated key pair into the keystore
-    
+
     keystore.sr25519_generate_new(KEY_TYPE, Some(phrase.as_str()))?;
-    insert_key(&keystore,&phrase.as_str());
+    let _ = insert_key(&keystore, &phrase.as_str());
     get_keys().await?.for_each(|pubkey| {
         println!("key: 0x{}", hex::encode(pubkey));
     });
-    
+
     let public_key_hex = hex::encode(pair.public());
 
     Ok((public_key_hex.to_string(), phrase))
 }
 
-
+/*
 /// Check whether a specific key is in the keystore
 pub fn has_key(keystore: &LocalKeystore, pubkey: &H256) -> bool {
     keystore.has_keys(&[(pubkey.encode(), KEY_TYPE)])
 }
-
+*/
 pub async fn get_keys() -> anyhow::Result<impl Iterator<Item = Vec<u8>>> {
-    let keystore = get_local_keystore().await.unwrap_or_else(|_| panic!("Error in extracting local key store"));
+    let keystore = get_local_keystore()
+        .await
+        .unwrap_or_else(|_| panic!("Error in extracting local key store"));
 
     Ok(keystore.keys(KEY_TYPE)?.into_iter())
 }
 
-
+/*
 /// Caution. Removes key from keystore. Call with care.
 pub fn remove_key(keystore_path: &Path, pub_key: &H256) -> anyhow::Result<()> {
     // The keystore doesn't provide an API for removing keys, so we
@@ -136,3 +139,4 @@ pub fn remove_key(keystore_path: &Path, pub_key: &H256) -> anyhow::Result<()> {
 
     Ok(())
 }
+*/

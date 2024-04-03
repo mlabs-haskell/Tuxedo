@@ -1,7 +1,6 @@
 //! Wallet features related to spending money and checking balances.
 
-use crate::{cli::MintCoinArgs, cli::SpendArgs,rpc::fetch_storage, sync};
-
+use crate::rpc::fetch_storage;
 use anyhow::anyhow;
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use parity_scale_codec::Encode;
@@ -9,27 +8,24 @@ use runtime::{
     money::{Coin, MoneyConstraintChecker},
     OuterConstraintChecker, OuterVerifier, Transaction,
 };
-use sc_keystore::LocalKeystore;
 use sled::Db;
-use sp_core::sr25519::Public;
+use sp_core::H256;
 use sp_runtime::traits::{BlakeTwo256, Hash};
 use tuxedo_core::{
-    types::{Input, Output, OutputRef},
+    types::{Output, OutputRef},
     verifier::Sr25519Signature,
 };
-use crate::original_get_db;
+//use crate::original_get_db;
 
 /// Create and send a transaction that mints the coins on the network
-pub async fn mint_coins(client: &HttpClient, args: MintCoinArgs) -> anyhow::Result<()> {
-    log::debug!("The args are:: {:?}", args);
-
+pub async fn mint_coins(client: &HttpClient, amount: u128, public_key: H256) -> anyhow::Result<()> {
     let transaction = Transaction {
         inputs: Vec::new(),
         peeks: Vec::new(),
         outputs: vec![(
-            Coin::<0>::new(args.amount),
+            Coin::<0>::new(amount),
             OuterVerifier::Sr25519Signature(Sr25519Signature {
-                owner_pubkey: args.owner,
+                owner_pubkey: public_key,
             }),
         )
             .into()],
@@ -59,6 +55,7 @@ pub async fn mint_coins(client: &HttpClient, args: MintCoinArgs) -> anyhow::Resu
 
     Ok(())
 }
+/*
 use sp_core::H256;
 struct RecipientOutput {
     pub recipient:H256,
@@ -82,7 +79,7 @@ pub async fn spend_coins(
     keystore: &LocalKeystore,
     args: SpendArgs,
 ) -> anyhow::Result<()> {
-    
+
     log::info!("In the spend_coins_to_multiple_recipient The args are:: {:?}", args);
     let mut transaction = Transaction {
         inputs: Vec::new(),
@@ -191,7 +188,7 @@ pub async fn spend_coins(
 
     Ok(())
 }
-/*
+
 /// Create and send a transaction that spends coins on the network
 pub async fn spend_coins1(
     db: &Db,

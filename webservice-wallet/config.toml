@@ -1,0 +1,5 @@
+# config.toml
+
+[server]
+block_chain_node_endpoint = "http://localhost:9944"
+socket_address = "127.0.0.1:3000"

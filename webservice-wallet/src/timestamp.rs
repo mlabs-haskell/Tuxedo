@@ -1,7 +1,6 @@
 //! Wallet features related to on-chain timestamps.
 
-use anyhow::anyhow;
-use parity_scale_codec::{Decode, Encode};
+use parity_scale_codec::Encode;
 use runtime::{timestamp::Timestamp, OuterVerifier};
 use sled::Db;
 use tuxedo_core::types::Output;
@@ -16,6 +15,7 @@ pub(crate) fn apply_transaction(db: &Db, output: &Output<OuterVerifier>) -> anyh
     Ok(())
 }
 
+/*
 /// Apply a transaction to the local database, storing the new timestamp.
 pub(crate) fn get_timestamp(db: &Db) -> anyhow::Result<u64> {
     let timestamp_tree = db.open_tree(TIMESTAMP)?;
@@ -25,3 +25,4 @@ pub(crate) fn get_timestamp(db: &Db) -> anyhow::Result<u64> {
     u64::decode(&mut &timestamp[..])
         .map_err(|_| anyhow!("Could not decode timestamp from database."))
 }
+*/

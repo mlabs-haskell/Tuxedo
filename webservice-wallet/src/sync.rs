@@ -24,8 +24,6 @@ use tuxedo_core::{
     types::{Input, OutputRef},
 };
 
-
-
 use jsonrpsee::http_client::HttpClient;
 use runtime::kitties::KittyDNA;
 use runtime::kitties::KittyData;
@@ -468,7 +466,7 @@ pub(crate) fn print_block_hashes_tree(db: &Db) -> anyhow::Result<()> {
 
     Ok(())
 }
-
+/*
 /// Debugging use. Print the entire unspent outputs tree.
 pub(crate) fn print_unspent_tree(db: &Db) -> anyhow::Result<()> {
     let wallet_unspent_tree = db.open_tree(UNSPENT)?;
@@ -502,7 +500,7 @@ pub(crate) fn get_balances(db: &Db) -> anyhow::Result<impl Iterator<Item = (H256
 
     Ok(balances.into_iter())
 }
-
+*/
 // Kitty related functions
 /// Add kitties to the database updating all tables.
 pub fn add_fresh_kitty_to_db(
@@ -512,7 +510,7 @@ pub fn add_fresh_kitty_to_db(
     kitty: &KittyData,
 ) -> anyhow::Result<()> {
     let kitty_owned_tree = db.open_tree(FRESH_KITTY)?;
-    println!("add_fresh_kitty_to_db {:?}",kitty);
+    println!("add_fresh_kitty_to_db {:?}", kitty);
     kitty_owned_tree.insert(output_ref.encode(), (owner_pubkey, kitty).encode())?;
 
     Ok(())
@@ -525,12 +523,12 @@ pub fn add_fresh_tradable_kitty_to_db(
     kitty: &TradableKittyData,
 ) -> anyhow::Result<()> {
     let tradable_kitty_owned_tree = db.open_tree(FRESH_TRADABLE_KITTY)?;
-    println!("add_fresh_tradable_kitty_to_db {:?}",kitty);
+    println!("add_fresh_tradable_kitty_to_db {:?}", kitty);
     tradable_kitty_owned_tree.insert(output_ref.encode(), (owner_pubkey, kitty).encode())?;
 
     Ok(())
 }
-
+/*
 /// Remove an output from the database updating all tables.
 fn remove_used_kitty_from_db(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
     let kitty_owned_tree = db.open_tree(FRESH_KITTY)?;
@@ -540,6 +538,7 @@ fn remove_used_kitty_from_db(db: &Db, output_ref: &OutputRef) -> anyhow::Result<
     Ok(())
 }
 
+
 /// Remove an output from the database updating all tables.
 fn remove_used_tradable_kitty_from_db(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
     let tradable_kitty_owned_tree = db.open_tree(FRESH_TRADABLE_KITTY)?;
@@ -548,7 +547,7 @@ fn remove_used_tradable_kitty_from_db(db: &Db, output_ref: &OutputRef) -> anyhow
 
     Ok(())
 }
-
+*/
 /// Mark an existing output as spent. This does not purge all record of the output from the db.
 /// It just moves the record from the unspent table to the spent table
 fn mark_as_used_kitties(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
@@ -580,7 +579,7 @@ fn mark_as_used_tradable_kitties(db: &Db, output_ref: &OutputRef) -> anyhow::Res
     println!("mark_as_used_tradable_kitties is called ");
     Ok(())
 }
-
+/*
 /// Mark an output that was previously spent back as unspent.
 fn unmark_as_used_kitties(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
     let fresh_kitty_tree = db.open_tree(FRESH_KITTY)?;
@@ -597,17 +596,18 @@ fn unmark_as_used_kitties(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()>
 
 /// Mark an output that was previously spent back as unspent.
 fn unmark_as_used_tradable_kitties(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
-    let fresh_Tradable_kitty_tree = db.open_tree(FRESH_TRADABLE_KITTY)?;
-    let used_Tradable_kitty_tree = db.open_tree(USED_TRADABLE_KITTY)?;
+    let fresh_tradable_kitty_tree = db.open_tree(FRESH_TRADABLE_KITTY)?;
+    let used_tradable_kitty_tree = db.open_tree(USED_TRADABLE_KITTY)?;
 
-    let Some(ivec) = used_Tradable_kitty_tree.remove(output_ref.encode())? else {
+    let Some(ivec) = used_tradable_kitty_tree.remove(output_ref.encode())? else {
         return Ok(());
     };
     let (owner, kitty) = <(H256, KittyData)>::decode(&mut &ivec[..])?;
-    fresh_Tradable_kitty_tree.insert(output_ref.encode(), (owner, kitty).encode())?;
+    fresh_tradable_kitty_tree.insert(output_ref.encode(), (owner, kitty).encode())?;
 
     Ok(())
 }
+*/
 
 /// Iterate the entire owned kitty
 /// on a per-address basis.
@@ -624,7 +624,7 @@ pub(crate) fn get_all_tradable_kitties_from_local_db<'a>(
 ) -> anyhow::Result<impl Iterator<Item = (H256, TradableKittyData)> + 'a> {
     get_all_kitties_and_td_kitties_from_local_db(db, FRESH_TRADABLE_KITTY)
 }
-
+/*
 pub(crate) fn get_kitty_from_local_db_based_on_name(
     db: &Db,
     name: String,
@@ -643,7 +643,7 @@ pub(crate) fn get_tradable_kitty_from_local_db_based_on_name(
         |kitty: &TradableKittyData| &kitty.kitty_basic_data.name,
     )
 }
-
+*/
 pub(crate) fn get_kitty_from_local_db_based_on_dna(
     db: &Db,
     dna: &str,
@@ -696,7 +696,10 @@ pub(crate) fn get_all_coins(db: &Db) -> anyhow::Result<Vec<(String, H256, u128)>
     Ok(result)
 }
 
-pub(crate) fn get_owned_coins(db: &Db, owner_pub_key: &H256) -> anyhow::Result<Vec<(String, H256, u128)>> {
+pub(crate) fn get_owned_coins(
+    db: &Db,
+    owner_pub_key: &H256,
+) -> anyhow::Result<Vec<(String, H256, u128)>> {
     let wallet_unspent_tree = db.open_tree(UNSPENT)?;
     let mut result = Vec::new();
 
@@ -713,6 +716,153 @@ pub(crate) fn get_owned_coins(db: &Db, owner_pub_key: &H256) -> anyhow::Result<V
 
     Ok(result)
 }
+
+//////////////////////////
+// Private Functions
+//////////////////////////
+
+fn get_all_kitties_and_td_kitties_from_local_db<'a, T>(
+    db: &'a Db,
+    tree_name: &'a str,
+) -> anyhow::Result<impl Iterator<Item = (H256, T)> + 'a>
+where
+    T: Decode + Clone + std::fmt::Debug,
+{
+    let wallet_owned_tradable_kitty_tree = db.open_tree(tree_name)?;
+
+    Ok(wallet_owned_tradable_kitty_tree
+        .iter()
+        .filter_map(|raw_data| {
+            let (_output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
+            let (owner, kitty) = <(H256, T)>::decode(&mut &owner_kitty_ivec[..]).ok()?;
+
+            Some((owner, kitty))
+        }))
+}
+
+fn get_data_from_local_db_based_on_dna<T>(
+    db: &Db,
+    tree_name: &str,
+    dna: &str,
+    dna_extractor: impl Fn(&T) -> KittyDNA,
+) -> anyhow::Result<Option<(T, OutputRef)>>
+where
+    T: Decode + Clone + std::fmt::Debug,
+{
+    let wallet_owned_kitty_tree = db.open_tree(tree_name)?;
+
+    let dna_bytes = hex::decode(dna).expect("Invalid hexadecimal string");
+    let kitty_dna = KittyDNA(H256::from_slice(&dna_bytes));
+
+    let (found_kitty, output_ref): (Option<T>, OutputRef) = wallet_owned_kitty_tree
+        .iter()
+        .filter_map(|raw_data| {
+            let (output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
+            let (owner, kitty) = <(H256, T)>::decode(&mut &owner_kitty_ivec[..]).ok()?;
+            let output_ref = OutputRef::decode(&mut &output_ref_ivec[..]).ok()?;
+            println!(
+                "Owner  = {:?} Dna : {:?}  -> output_ref {:?}",
+                owner,
+                kitty_dna,
+                output_ref.clone()
+            );
+
+            if dna_extractor(&kitty) == kitty_dna {
+                println!(" Name : {:?}  matched", kitty_dna);
+                Some((Some(kitty), output_ref))
+            } else {
+                println!(" Name : {:?}  NOTmatched", kitty_dna);
+                None
+            }
+        })
+        .next()
+        .unwrap_or((
+            None,
+            OutputRef {
+                tx_hash: H256::zero(),
+                index: 0,
+            },
+        )); // Use unwrap_or to handle the Option
+
+    println!("output_ref = {:?}", output_ref);
+    println!(
+        "kitty dna  {:?} found_status = {:?}",
+        kitty_dna, found_kitty
+    );
+
+    Ok(found_kitty.map(|kitty| (kitty, output_ref)))
+}
+
+fn get_any_owned_kitties_from_local_db<'a, T>(
+    db: &'a Db,
+    tree_name: &'a str,
+    owner_pubkey: &'a H256,
+) -> anyhow::Result<impl Iterator<Item = (H256, T, OutputRef)> + 'a>
+where
+    T: Decode + Clone + std::fmt::Debug,
+{
+    let wallet_owned_kitty_tree = db.open_tree(tree_name)?;
+
+    Ok(wallet_owned_kitty_tree.iter().filter_map(move |raw_data| {
+        let (output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
+        let (owner, kitty) = <(H256, T)>::decode(&mut &owner_kitty_ivec[..]).ok()?;
+        let output_ref = OutputRef::decode(&mut &output_ref_ivec[..]).ok()?;
+        if owner == *owner_pubkey {
+            Some((owner, kitty, output_ref))
+        } else {
+            None
+        }
+    }))
+}
+/*
+fn get_data_from_local_db_based_on_name<T>(
+    db: &Db,
+    tree_name: &str,
+    name: String,
+    name_extractor: impl Fn(&T) -> &[u8; 4],
+) -> anyhow::Result<Option<(T, OutputRef)>>
+where
+    T: Decode + Clone + std::fmt::Debug,
+{
+    let wallet_owned_kitty_tree = db.open_tree(tree_name)?;
+
+    let mut array = [0; 4];
+    let kitty_name: &[u8; 4] = {
+        array.copy_from_slice(name.as_bytes());
+        &array
+    };
+
+    let (found_kitty, output_ref): (Option<T>, OutputRef) = wallet_owned_kitty_tree
+        .iter()
+        .filter_map(|raw_data| {
+            let (output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
+            let (owner, kitty) = <(H256, T)>::decode(&mut &owner_kitty_ivec[..]).ok()?;
+            let output_ref = OutputRef::decode(&mut &output_ref_ivec[..]).ok()?;
+            println!("Owner  = {:?} Name : {:?}  -> output_ref {:?}", owner, name, output_ref.clone());
+
+            if name_extractor(&kitty) == kitty_name {
+                println!(" Name : {:?}  matched", name);
+                Some((Some(kitty), output_ref))
+            } else {
+                println!(" Name : {:?}  NOTmatched", name);
+                None
+            }
+        })
+        .next()
+        .unwrap_or((
+            None,
+            OutputRef {
+                tx_hash: H256::zero(),
+                index: 0,
+            },
+        )); // Use unwrap_or to handle the Option
+
+    println!("output_ref = {:?}", output_ref);
+    println!("kitty Name  {} found_status = {:?}", name,found_kitty);
+
+    Ok(found_kitty.map(|kitty| (kitty, output_ref)))
+}
+
 
 pub(crate) fn is_kitty_name_duplicate(
     db: &Db,
@@ -768,143 +918,6 @@ pub(crate) fn get_tradable_kitty_fromlocaldb(
     Ok(Some(<(H256, u128)>::decode(&mut &ivec[..])?))
 }
 
-//////////////////////////
-// Private Functions
-//////////////////////////
-
-fn get_all_kitties_and_td_kitties_from_local_db<'a, T>(
-    db: &'a Db,
-    tree_name: &'a str,
-) -> anyhow::Result<impl Iterator<Item = (H256, T)> + 'a>
-where
-    T: Decode + Clone + std::fmt::Debug,
-{
-    let wallet_owned_tradable_kitty_tree = db.open_tree(tree_name)?;
-
-    Ok(wallet_owned_tradable_kitty_tree
-        .iter()
-        .filter_map(|raw_data| {
-            let (_output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
-            let (owner, kitty) = <(H256, T)>::decode(&mut &owner_kitty_ivec[..]).ok()?;
-
-            Some((owner, kitty))
-        }))
-}
-
-fn get_data_from_local_db_based_on_dna<T>(
-    db: &Db,
-    tree_name: &str,
-    dna: &str,
-    dna_extractor: impl Fn(&T) -> KittyDNA,
-) -> anyhow::Result<Option<(T, OutputRef)>>
-where
-    T: Decode + Clone + std::fmt::Debug,
-{
-    let wallet_owned_kitty_tree = db.open_tree(tree_name)?;
-
-    let dna_bytes = hex::decode(dna).expect("Invalid hexadecimal string");
-    let kitty_dna = KittyDNA(H256::from_slice(&dna_bytes));
-
-    let (found_kitty, output_ref): (Option<T>, OutputRef) = wallet_owned_kitty_tree
-        .iter()
-        .filter_map(|raw_data| {
-            let (output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
-            let (owner, kitty) = <(H256, T)>::decode(&mut &owner_kitty_ivec[..]).ok()?;
-            let output_ref = OutputRef::decode(&mut &output_ref_ivec[..]).ok()?;
-            println!("Owner  = {:?} Dna : {:?}  -> output_ref {:?}", owner, kitty_dna, output_ref.clone());
-
-            if dna_extractor(&kitty) == kitty_dna {
-                println!(" Name : {:?}  matched", kitty_dna);
-                Some((Some(kitty), output_ref))
-            } else {
-                println!(" Name : {:?}  NOTmatched", kitty_dna);
-                None
-            }
-        })
-        .next()
-        .unwrap_or((
-            None,
-            OutputRef {
-                tx_hash: H256::zero(),
-                index: 0,
-            },
-        )); // Use unwrap_or to handle the Option
-
-    println!("output_ref = {:?}", output_ref);
-    println!("kitty dna  {:?} found_status = {:?}", kitty_dna,found_kitty);
-
-    Ok(found_kitty.map(|kitty| (kitty, output_ref)))
-}
-
-fn get_data_from_local_db_based_on_name<T>(
-    db: &Db,
-    tree_name: &str,
-    name: String,
-    name_extractor: impl Fn(&T) -> &[u8; 4],
-) -> anyhow::Result<Option<(T, OutputRef)>>
-where
-    T: Decode + Clone + std::fmt::Debug,
-{
-    let wallet_owned_kitty_tree = db.open_tree(tree_name)?;
-
-    let mut array = [0; 4];
-    let kitty_name: &[u8; 4] = {
-        array.copy_from_slice(name.as_bytes());
-        &array
-    };
-
-    let (found_kitty, output_ref): (Option<T>, OutputRef) = wallet_owned_kitty_tree
-        .iter()
-        .filter_map(|raw_data| {
-            let (output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
-            let (owner, kitty) = <(H256, T)>::decode(&mut &owner_kitty_ivec[..]).ok()?;
-            let output_ref = OutputRef::decode(&mut &output_ref_ivec[..]).ok()?;
-            println!("Owner  = {:?} Name : {:?}  -> output_ref {:?}", owner, name, output_ref.clone());
-
-            if name_extractor(&kitty) == kitty_name {
-                println!(" Name : {:?}  matched", name);
-                Some((Some(kitty), output_ref))
-            } else {
-                println!(" Name : {:?}  NOTmatched", name);
-                None
-            }
-        })
-        .next()
-        .unwrap_or((
-            None,
-            OutputRef {
-                tx_hash: H256::zero(),
-                index: 0,
-            },
-        )); // Use unwrap_or to handle the Option
-
-    println!("output_ref = {:?}", output_ref);
-    println!("kitty Name  {} found_status = {:?}", name,found_kitty);
-
-    Ok(found_kitty.map(|kitty| (kitty, output_ref)))
-}
-
-fn get_any_owned_kitties_from_local_db<'a, T>(
-    db: &'a Db,
-    tree_name: &'a str,
-    owner_pubkey: &'a H256,
-) -> anyhow::Result<impl Iterator<Item = (H256, T, OutputRef)> + 'a>
-where
-    T: Decode + Clone + std::fmt::Debug,
-{
-    let wallet_owned_kitty_tree = db.open_tree(tree_name)?;
-
-    Ok(wallet_owned_kitty_tree.iter().filter_map(move |raw_data| {
-        let (output_ref_ivec, owner_kitty_ivec) = raw_data.ok()?;
-        let (owner, kitty) = <(H256, T)>::decode(&mut &owner_kitty_ivec[..]).ok()?;
-        let output_ref = OutputRef::decode(&mut &output_ref_ivec[..]).ok()?;
-        if owner == *owner_pubkey {
-            Some((owner, kitty, output_ref))
-        } else {
-            None
-        }
-    }))
-}
 
 fn is_name_duplicate<T>(
     db: &Db,
@@ -956,7 +969,7 @@ fn string_to_h256(s: &str) -> Result<H256, hex::FromHexError> {
     Ok(h256.into())
 }
 
-/*
+
 pub(crate) fn is_kitty_name_duplicate1(
     db: &Db,
     owner_pubkey: &H256,

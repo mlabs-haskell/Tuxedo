@@ -279,10 +279,10 @@ fn check_kitties_price_update(
 }
 
 /// Validates the conversion between regular kitties and tradable kitties.
-/// 
-/// This function ensures the consistency of the conversion process between regular kitties 
-/// and tradable kitties. When used with the `listForSale` operation, it takes tradable kitties 
-/// as input and regular kitties as output. Conversely, when used with the `delistFromSale` 
+///
+/// This function ensures the consistency of the conversion process between regular kitties
+/// and tradable kitties. When used with the `listForSale` operation, it takes tradable kitties
+/// as input and regular kitties as output. Conversely, when used with the `delistFromSale`
 /// operation, it accepts regular kitties as input and produces tradable kitties as output.
 fn validate_kitties_conversion(
     kitty_data: &[DynamicallyTypedData],

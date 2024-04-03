@@ -7,6 +7,8 @@ repository = "https://github.com/Off-Narrative-Labs/Tuxedo"
 version = "1.0.0-dev"
 
 [dependencies]
+toml = "0.5"
+
 runtime = { package = "tuxedo-template-runtime", path = "../tuxedo-template-runtime" }
 tuxedo-core = { path = "../tuxedo-core" }
 
