@@ -41,7 +41,7 @@ This guided tour shows REST apis usage and curl command used to hit the endpoint
 
 Rest apis for minting coins
 
-**end point:**: post-mint-coin
+**end point:** post-mint-coin
 
 **Amount to mint:** 6000
 
@@ -56,7 +56,7 @@ $ curl -X POST -H "Content-Type: application/json" -d '{"amount": 6000,"owner_pu
 
 Rest apis for getting all the coins stored in the web service. Basically web service stores all the coin UTXO which are synced from the genesis block to the current height.
 
-**end point:**: get-all-coins
+**end point:** get-all-coins
 
 ```sh
 $ curl -X GET -H "Content-Type: application/json" http://localhost:3000/get-all-coins
@@ -67,7 +67,7 @@ $ curl -X GET -H "Content-Type: application/json" http://localhost:3000/get-all-
 
 Rest API for getting all the coins owned by a particular user or public key  in the web service. Web service stores all the coin utxos which are synced from the genesis block to the current height. Webservice will filter the coin UTXO filtered by the supplied public jey.
 
-**end point:**:get-owned-coins
+**end point:** get-owned-coins
 
 **Public_key of owner:** Public key of owner: Note it should start without 0X. Example: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
 
@@ -80,9 +80,9 @@ $ curl -X GET -H "Content-Type: application/json" -H "owner_public_key: d2bf4b84
 
 Rest API for creating the kitty 
 
-**end point:**: post-create-kitty
+**end point:** post-create-kitty
 
-**Name of kitty to be created:**:amit
+**Name of kitty to be created:** amit
 
 **Public_key of owner of kitty:** Public key of owner: Note it should start without 0X. Example: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
 
@@ -96,9 +96,9 @@ $ curl -X POST -H "Content-Type: application/json" -d '{"name": "amit","owner_pu
 
 Rest API forgetting all the kitties stored in the local db. It returns all the kitties irrespective of onwer.
 
-**end point:**:get-all-kitty-list
+**end point:** get-all-kitty-list
 
-**end point:**:get-all-tradable-kitty-list
+**end point:** get-all-tradable-kitty-list
 
 **Returns:** All basic kitties/tradableKitties irrespective of owner.
 
@@ -113,13 +113,13 @@ $ curl -X GET -H "Content-Type: application/json"  http://localhost:3000/get-all
 
 Rest API forgetting all the owned kitties/tradable kitties  by any particular owner i.e. public key stored in the local db.
 
-**end point for kitty :**:get-owned-kitty-list
+**end point for kitty :** get-owned-kitty-list
 
-**end point for tradable kitty :**:get-owned-tradable-kitty-list
+**end point for tradable kitty :** get-owned-tradable-kitty-list
 
 **Public_key of owner of kitty:**  Public key of owner: Note it should start without 0X. Example : d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
 
-**Returns:** All the kitties/tradable owned by the user i.e public key.
+**Returns:** All the kitties/tradable-owned by the user i.e public key.
 
 ```sh
 $ curl -X GET -H "Content-Type: application/json" -H "owner_public_key: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67" http://localhost:3000/get-owned-kitty-list
@@ -131,9 +131,9 @@ $ curl -X GET -H "Content-Type: application/json" -H "owner_public_key: d2bf4b84
 
 Rest API for getting all the details of the kitty by DNA.
 
-**end point for basic kitty :**:get-kitty-by-dna
+**end point for basic kitty :** get-kitty-by-dna
 
-**end point for tradable kitty :**: get-tradable-kitty-by-dna
+**end point for tradable kitty :** get-tradable-kitty-by-dna
 
 **DNA of kitty:**  Input the DNA of kitty. Note it should start without 0X. Example 95b951b609a4434b19eb4435dc4fe3eb6f0102ff3448922d933e6edf6b14f6de
 
@@ -151,16 +151,16 @@ $ curl -X GET -H "Content-Type: application/json" -H "td-kitty-dna: 95b951b609a4
 **1. Get Transaction and Input UTXO List:**
  Retrieves the transaction and input list required for generating the Redeemer by the web DApp. This call is not routed to the blockchain but is handled entirely by the web service.
 
- **2. Perform Actual Operation i.e send the signed transaction to the blockchain via web service :**
+ **2. Perform Actual Operation i.e send the signed transaction to the blockchain via web service:**
  Sends the signed transaction to the blockchain via web service for verification and validation using the verifier and constraint checker, respectively.
 
 
 ### List kitty for sale :
-Rest API used for listing a Kitty for sale, converting it into a TradableKitty with an associated price.
+Rest API is used for listing a Kitty for sale, converting it into a TradableKitty with an associated price.
 
 **1. Get Transaction and Input UTXO List for list kitty for sale:**
 
-**end point:**:get-txn-and-inpututxolist-for-listkitty-forsale
+**end point:** get-txn-and-inpututxolist-for-listkitty-forsale
 
 **DNA of kitty:**  Input the DNA of kitty. Note it should start without 0X. Example 95b951b609a4434b19eb4435dc4fe3eb6f0102ff3448922d933e6edf6b14f6de
 
@@ -176,7 +176,7 @@ $ curl -X GET -H "Content-Type: application/json" -H "kitty-dna: 394bd079207af3e
 ```
  **2. Perform Actual Operation i.e send the signed transaction to the blockchain via web service:**
 
- **end point:**:put-listkitty-for-sale
+ **end point:** put-listkitty-for-sale
 
 **signed_transaction:**: Send the signed transaction. i.e all inputs should have redeemer to prove the ownership of spending or usage.
 
