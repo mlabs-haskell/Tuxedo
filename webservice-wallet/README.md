@@ -90,6 +90,7 @@ Rest API for creating the kitty
 
 ```sh
 $ curl -X POST -H "Content-Type: application/json" -d '{"name": "amit","owner_public_key":"d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}' http://localhost:3000/post-create-kitty
+```
 
 ### Get all kitties/Tradable kitties:
 
