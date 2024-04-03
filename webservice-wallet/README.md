@@ -1,16 +1,11 @@
 # Tuxedo web service functionality
-# Tuxedo web service functionality
 
-A REST API for communicating with Tuxedo node template.
 A REST API for communicating with Tuxedo node template.
 
 ## Overview
 
 This is a service built on Axum to support the decentralized application (DApp) built on the Tuxedo Blockchain that allows users to create, trade, breed, and manage virtual cats known as "Kitties". This README provides an overview of the available operations and REST APIs for interacting with the Cryptokitties platform.
-This is a service built on Axum to support the decentralized application (DApp) built on the Tuxedo Blockchain that allows users to create, trade, breed, and manage virtual cats known as "Kitties". This README provides an overview of the available operations and REST APIs for interacting with the Cryptokitties platform.
 
-Like many UTXO wallets, this web service synchronizes a local-to-the-wallet database of UTXOs that exist on the current best chain.Let's call this as Indexer from now on.
-The Indexer does not sync the entire blockchain state.
 Like many UTXO wallets, this web service synchronizes a local-to-the-wallet database of UTXOs that exist on the current best chain.Let's call this as Indexer from now on.
 The Indexer does not sync the entire blockchain state.
 Rather, it syncs a subset of the state that it considers "relevant".
@@ -33,31 +28,8 @@ Links :
 ## REST Documentation
 
 Webservice can be run by using 
-Currently, the Indexer syncs all relevant UTXOs i.e. Coins, KittyData, TradableKittyData, Timestamps. 
-However, the Indexer is designed so that this notion of "relevance" is generalizable.
-This design allows developers building chains with Tuxedo to extend the Indexer for their own needs.
-However, because this is a rest API-based web service, it is likely to be used by DApps which will leverage the REST API to achieve results.
-
-The overall idea behind the web service architecture: https://github.com/mlabs-haskell/TuxedoDapp/issues/35
-
-Links :
-**Sequence dig for API flow:** https://github.com/mlabs-haskell/TuxedoDapp/issues/35#issuecomment-2020211287
-
-**Algorithm to create the redeemer:** https://github.com/mlabs-haskell/TuxedoDapp/issues/35#issuecomment-2015171702
-
-**The overall procedure required from DApp**: https://github.com/mlabs-haskell/TuxedoDapp/issues/35#issuecomment-2011277263
-
-**Difference between signed transaction and unsigned transaction example:** https://github.com/mlabs-haskell/TuxedoDapp/issues/35#issuecomment-2020399526
-
-## REST Documentation
-
-Webservice can be run by using 
 
 ```sh
-$ cargo run
-```
-
-## Guided tour for REST APIS usage 
 $ cargo run
 ```
 
