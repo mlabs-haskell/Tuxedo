@@ -1,11 +1,16 @@
 # Tuxedo web service functionality
+# Tuxedo web service functionality
 
+A REST API for communicating with Tuxedo node template.
 A REST API for communicating with Tuxedo node template.
 
 ## Overview
 
 This is a service built on Axum to support the decentralized application (DApp) built on the Tuxedo Blockchain that allows users to create, trade, breed, and manage virtual cats known as "Kitties". This README provides an overview of the available operations and REST APIs for interacting with the Cryptokitties platform.
+This is a service built on Axum to support the decentralized application (DApp) built on the Tuxedo Blockchain that allows users to create, trade, breed, and manage virtual cats known as "Kitties". This README provides an overview of the available operations and REST APIs for interacting with the Cryptokitties platform.
 
+Like many UTXO wallets, this web service synchronizes a local-to-the-wallet database of UTXOs that exist on the current best chain.Let's call this as Indexer from now on.
+The Indexer does not sync the entire blockchain state.
 Like many UTXO wallets, this web service synchronizes a local-to-the-wallet database of UTXOs that exist on the current best chain.Let's call this as Indexer from now on.
 The Indexer does not sync the entire blockchain state.
 Rather, it syncs a subset of the state that it considers "relevant".
@@ -28,8 +33,31 @@ Links :
 ## REST Documentation
 
 Webservice can be run by using 
+Currently, the Indexer syncs all relevant UTXOs i.e. Coins, KittyData, TradableKittyData, Timestamps. 
+However, the Indexer is designed so that this notion of "relevance" is generalizable.
+This design allows developers building chains with Tuxedo to extend the Indexer for their own needs.
+However, because this is a rest API-based web service, it is likely to be used by DApps which will leverage the REST API to achieve results.
+
+The overall idea behind the web service architecture: https://github.com/mlabs-haskell/TuxedoDapp/issues/35
+
+Links :
+**Sequence dig for API flow:** https://github.com/mlabs-haskell/TuxedoDapp/issues/35#issuecomment-2020211287
+
+**Algorithm to create the redeemer:** https://github.com/mlabs-haskell/TuxedoDapp/issues/35#issuecomment-2015171702
+
+**The overall procedure required from DApp**: https://github.com/mlabs-haskell/TuxedoDapp/issues/35#issuecomment-2011277263
+
+**Difference between signed transaction and unsigned transaction example:** https://github.com/mlabs-haskell/TuxedoDapp/issues/35#issuecomment-2020399526
+
+## REST Documentation
+
+Webservice can be run by using 
 
 ```sh
+$ cargo run
+```
+
+## Guided tour for REST APIS usage 
 $ cargo run
 ```
 
@@ -57,8 +85,21 @@ $ curl -X POST -H "Content-Type: application/json" -d '{"amount": 6000,"owner_pu
 Rest apis for getting all the coins stored in the web service. Basically web service stores all the coin UTXO which are synced from the genesis block to the current height.
 
 **end point:**: get-all-coins
+**end point:**: get-all-coins
 
 ```sh
+$ curl -X GET -H "Content-Type: application/json" http://localhost:3000/get-all-coins
+
+```
+
+### Get all owned coins 
+
+Rest API for getting all the coins owned by a particular user or public key  in the web service. Web service stores all the coin utxos which are synced from the genesis block to the current height. Webservice will filter the coin UTXO filtered by the supplied public jey.
+
+**end point:**:get-owned-coins
+
+**Public_key of owner:** Public key of owner: Note it should start without 0X. Example: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+
 $ curl -X GET -H "Content-Type: application/json" http://localhost:3000/get-all-coins
 
 ```
@@ -142,6 +183,34 @@ Rest API for getting all the details of the kitty by DNA.
 **Returns:** The kitty whose DNA matches, else None.
 
 ```sh
+$ curl -X GET -H "Content-Type: application/json" -H "kitty-dna: 95b951b609a4434b19eb4435dc4fe3eb6f0102ff3448922d933e6edf6b14f6de" http://localhost:3000/get-kitty-by-dna
+
+$ curl -X GET -H "Content-Type: application/json" -H "td-kitty-dna: 95b951b609a4434b19eb4435dc4fe3eb6f0102ff3448922d933e6edf6b14f6de" http://localhost:3000/get-tradable-kitty-by-dna
+
+```
+## From now on all the below APIS will have two API Calls in Sequence for one operation: 
+
+**1. Get Transaction and Input UTXO List:**
+ Retrieves the transaction and input list required for generating the Redeemer by the web DApp. This call is not routed to the blockchain but is handled entirely by the web service.
+
+ **2. Perform Actual Operation i.e send the signed transaction to the blockchain via web service :**
+ Sends the signed transaction to the blockchain via web service for verification and validation using the verifier and constraint checker, respectively.
+
+
+### List kitty for sale :
+Rest API used for listing a Kitty for sale, converting it into a TradableKitty with an associated price.
+
+**1. Get Transaction and Input UTXO List for list kitty for sale:**
+
+**end point:**:get-txn-and-inpututxolist-for-listkitty-forsale
+
+**DNA of kitty:**  Input the DNA of kitty. Note it should start without 0X. Example 95b951b609a4434b19eb4435dc4fe3eb6f0102ff3448922d933e6edf6b14f6de
+
+**Public_key of owner of kitty:**  Public key of owner: Note it should start without 0X. Example : d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+
+**kitty-price:**  Price of the kitty
+
+**Returns:** Transaction for listing a kitty for sale without redeemer.
 $ curl -X GET -H "Content-Type: application/json" -H "kitty-dna: 95b951b609a4434b19eb4435dc4fe3eb6f0102ff3448922d933e6edf6b14f6de" http://localhost:3000/get-kitty-by-dna
 
 $ curl -X GET -H "Content-Type: application/json" -H "td-kitty-dna: 95b951b609a4434b19eb4435dc4fe3eb6f0102ff3448922d933e6edf6b14f6de" http://localhost:3000/get-tradable-kitty-by-dna
