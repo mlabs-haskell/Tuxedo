@@ -80,7 +80,7 @@ $ curl -X GET -H "Content-Type: application/json" -H "owner_public_key: d2bf4b84
 
 Rest API for creating the kitty 
 
-**end point:**:create-kitty
+**end point:**: post-create-kitty
 
 **Name of kitty to be created:**:amit
 
@@ -88,51 +88,61 @@ Rest API for creating the kitty
 
 **Returns:** Created kitty.
 
-
 ```sh
-$ curl -X POST -H "Content-Type: application/json" -d '{"name": "amit","owner_public_key":"d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}' http://localhost:3000/create-kitty
+$ curl -X POST -H "Content-Type: application/json" -d '{"name": "amit","owner_public_key":"d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}' http://localhost:3000/post-create-kitty
 
-```
-
-### Get all kitties:
+### Get all kitties/Tradable kitties:
 
 Rest API forgetting all the kitties stored in the local db. It returns all the kitties irrespective of onwer.
 
 **end point:**:get-all-kitty-list
 
-**Returns:** All basic kitties irrespective of owner.
+**end point:**:get-all-tradable-kitty-list
+
+**Returns:** All basic kitties/tradableKitties irrespective of owner.
 
 ```sh
 $ curl -X GET -H "Content-Type: application/json"  http://localhost:3000/get-all-kitty-list
 
+$ curl -X GET -H "Content-Type: application/json"  http://localhost:3000/get-all-tradable-kitty-list
+
 ```
 
-### Get owned kitties:
+### Get owned kitties/Tradable kitties:
 
-Rest API forgetting all the owned kitties by any particular owner i.e. public key stored in the local db.
+Rest API forgetting all the owned kitties/tradable kitties  by any particular owner i.e. public key stored in the local db.
 
-**end point:**:get-owned-kitty-list
+**end point for kitty :**:get-owned-kitty-list
+
+**end point for tradable kitty :**:get-owned-tradable-kitty-list
 
 **Public_key of owner of kitty:**  Public key of owner: Note it should start without 0X. Example : d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
 
-**Returns:** All the kitties owned by the user i.e public key.
+**Returns:** All the kitties/tradable owned by the user i.e public key.
 
 ```sh
-$ curl -X GET -H "Content-Type: application/json" -H "owner_public_key: 563b6da067f38dc194cbe41ce0b840a985dcbef92b1e5b0a6e04f35544ddfd16" http://localhost:3000/get-owned-kitty-list
+$ curl -X GET -H "Content-Type: application/json" -H "owner_public_key: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67" http://localhost:3000/get-owned-kitty-list
+
+$ curl -X GET -H "Content-Type: application/json" -H "owner_public_key: d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67" http://localhost:3000/get-owned-tradable-kitty-list
 
 ```
-### Get kitty details by DNA :
+### Get kitty/Tradable kitty details by DNA :
 
 Rest API for getting all the details of the kitty by DNA.
 
-**end point:**:get-kitty-by-dna
+**end point for basic kitty :**:get-kitty-by-dna
+
+**end point for tradable kitty :**: get-tradable-kitty-by-dna
 
 **DNA of kitty:**  Input the DNA of kitty. Note it should start without 0X. Example 95b951b609a4434b19eb4435dc4fe3eb6f0102ff3448922d933e6edf6b14f6de
 
 **Returns:** The kitty whose DNA matches, else None.
 
+
 ```sh
 $ curl -X GET -H "Content-Type: application/json" -H "kitty-dna: 95b951b609a4434b19eb4435dc4fe3eb6f0102ff3448922d933e6edf6b14f6de" http://localhost:3000/get-kitty-by-dna
+
+$ curl -X GET -H "Content-Type: application/json" -H "td-kitty-dna: 95b951b609a4434b19eb4435dc4fe3eb6f0102ff3448922d933e6edf6b14f6de" http://localhost:3000/get-tradable-kitty-by-dna
 
 ```
 ## From now on all the below APIS will have two API Calls in Sequence for one operation: 
@@ -165,18 +175,18 @@ $ curl -X GET -H "Content-Type: application/json" -H "kitty-dna: 394bd079207af3e
 ```
  **2. Perform Actual Operation i.e send the signed transaction to the blockchain via web service:**
 
- **end point:**:listkitty-for-sale
+ **end point:**:put-listkitty-for-sale
 
 **signed_transaction:**: Send the signed transaction. i.e all inputs should have redeemer to prove the ownership of spending or usage.
 
 **Returns:** Tradable kitty .
 
  ```sh
-$ curl -X POST \
+$ curl -X PUT \
   -H "Content-Type: application/json" \
   -d '{
-    "signed_transaction": {"inputs":[{"output_ref":{"tx_hash":"0x0367d974927186bdeb3f1f1c111352711d9e1106a68bde6e4cfd0e64722e4f3a","index":0},"redeemer":[198, 69, 78, 148, 249, 1, 63, 2, 217, 105, 106, 87, 179, 252, 24, 66, 129, 190, 253, 17, 31, 87, 71, 231, 100, 31, 9, 81, 93, 141, 7, 81, 155, 0, 27, 38, 87, 16, 30, 55, 164, 220, 174, 37, 207, 163, 82, 216, 155, 195, 166, 253, 67, 95, 47, 240, 74, 20, 108, 160, 185, 71, 199, 129]}],"peeks":[],"outputs":[{"payload":{"data":[1,0,2,0,0,0,0,0,0,0,57,75,208,121,32,122,243,224,177,169,177,235,29,196,13,93,86,148,189,31,217,4,213,107,150,214,250,208,3,155,31,124,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,109,105,116,100,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"type_id":[116,100,107,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}],"checker":{"TradableKitty":"ListKittiesForSale"}},"input_utxo_list":[{"payload":{"data":[1,0,2,0,0,0,0,0,0,0,57,75,208,121,32,122,243,224,177,169,177,235,29,196,13,93,86,148,189,31,217,4,213,107,150,214,250,208,3,155,31,124,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,109,105,116],"type_id":[75,105,116,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}]}' \
-  http://localhost:3000/listkitty-for-sale
+    "signed_transaction": {"inputs":[{"output_ref":{"tx_hash":"0x0652486c2774dfedfbf60bb7b07c3d44382d816ee40e866deedab59c18e95bf9","index":0},"redeemer":[220, 1, 218, 165, 148, 2, 133, 212, 30, 175, 14, 76, 51, 187, 44, 197, 113, 58, 200, 237, 68, 119, 107, 136, 229, 141, 249, 120, 213, 127, 55, 96, 2, 94, 7, 28, 157, 133, 123, 181, 178, 120, 16, 103, 95, 48, 29, 9, 121, 198, 237, 60, 1, 64, 184, 179, 241, 21, 207, 96, 18, 17, 176, 132]}],"peeks":[],"outputs":[{"payload":{"data":[0,0,2,0,0,0,0,0,0,0,227,167,195,47,34,151,3,45,4,175,132,148,100,203,249,211,0,227,38,96,123,158,213,70,253,157,221,43,111,128,60,144,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,109,105,116,100,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"type_id":[116,100,107,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}],"checker":{"TradableKitty":"ListKittiesForSale"}},"input_utxo_list":[{"payload":{"data":[0,0,2,0,0,0,0,0,0,0,227,167,195,47,34,151,3,45,4,175,132,148,100,203,249,211,0,227,38,96,123,158,213,70,253,157,221,43,111,128,60,144,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,109,105,116],"type_id":[75,105,116,116]},"verifier":{"Sr25519Signature":{"owner_pubkey":"0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67"}}}]}' \
+  http://localhost:3000/put-listkitty-for-sale
 
 ```
 
