@@ -33,6 +33,25 @@ Webservice can be run by using
 $ cargo run
 ```
 
+When we trigger the below REST APIs, we will get the below error as there will be a mismatch between the current Genesis block and the previously stored Genesis block in the local sled db.
+This usually happens when we restart the blockchain node which causes the mismatch between genesis and genesis in our local sled db.
+
+```sh
+Node's Genesis block::0xbd8b9a1d322444332727ca249a5bec1bffeb488fcd16eb5570e7af5bb76de2bf
+thread 'tokio-runtime-worker' panicked at webservice-wallet/src/service_handlers/money_handler/money_servicehandler.rs:65:38:
+Error: Node reports a different genesis block than wallet. Wallet: 0x6259f26d866c56e2034257aef53c96d28631c4f0be662863c506a54d0df9449f. Expected: 0xbd8b9a1d322444332727ca249a5bec1bffeb488fcd16eb5570e7af5bb76de2bf. Aborting all operations
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+```
+## Solution to above problem
+Execute below command in the machine where web service is running 
+```sh
+$ cd /tmp/tuxedo-wallet/
+$ rm -rf wallet_database
+
+```
+
+
 ## Guided tour for REST APIS usage 
 
 This guided tour shows REST apis usage and curl command used to hit the endpoints :
