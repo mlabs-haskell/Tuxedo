@@ -157,9 +157,15 @@ pub async fn get_td_kitty_by_dna(headers: HeaderMap) -> Json<GetTdKittyByDnaResp
 // Get all kitty List
 ////////////////////////////////////////////////////////////////////
 #[derive(Debug, Serialize, Deserialize)]
+pub struct OwnerKitty {
+    pub owner_pub_key: H256,
+    pub kitty: KittyData,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GetAllKittiesResponse {
     pub message: String,
-    pub kitty_list: Option<Vec<KittyData>>,
+    pub owner_kitty_list: Option<Vec<OwnerKitty>>,
 }
 
 pub async fn get_all_kitty_list() -> Json<GetAllKittiesResponse> {
@@ -167,33 +173,44 @@ pub async fn get_all_kitty_list() -> Json<GetAllKittiesResponse> {
 
     match crate::sync::get_all_kitties_from_local_db(&db) {
         Ok(all_kitties) => {
-            let kitty_list: Vec<KittyData> = all_kitties.map(|(_, kitty)| kitty).collect();
+            let kitty_list: Vec<OwnerKitty> = all_kitties
+                .map(|(owner, kitty_data)| OwnerKitty {
+                    owner_pub_key: owner,
+                    kitty: kitty_data,
+                })
+                .collect();
 
             if !kitty_list.is_empty() {
                 return Json(GetAllKittiesResponse {
                     message: format!("Success: Found Kitties"),
-                    kitty_list: Some(kitty_list),
+                    owner_kitty_list: Some(kitty_list),
                 });
             }
         }
         Err(_) => {
             return Json(GetAllKittiesResponse {
                 message: format!("Error: Can't find Kitties"),
-                kitty_list: None,
+                owner_kitty_list: None,
             });
         }
     }
 
     Json(GetAllKittiesResponse {
         message: format!("Error: Can't find Kitties"),
-        kitty_list: None,
+        owner_kitty_list: None,
     })
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OwnerTradableKitty {
+    pub owner_pub_key: H256,
+    pub td_kitty: TradableKittyData,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetAllTdKittiesResponse {
     pub message: String,
-    pub td_kitty_list: Option<Vec<TradableKittyData>>,
+    pub td_kitty_list: Option<Vec<OwnerTradableKitty>>,
 }
 
 pub async fn get_all_td_kitty_list() -> Json<GetAllTdKittiesResponse> {
@@ -201,8 +218,12 @@ pub async fn get_all_td_kitty_list() -> Json<GetAllTdKittiesResponse> {
 
     match crate::sync::get_all_tradable_kitties_from_local_db(&db) {
         Ok(owned_kitties) => {
-            let tradable_kitty_list: Vec<TradableKittyData> =
-                owned_kitties.map(|(_, kitty)| kitty).collect();
+            let tradable_kitty_list: Vec<OwnerTradableKitty> = owned_kitties
+                .map(|(owner, td_kitty_data)| OwnerTradableKitty {
+                    owner_pub_key: owner,
+                    td_kitty: td_kitty_data,
+                })
+                .collect();
 
             if !tradable_kitty_list.is_empty() {
                 return Json(GetAllTdKittiesResponse {
