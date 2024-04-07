@@ -10,7 +10,6 @@ use tuxedo_core::{types::OutputRef, verifier::*};
 use sp_core::H256;
 
 //mod amoeba;
-mod TradableKitties;
 mod cli;
 mod keystore;
 mod kitty;
@@ -103,7 +102,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Dispatch to proper subcommand
     match cli.command {
-        Some(Command::getBlock { block_height }) => {
+        Some(Command::GetBlock { block_height }) => {
             let node_hash = rpc::node_get_block_hash(block_height.unwrap(), &client)
                 .await?
                 .expect("node should be able to return some  hash");
@@ -217,7 +216,7 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
 
-        Some(Command::CreateKitty(args)) => kitty::create_kitty(&db, &client, args).await,
+        Some(Command::CreateKitty(args)) => kitty::create_kitty(&client, args).await,
         Some(Command::BreedKitty(args)) => kitty::breed_kitty(&db, &client, &keystore, args).await,
         Some(Command::ListKittyForSale(args)) => {
             kitty::list_kitty_for_sale(&db, &client, &keystore, args).await
@@ -265,7 +264,7 @@ async fn main() -> anyhow::Result<()> {
             println!("ShowOwnedKitties Kitty Summary");
             println!("==========================================");
             let owned_kitties = sync::get_owned_kitties_from_local_db(&db, &args)?;
-            for (owner, kitty_data, output_ref) in owned_kitties {
+            for (_owner, kitty_data, _output_ref) in owned_kitties {
                 println!(
                     "{:?} => {:?} -> ",
                     kitty::convert_kitty_name_string(&kitty_data),
@@ -276,7 +275,7 @@ async fn main() -> anyhow::Result<()> {
             println!("=-===================================================");
             let owned_tradable_kitties =
                 sync::get_owned_tradable_kitties_from_local_db(&db, &args)?;
-            for (owner, kitty_data, output_ref) in owned_tradable_kitties {
+            for (_owner, kitty_data, _output_ref) in owned_tradable_kitties {
                 println!(
                     "{:?} => {:?} -> ",
                     kitty::convert_td_kitty_name_string(&kitty_data),
