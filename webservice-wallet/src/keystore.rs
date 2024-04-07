@@ -1,3 +1,4 @@
+/*
 //! Wallet's local keystore.
 //!
 //! This is a thin wrapper around sc-cli for use in tuxedo wallets
@@ -62,7 +63,7 @@ pub fn insert_key(keystore: &LocalKeystore, seed: &str) -> anyhow::Result<()> {
 /// protected by a password.
 ///
 /// TODO there is no password support when using keys later when signing.
-/*
+
 pub fn generate_key(keystore: &LocalKeystore, password: Option<String>) -> anyhow::Result<()> {
 
     let (pair, phrase, _) = Pair::generate_with_phrase(password.as_deref());
@@ -91,7 +92,7 @@ pub async fn generate_key(password: Option<String>) -> anyhow::Result<(String, S
 pub fn get_keys(keystore: &LocalKeystore) -> anyhow::Result<impl Iterator<Item = Vec<u8>>> {
     Ok(keystore.keys(KEY_TYPE)?.into_iter())
 }
-*/
+
 pub async fn generate_key(password: Option<String>) -> anyhow::Result<(String, String)> {
     let keystore = get_local_keystore()
         .await
@@ -113,12 +114,12 @@ pub async fn generate_key(password: Option<String>) -> anyhow::Result<(String, S
     Ok((public_key_hex.to_string(), phrase))
 }
 
-/*
+
 /// Check whether a specific key is in the keystore
 pub fn has_key(keystore: &LocalKeystore, pubkey: &H256) -> bool {
     keystore.has_keys(&[(pubkey.encode(), KEY_TYPE)])
 }
-*/
+
 pub async fn get_keys() -> anyhow::Result<impl Iterator<Item = Vec<u8>>> {
     let keystore = get_local_keystore()
         .await
@@ -127,7 +128,6 @@ pub async fn get_keys() -> anyhow::Result<impl Iterator<Item = Vec<u8>>> {
     Ok(keystore.keys(KEY_TYPE)?.into_iter())
 }
 
-/*
 /// Caution. Removes key from keystore. Call with care.
 pub fn remove_key(keystore_path: &Path, pub_key: &H256) -> anyhow::Result<()> {
     // The keystore doesn't provide an API for removing keys, so we

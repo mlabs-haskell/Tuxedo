@@ -1,3 +1,4 @@
+/*
 use serde::{Deserialize, Serialize};
 
 use crate::keystore;
@@ -58,3 +59,4 @@ pub async fn debug_get_keys() -> Json<GetKeyResponse> {
         }),
     }
 }
+*/

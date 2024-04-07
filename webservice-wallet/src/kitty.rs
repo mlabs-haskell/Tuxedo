@@ -9,16 +9,16 @@ use tuxedo_core::{
     verifier::Sr25519Signature,
 };
 
-use crate::get_blockchain_node_endpoint;
-use crate::get_local_keystore;
+//use crate::get_blockchain_node_endpoint;
+//use crate::get_local_keystore;
 use anyhow::anyhow;
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use parity_scale_codec::Encode;
 use rand::distributions::Alphanumeric;
 use rand::Rng;
-use sc_keystore::LocalKeystore;
+//use sc_keystore::LocalKeystore;
 use sled::Db;
-use sp_core::sr25519::Public;
+//use sp_core::sr25519::Public;
 use sp_core::H256;
 use sp_runtime::traits::{BlakeTwo256, Hash};
 
@@ -109,37 +109,10 @@ async fn send_signed_tx(transaction: &Transaction, client: &HttpClient) -> anyho
     }
 }
 
-async fn send_tx(
+async fn send_unsigned_tx(
     transaction: &mut Transaction,
     client: &HttpClient,
-    local_keystore: Option<&LocalKeystore>,
 ) -> anyhow::Result<()> {
-    // Keep a copy of the stripped encoded transaction for signing purposes
-    let stripped_encoded_transaction = transaction.clone().encode();
-
-    let _ = match local_keystore {
-        Some(ks) => {
-            // Iterate back through the inputs, signing, and putting the signatures in place.
-            for input in &mut transaction.inputs {
-                // Fetch the output from storage
-                let utxo = fetch_storage::<OuterVerifier>(&input.output_ref, client).await?;
-
-                // Construct the proof that it can be consumed
-                let redeemer = match utxo.verifier {
-                    OuterVerifier::Sr25519Signature(Sr25519Signature { owner_pubkey }) => {
-                        let public = Public::from_h256(owner_pubkey);
-                        crate::keystore::sign_with(ks, &public, &stripped_encoded_transaction)?
-                    }
-                    OuterVerifier::UpForGrabs(_) => Vec::new(),
-                    OuterVerifier::ThresholdMultiSignature(_) => todo!(),
-                };
-                // insert the proof
-                input.redeemer = redeemer;
-            }
-        }
-        None => {}
-    };
-
     // Encode the transaction
     let spawn_hex = hex::encode(transaction.encode());
     let params = rpc_params![spawn_hex];
@@ -300,7 +273,7 @@ pub async fn create_kitty(
         checker: FreeKittyConstraintChecker::Create.into(),
     };
 
-    send_tx(&mut transaction, &client, None).await?;
+    send_unsigned_tx(&mut transaction, &client).await?;
     print_new_output(&transaction)?;
     Ok(Some(child_kitty))
 }
@@ -548,8 +521,6 @@ pub async fn create_txn_for_list_kitty(
         outputs: vec![output],
         checker: TradableKittyConstraintChecker::ListKittiesForSale.into(),
     };
-    print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
-
     Ok(Some(transaction))
 }
 
@@ -591,7 +562,6 @@ pub async fn create_txn_for_delist_kitty(
         outputs: vec![output],
         checker: TradableKittyConstraintChecker::DelistKittiesFromSale.into(),
     };
-    print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
     Ok(Some(transaction))
 }
 
@@ -640,7 +610,6 @@ pub async fn create_txn_for_kitty_name_update(
         checker: FreeKittyConstraintChecker::UpdateKittiesName.into(),
     };
 
-    print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
     Ok(Some(transaction))
 }
 
@@ -690,8 +659,6 @@ pub async fn create_txn_for_td_kitty_name_update(
         outputs: vec![output],
         checker: TradableKittyConstraintChecker::UpdateKittiesName.into(),
     };
-
-    print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
     Ok(Some(transaction))
 }
 
@@ -738,7 +705,7 @@ pub async fn create_txn_for_td_kitty_price_update(
         outputs: vec![output],
         checker: TradableKittyConstraintChecker::UpdateKittiesPrice.into(),
     };
-    print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
+
     Ok(Some(transaction))
 }
 
@@ -835,8 +802,6 @@ pub async fn create_txn_for_breed_kitty(
             .to_vec(),
         checker: FreeKittyConstraintChecker::Breed.into(),
     };
-
-    print_debug_signed_txn_with_local_ks(transaction.clone()).await?;
     Ok(Some(transaction))
 }
 
@@ -930,7 +895,7 @@ pub async fn create_txn_for_buy_kitty(
         });
     }
 
-    print_debug_signed_txn_with_local_ks(transaction.clone()).await?; // this is just for debug purpose.
+    //print_debug_signed_txn_with_local_ks(transaction.clone()).await?; // this is just for debug purpose.
     Ok(Some(transaction))
 }
 
@@ -947,6 +912,7 @@ pub async fn create_inpututxo_list(
     Ok(Some(utxo_list))
 }
 
+/*
 // Below function will not be used in real usage , it is just for test purpose
 use crate::HttpClientBuilder;
 pub async fn print_debug_signed_txn_with_local_ks(
@@ -979,3 +945,4 @@ pub async fn print_debug_signed_txn_with_local_ks(
     println!("signed_transaction {:?}", transaction.clone());
     Ok(Some(transaction.clone()))
 }
+*/

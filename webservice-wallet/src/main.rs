@@ -7,13 +7,13 @@ use runtime::OuterVerifier;
 use sled::Db;
 use std::path::PathBuf;
 //use crate::kitty::{create_kitty,list_kitty_for_sale};
-use sc_keystore::LocalKeystore;
+//use sc_keystore::LocalKeystore;
 use sp_core::H256;
 use tuxedo_core::types::OutputRef;
 
 //mod amoeba;
 
-mod keystore;
+//mod keystore;
 mod kitty;
 mod money;
 mod output_filter;
@@ -35,13 +35,14 @@ mod service_handlers {
     pub mod kitty_handler {
         pub mod kitty_service_handler;
     }
-
+/*
     pub mod key_handler {
         pub mod key_service_handler;
     }
+    */
 }
 
-use service_handlers::key_handler::key_service_handler::{debug_generate_key, debug_get_keys};
+//use service_handlers::key_handler::key_service_handler::{debug_generate_key, debug_get_keys};
 
 use service_handlers::money_handler::money_servicehandler::{
     get_all_coins, get_owned_coins, mint_coins,
@@ -154,8 +155,8 @@ async fn main() {
         .route("/get-all-coins", get(get_all_coins))
         .route("/get-owned-coins", get(get_owned_coins))
         // Below are for debug purpose only.
-        .route("/debug-generate-key", post(debug_generate_key))
-        .route("/debug-get-keys", get(debug_get_keys))
+        //.route("/debug-generate-key", post(debug_generate_key))
+       // .route("/debug-get-keys", get(debug_get_keys))
         .layer(cors);
 
     /*
@@ -194,7 +195,7 @@ async fn get_db() -> anyhow::Result<Db> {
     let db = sync::open_db(db_path, node_genesis_hash, node_genesis_block.clone())?;
     Ok(db)
 }
-
+/*
 async fn get_local_keystore() -> anyhow::Result<LocalKeystore> {
     let data_path = temp_dir();
     let keystore_path = data_path.join("keystore");
@@ -203,6 +204,7 @@ async fn get_local_keystore() -> anyhow::Result<LocalKeystore> {
     keystore::insert_development_key_for_this_session(&keystore)?;
     Ok(keystore)
 }
+*/
 
 async fn sync_db<F: Fn(&OuterVerifier) -> bool>(
     db: &Db,
