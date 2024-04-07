@@ -35,7 +35,7 @@ mod service_handlers {
     pub mod kitty_handler {
         pub mod kitty_service_handler;
     }
-/*
+    /*
     pub mod key_handler {
         pub mod key_service_handler;
     }
@@ -156,7 +156,7 @@ async fn main() {
         .route("/get-owned-coins", get(get_owned_coins))
         // Below are for debug purpose only.
         //.route("/debug-generate-key", post(debug_generate_key))
-       // .route("/debug-get-keys", get(debug_get_keys))
+        // .route("/debug-get-keys", get(debug_get_keys))
         .layer(cors);
 
     /*
