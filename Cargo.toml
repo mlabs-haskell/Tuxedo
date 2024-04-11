@@ -12,6 +12,7 @@ members = [
 	"tuxedo-parachain-core/register_validate_block",
 	"tuxedo-parachain-core",
 	"wallet",
+	"webservice-wallet",
 	"wardrobe/amoeba",
 	"wardrobe/money",
 	"wardrobe/parachain",
