@@ -521,7 +521,7 @@ pub async fn create_txn_for_list_kitty(
         outputs: vec![output],
         checker: TradableKittyConstraintChecker::ListKittiesForSale.into(),
     };
-   // print_debug_signed_txn_with_local_ks(transaction.clone()).await; // this is just for debug purpose.
+    // print_debug_signed_txn_with_local_ks(transaction.clone()).await; // this is just for debug purpose.
     Ok(Some(transaction))
 }
 
@@ -604,13 +604,13 @@ pub async fn create_txn_for_kitty_name_update(
     };
 
     // Create the Transaction
-    let transaction = Transaction {
-        inputs: inputs,
+    let mut transaction = Transaction {
+        inputs,
         peeks: Vec::new(),
         outputs: vec![output],
         checker: FreeKittyConstraintChecker::UpdateKittiesName.into(),
     };
-    print_debug_signed_txn_with_local_ks(transaction.clone()).await; // this is just for debug purpose.
+    transaction = add_redeemer_signed_with_local_ks(transaction.clone()).await?;
     Ok(Some(transaction))
 }
 
@@ -654,13 +654,13 @@ pub async fn create_txn_for_td_kitty_name_update(
     };
 
     // Create the Transaction
-    let transaction = Transaction {
-        inputs: inputs,
+    let mut transaction = Transaction {
+        inputs,
         peeks: Vec::new(),
         outputs: vec![output],
         checker: TradableKittyConstraintChecker::UpdateKittiesName.into(),
     };
-    //(transaction.clone()).await; // this is just for debug purpose.
+    transaction = add_redeemer_signed_with_local_ks(transaction.clone()).await?;
     Ok(Some(transaction))
 }
 
@@ -701,13 +701,13 @@ pub async fn create_txn_for_td_kitty_price_update(
     };
 
     // Create the Transaction
-    let transaction = Transaction {
-        inputs: inputs,
+    let mut transaction = Transaction {
+        inputs,
         peeks: Vec::new(),
         outputs: vec![output],
         checker: TradableKittyConstraintChecker::UpdateKittiesPrice.into(),
     };
-
+    transaction = add_redeemer_signed_with_local_ks(transaction.clone()).await?;
     Ok(Some(transaction))
 }
 
@@ -793,8 +793,8 @@ pub async fn create_txn_for_breed_kitty(
     let new_family = Box::new(vec![output_mom, output_dad, output_child]);
 
     // Create the Transaction
-    let transaction = Transaction {
-        inputs: inputs,
+    let mut transaction = Transaction {
+        inputs,
         peeks: Vec::new(),
         outputs: (&[
             new_family[0].clone(),
@@ -804,6 +804,7 @@ pub async fn create_txn_for_breed_kitty(
             .to_vec(),
         checker: FreeKittyConstraintChecker::Breed.into(),
     };
+    transaction = add_redeemer_signed_with_local_ks(transaction.clone()).await?;
     Ok(Some(transaction))
 }
 
@@ -845,7 +846,7 @@ pub async fn create_txn_for_buy_kitty(
     };
 
     let mut transaction = Transaction {
-        inputs: inputs,
+        inputs,
         peeks: Vec::new(),
         outputs: vec![output],
         checker: TradableKittyConstraintChecker::Buy.into(),
@@ -914,14 +915,11 @@ pub async fn create_inpututxo_list(
     Ok(Some(utxo_list))
 }
 
-// Below function will not be used in real usage , it is just for test purpose
+// Below function is used to demo the signing of transaction with local keystore.
 use crate::HttpClientBuilder;
-pub async fn print_debug_signed_txn_with_local_ks(
+pub async fn add_redeemer_signed_with_local_ks(
     mut transaction: Transaction,
-)
-{
-    // Need to filter based on name and publick key.
-
+) -> anyhow::Result<Transaction> {
     let stripped_encoded_transaction = transaction.clone().encode();
     let local_keystore = get_local_keystore().await.expect("Key store error");
     let client_result = HttpClientBuilder::default()
@@ -944,6 +942,5 @@ pub async fn print_debug_signed_txn_with_local_ks(
         // insert the proof
         input.redeemer = redeemer.expect("redeemer can be created");
     }
-    println!("signed_transaction {:?}", transaction.clone());
-    //Ok(Some(transaction.clone()))
+    Ok(transaction.clone())
 }
