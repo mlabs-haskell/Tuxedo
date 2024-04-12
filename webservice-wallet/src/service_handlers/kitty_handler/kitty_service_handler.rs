@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use jsonrpsee::http_client::HttpClientBuilder;
 
 use crate::kitty;
+use crate::kitty::TransactionResponse;
 use sp_core::H256;
 
 /// The default RPC endpoint for the wallet to connect to
@@ -364,6 +365,7 @@ pub struct GetTxnAndUtxoListForList {
     pub message: String,
     pub transaction: Option<Transaction>,
     pub input_utxo_list: Option<Vec<Output<OuterVerifier>>>,
+    pub encoded: Vec<u8>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -372,11 +374,12 @@ pub struct SignedTxnRequest {
 }
 
 async fn create_response(
-    txn: Option<Transaction>,
+    res: Option<TransactionResponse>,
     message: String,
 ) -> Json<GetTxnAndUtxoListForList> {
-    match txn {
-        Some(txn) => {
+    match res {
+        Some(res) => {
+            let txn = res.transaction;
             let client_result = HttpClientBuilder::default()
                 .build(get_blockchain_node_endpoint().expect("Failed to get the node end point"));
             let client = match client_result {
@@ -386,6 +389,7 @@ async fn create_response(
                         message: format!("Error creating HTTP client: {:?}", err),
                         transaction: None,
                         input_utxo_list: None,
+                        encoded: vec![],
                     });
                 }
             };
@@ -394,12 +398,14 @@ async fn create_response(
                 message,
                 transaction: Some(txn),
                 input_utxo_list: utxo_list.expect("Cant crate the Utxo List"),
+                encoded: res.encoded,
             })
         }
         None => Json(GetTxnAndUtxoListForList {
             message,
             transaction: None,
             input_utxo_list: None,
+            encoded: vec![],
         }),
     }
 }
@@ -834,8 +840,9 @@ pub async fn get_txn_and_inpututxolist_for_td_kitty_price_update(
     )
     .await
     {
-        Ok(Some(txn)) => {
+        Ok(Some(res)) => {
             // Convert created_kitty to JSON and include it in the response
+            let txn = res.transaction;
             let client_result = HttpClientBuilder::default()
                 .build(get_blockchain_node_endpoint().expect("Failed to get the node end point"));
             let client = match client_result {
@@ -845,6 +852,7 @@ pub async fn get_txn_and_inpututxolist_for_td_kitty_price_update(
                         message: format!("Error creating HTTP client: {:?}", err),
                         transaction: None,
                         input_utxo_list: None,
+                        encoded: vec![],
                     });
                 }
             };
@@ -854,6 +862,7 @@ pub async fn get_txn_and_inpututxolist_for_td_kitty_price_update(
                 message: format!("Kitty name update txn created successfully"),
                 transaction: Some(txn),
                 input_utxo_list: utxo_list.expect("Cant crate the Utxo List"),
+                encoded: res.encoded,
             };
             Json(response)
         }
@@ -861,11 +870,13 @@ pub async fn get_txn_and_inpututxolist_for_td_kitty_price_update(
             message: format!("Kitty name update txn creation failed: No input returned"),
             transaction: None,
             input_utxo_list: None,
+            encoded: vec![],
         }),
         Err(err) => Json(GetTxnAndUtxoListForList {
             message: format!("Error!! Kitty name update txn creation: {:?}", err),
             transaction: None,
             input_utxo_list: None,
+            encoded: vec![],
         }),
     }
 }
@@ -961,8 +972,9 @@ pub async fn get_txn_and_inpututxolist_for_breed_kitty(
     )
     .await
     {
-        Ok(Some(txn)) => {
+        Ok(Some(res)) => {
             // Convert created_kitty to JSON and include it in the response
+            let txn = res.transaction;
             let client_result = HttpClientBuilder::default()
                 .build(get_blockchain_node_endpoint().expect("Failed to get the node end point"));
             let client = match client_result {
@@ -972,6 +984,7 @@ pub async fn get_txn_and_inpututxolist_for_breed_kitty(
                         message: format!("Error creating HTTP client: {:?}", err),
                         transaction: None,
                         input_utxo_list: None,
+                        encoded: vec![],
                     });
                 }
             };
@@ -981,6 +994,7 @@ pub async fn get_txn_and_inpututxolist_for_breed_kitty(
                 message: format!("Kitty name update txn created successfully"),
                 transaction: Some(txn),
                 input_utxo_list: utxo_list.expect("Cant crate the Utxo List"),
+                encoded: res.encoded,
             };
             Json(response)
         }
@@ -988,11 +1002,13 @@ pub async fn get_txn_and_inpututxolist_for_breed_kitty(
             message: format!("Kitty name update txn creation failed: No input returned"),
             transaction: None,
             input_utxo_list: None,
+            encoded: vec![],
         }),
         Err(err) => Json(GetTxnAndUtxoListForList {
             message: format!("Error!! Kitty name update txn creation: {:?}", err),
             transaction: None,
             input_utxo_list: None,
+            encoded: vec![],
         }),
     }
 }
@@ -1127,6 +1143,7 @@ pub async fn get_txn_and_inpututxolist_for_buy_kitty(
                 message: format!("Error creating HTTP client: {:?}", err),
                 transaction: None,
                 input_utxo_list: None,
+                encoded: vec![],
             });
         }
     };
@@ -1142,14 +1159,16 @@ pub async fn get_txn_and_inpututxolist_for_buy_kitty(
     )
     .await
     {
-        Ok(Some(txn)) => {
+        Ok(Some(res)) => {
             // Convert created_kitty to JSON and include it in the response
+            let txn = res.transaction;
             let utxo_list = kitty::create_inpututxo_list(&mut txn.clone(), &client).await;
 
             let response = GetTxnAndUtxoListForList {
                 message: format!("Kitty name update txn created successfully"),
                 transaction: Some(txn),
                 input_utxo_list: utxo_list.expect("Cant crate the Utxo List"),
+                encoded: res.encoded,
             };
             Json(response)
         }
@@ -1157,11 +1176,13 @@ pub async fn get_txn_and_inpututxolist_for_buy_kitty(
             message: format!("Kitty name update txn creation failed: No input returned"),
             transaction: None,
             input_utxo_list: None,
+            encoded: vec![],
         }),
         Err(err) => Json(GetTxnAndUtxoListForList {
             message: format!("Error!! Kitty name update txn creation: {:?}", err),
             transaction: None,
             input_utxo_list: None,
+            encoded: vec![],
         }),
     }
 }

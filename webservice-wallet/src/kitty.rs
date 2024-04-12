@@ -31,6 +31,11 @@ use runtime::{
     OuterVerifier, Transaction,
 };
 
+pub struct TransactionResponse {
+    pub transaction: Transaction,
+    pub encoded: Vec<u8>,
+}
+
 use parity_scale_codec::Decode;
 
 pub fn generate_random_string(length: usize) -> String {
@@ -481,7 +486,7 @@ pub async fn create_txn_for_list_kitty(
     dna: &str,
     price: u128,
     public_key: H256,
-) -> anyhow::Result<Option<Transaction>> {
+) -> anyhow::Result<Option<TransactionResponse>> {
     // Need to filter based on name and publick key.
     // Ideally need to filter based on DNA.
 
@@ -503,7 +508,7 @@ pub async fn create_txn_for_list_kitty(
 
     let tradable_kitty = TradableKittyData {
         kitty_basic_data: found_kitty.unwrap().0,
-        price: price,
+        price,
     };
 
     // Create the Output
@@ -515,21 +520,25 @@ pub async fn create_txn_for_list_kitty(
     };
 
     // Create the Transaction
-    let transaction = Transaction {
-        inputs: inputs,
+    let mut transaction = Transaction {
+        inputs,
         peeks: Vec::new(),
         outputs: vec![output],
         checker: TradableKittyConstraintChecker::ListKittiesForSale.into(),
     };
-    // print_debug_signed_txn_with_local_ks(transaction.clone()).await; // this is just for debug purpose.
-    Ok(Some(transaction))
+    transaction = add_redeemer_signed_with_local_ks(transaction.clone()).await?;
+    let response = TransactionResponse {
+        transaction: transaction.clone(),
+        encoded: transaction.encode(),
+    };
+    Ok(Some(response))
 }
 
 pub async fn create_txn_for_delist_kitty(
     db: &Db,
     dna: &str,
     public_key: H256,
-) -> anyhow::Result<Option<Transaction>> {
+) -> anyhow::Result<Option<TransactionResponse>> {
     // Need to filter based on name and publick key.
 
     let found_kitty: Option<(TradableKittyData, OutputRef)>;
@@ -557,13 +566,18 @@ pub async fn create_txn_for_delist_kitty(
     };
 
     // Create the Transaction
-    let transaction = Transaction {
-        inputs: inputs,
+    let mut transaction = Transaction {
+        inputs,
         peeks: Vec::new(),
         outputs: vec![output],
         checker: TradableKittyConstraintChecker::DelistKittiesFromSale.into(),
     };
-    Ok(Some(transaction))
+    transaction = add_redeemer_signed_with_local_ks(transaction.clone()).await?;
+    let response = TransactionResponse {
+        transaction: transaction.clone(),
+        encoded: transaction.encode(),
+    };
+    Ok(Some(response))
 }
 
 pub async fn create_txn_for_kitty_name_update(
@@ -571,7 +585,7 @@ pub async fn create_txn_for_kitty_name_update(
     dna: &str,
     new_name: String,
     public_key: H256,
-) -> anyhow::Result<Option<Transaction>> {
+) -> anyhow::Result<Option<TransactionResponse>> {
     let found_kitty: Option<(KittyData, OutputRef)>;
 
     if let Ok(Some((kitty_info, out_ref))) =
@@ -611,7 +625,11 @@ pub async fn create_txn_for_kitty_name_update(
         checker: FreeKittyConstraintChecker::UpdateKittiesName.into(),
     };
     transaction = add_redeemer_signed_with_local_ks(transaction.clone()).await?;
-    Ok(Some(transaction))
+    let response = TransactionResponse {
+        transaction: transaction.clone(),
+        encoded: transaction.encode(),
+    };
+    Ok(Some(response))
 }
 
 pub async fn create_txn_for_td_kitty_name_update(
@@ -619,7 +637,7 @@ pub async fn create_txn_for_td_kitty_name_update(
     dna: &str,
     new_name: String,
     public_key: H256,
-) -> anyhow::Result<Option<Transaction>> {
+) -> anyhow::Result<Option<TransactionResponse>> {
     // Need to filter based on name and publick key.
     // Ideally need to filter based on DNA.
     let found_kitty: Option<(TradableKittyData, OutputRef)>;
@@ -661,7 +679,11 @@ pub async fn create_txn_for_td_kitty_name_update(
         checker: TradableKittyConstraintChecker::UpdateKittiesName.into(),
     };
     transaction = add_redeemer_signed_with_local_ks(transaction.clone()).await?;
-    Ok(Some(transaction))
+    let response = TransactionResponse {
+        transaction: transaction.clone(),
+        encoded: transaction.encode(),
+    };
+    Ok(Some(response))
 }
 
 pub async fn create_txn_for_td_kitty_price_update(
@@ -669,7 +691,7 @@ pub async fn create_txn_for_td_kitty_price_update(
     dna: &str,
     new_price: u128,
     public_key: H256,
-) -> anyhow::Result<Option<Transaction>> {
+) -> anyhow::Result<Option<TransactionResponse>> {
     // Need to filter based on name and publick key.
     // Ideally need to filter based on DNA.
     let found_kitty: Option<(TradableKittyData, OutputRef)>;
@@ -708,7 +730,11 @@ pub async fn create_txn_for_td_kitty_price_update(
         checker: TradableKittyConstraintChecker::UpdateKittiesPrice.into(),
     };
     transaction = add_redeemer_signed_with_local_ks(transaction.clone()).await?;
-    Ok(Some(transaction))
+    let response = TransactionResponse {
+        transaction: transaction.clone(),
+        encoded: transaction.encode(),
+    };
+    Ok(Some(response))
 }
 
 pub async fn create_txn_for_breed_kitty(
@@ -717,7 +743,7 @@ pub async fn create_txn_for_breed_kitty(
     dad_dna: &str,
     child_name: String,
     owner_public_key: H256,
-) -> anyhow::Result<Option<Transaction>> {
+) -> anyhow::Result<Option<TransactionResponse>> {
     // Need to filter based on name and publick key.
     // Ideally need to filter based on DNA.
     let mom_kitty: Option<(KittyData, OutputRef)>;
@@ -805,7 +831,11 @@ pub async fn create_txn_for_breed_kitty(
         checker: FreeKittyConstraintChecker::Breed.into(),
     };
     transaction = add_redeemer_signed_with_local_ks(transaction.clone()).await?;
-    Ok(Some(transaction))
+    let response = TransactionResponse {
+        transaction: transaction.clone(),
+        encoded: transaction.encode(),
+    };
+    Ok(Some(response))
 }
 
 pub async fn create_txn_for_buy_kitty(
@@ -816,7 +846,7 @@ pub async fn create_txn_for_buy_kitty(
     seller_public_key: H256,
     output_amount: &Vec<u128>,
     client: &HttpClient,
-) -> anyhow::Result<Option<Transaction>> {
+) -> anyhow::Result<Option<TransactionResponse>> {
     // Need to filter based on name and publick key.
     // Ideally need to filter based on DNA.
     let found_kitty: Option<(TradableKittyData, OutputRef)>;
@@ -899,7 +929,11 @@ pub async fn create_txn_for_buy_kitty(
     }
 
     //(transaction.clone()).await; // this is just for debug purpose.
-    Ok(Some(transaction))
+    let response = TransactionResponse {
+        transaction: transaction.clone(),
+        encoded: transaction.encode(),
+    };
+    Ok(Some(response))
 }
 
 pub async fn create_inpututxo_list(
