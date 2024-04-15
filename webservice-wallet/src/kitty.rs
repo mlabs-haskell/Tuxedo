@@ -928,7 +928,7 @@ pub async fn create_txn_for_buy_kitty(
         });
     }
 
-    //(transaction.clone()).await; // this is just for debug purpose.
+    transaction = add_redeemer_signed_with_local_ks(transaction.clone()).await?;
     let response = TransactionResponse {
         transaction: transaction.clone(),
         encoded: transaction.encode(),
