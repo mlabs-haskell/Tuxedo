@@ -1,19 +1,23 @@
 use serde::{Deserialize, Serialize};
 
 use jsonrpsee::http_client::HttpClientBuilder;
+use sp_runtime::helpers_128bit::gcd;
 
 use crate::kitty;
 use crate::kitty::TransactionResponse;
+use sled::Db;
 use sp_core::H256;
 
 /// The default RPC endpoint for the wallet to connect to
 //const DEFAULT_ENDPOINT: &str = "http://localhost:9944";
 use crate::get_blockchain_node_endpoint;
-use crate::sync_and_get_db;
+use crate::get_db;
 //use crate::original_get_db;
 use crate::convert_output_ref_from_string;
 
-use axum::{http::HeaderMap, Json};
+use axum::{http::HeaderMap, Extension, Json};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 use std::convert::Infallible;
 
@@ -88,14 +92,17 @@ pub struct GetKittyByDnaResponse {
     pub kitty: Option<KittyData>,
 }
 
-pub async fn get_kitty_by_dna(headers: HeaderMap) -> Json<GetKittyByDnaResponse> {
+pub async fn get_kitty_by_dna(
+    headers: HeaderMap,
+    Extension(db): Extension<Arc<Mutex<Db>>>,
+) -> Json<GetKittyByDnaResponse> {
     println!("Headers map = {:?}", headers);
     let dna_header = headers
         .get("kitty-dna")
         .expect("Kitty DNA header is missing")
         .to_str()
         .expect("Failed to parse Kitty DNA header");
-    let db = sync_and_get_db().await.expect("Error");
+    let db = db.lock().await;
     let mut found_kitty: Option<(KittyData, OutputRef)> = None;
 
     if let Ok(Some((kitty_info, out_ref))) =
@@ -124,14 +131,17 @@ pub struct GetTdKittyByDnaResponse {
     pub td_kitty: Option<TradableKittyData>,
 }
 
-pub async fn get_td_kitty_by_dna(headers: HeaderMap) -> Json<GetTdKittyByDnaResponse> {
+pub async fn get_td_kitty_by_dna(
+    headers: HeaderMap,
+    Extension(db): Extension<Arc<Mutex<Db>>>,
+) -> Json<GetTdKittyByDnaResponse> {
     println!("Headers map = in td kitty {:?}", headers);
     let dna_header = headers
         .get("td-kitty-dna")
         .expect("Td-Kitty DNA header is missing")
         .to_str()
         .expect("Failed to parse Td-Kitty DNA header");
-    let db = sync_and_get_db().await.expect("Error");
+    let db = db.lock().await;
     let mut found_td_kitty: Option<(TradableKittyData, OutputRef)> = None;
 
     if let Ok(Some((td_kitty_info, out_ref))) =
@@ -169,8 +179,10 @@ pub struct GetAllKittiesResponse {
     pub owner_kitty_list: Option<Vec<OwnerKitty>>,
 }
 
-pub async fn get_all_kitty_list() -> Json<GetAllKittiesResponse> {
-    let db = sync_and_get_db().await.expect("Error");
+pub async fn get_all_kitty_list(
+    Extension(db): Extension<Arc<Mutex<Db>>>,
+) -> Json<GetAllKittiesResponse> {
+    let db = db.lock().await;
 
     match crate::sync::get_all_kitties_from_local_db(&db) {
         Ok(all_kitties) => {
@@ -214,8 +226,10 @@ pub struct GetAllTdKittiesResponse {
     pub td_kitty_list: Option<Vec<OwnerTradableKitty>>,
 }
 
-pub async fn get_all_td_kitty_list() -> Json<GetAllTdKittiesResponse> {
-    let db = sync_and_get_db().await.expect("Error");
+pub async fn get_all_td_kitty_list(
+    Extension(db): Extension<Arc<Mutex<Db>>>,
+) -> Json<GetAllTdKittiesResponse> {
+    let db = db.lock().await;
 
     match crate::sync::get_all_tradable_kitties_from_local_db(&db) {
         Ok(owned_kitties) => {
@@ -256,7 +270,10 @@ pub struct GetOwnedKittiesResponse {
     pub kitty_list: Option<Vec<KittyData>>,
 }
 use std::str::FromStr;
-pub async fn get_owned_kitty_list(headers: HeaderMap) -> Json<GetOwnedKittiesResponse> {
+pub async fn get_owned_kitty_list(
+    headers: HeaderMap,
+    Extension(db): Extension<Arc<Mutex<Db>>>,
+) -> Json<GetOwnedKittiesResponse> {
     let public_key_header = headers
         .get("owner_public_key")
         .expect("public_key_header is missing");
@@ -277,7 +294,8 @@ pub async fn get_owned_kitty_list(headers: HeaderMap) -> Json<GetOwnedKittiesRes
     };
 
     //let db = original_get_db().await.expect("Error");
-    let db = sync_and_get_db().await.expect("Error");
+    // let db = get_db().await.expect("Error");
+    let db = db.lock().await;
 
     match crate::sync::get_owned_kitties_from_local_db(&db, &public_key_h256) {
         Ok(owned_kitties) => {
@@ -310,7 +328,10 @@ pub struct GetOwnedTdKittiesResponse {
     pub td_kitty_list: Option<Vec<TradableKittyData>>,
 }
 
-pub async fn get_owned_td_kitty_list(headers: HeaderMap) -> Json<GetOwnedTdKittiesResponse> {
+pub async fn get_owned_td_kitty_list(
+    headers: HeaderMap,
+    Extension(db): Extension<Arc<Mutex<Db>>>,
+) -> Json<GetOwnedTdKittiesResponse> {
     let public_key_header = headers
         .get("owner_public_key")
         .expect("public_key_header is missing");
@@ -328,7 +349,7 @@ pub async fn get_owned_td_kitty_list(headers: HeaderMap) -> Json<GetOwnedTdKitti
             });
         }
     };
-    let db = sync_and_get_db().await.expect("Error");
+    let db = db.lock().await;
 
     match crate::sync::get_owned_tradable_kitties_from_local_db(&db, &public_key_h256) {
         Ok(owned_kitties) => {
@@ -416,6 +437,7 @@ async fn create_response(
 
 pub async fn get_txn_and_inpututxolist_for_list_kitty_for_sale(
     headers: HeaderMap,
+    Extension(db): Extension<Arc<Mutex<Db>>>,
 ) -> Json<GetTxnAndUtxoListForList> {
     println!("Headers map = {:?}", headers);
 
@@ -444,7 +466,7 @@ pub async fn get_txn_and_inpututxolist_for_list_kitty_for_sale(
     );
 
     //let db = original_get_db().await.expect("Error");
-    let db = sync_and_get_db().await.expect("Error");
+    let db = db.lock().await;
 
     match kitty::create_txn_for_list_kitty(&db, dna_header, price_number, public_key_h256.unwrap())
         .await
@@ -515,6 +537,7 @@ pub async fn list_kitty_for_sale(
 
 pub async fn get_txn_and_inpututxolist_for_delist_kitty_from_sale(
     headers: HeaderMap,
+    Extension(db): Extension<Arc<Mutex<Db>>>,
 ) -> Json<GetTxnAndUtxoListForList> {
     // create_tx_for_list_kitty
     println!("Headers map = {:?}", headers);
@@ -535,7 +558,7 @@ pub async fn get_txn_and_inpututxolist_for_delist_kitty_from_sale(
     );
 
     //let db = original_get_db().await.expect("Error");
-    let db = sync_and_get_db().await.expect("Error");
+    let db = db.lock().await;
 
     match kitty::create_txn_for_delist_kitty(&db, dna_header, public_key_h256.unwrap()).await {
         Ok(txn) => {
@@ -603,6 +626,7 @@ pub async fn delist_kitty_from_sale(
 
 pub async fn get_txn_and_inpututxolist_for_kitty_name_update(
     headers: HeaderMap,
+    Extension(db): Extension<Arc<Mutex<Db>>>,
 ) -> Json<GetTxnAndUtxoListForList> {
     println!("Headers map = {:?}", headers);
     let dna_header = headers
@@ -626,7 +650,7 @@ pub async fn get_txn_and_inpututxolist_for_kitty_name_update(
     );
 
     //let db = original_get_db().await.expect("Error");
-    let db = sync_and_get_db().await.expect("Error");
+    let db = db.lock().await;
 
     match kitty::create_txn_for_kitty_name_update(
         &db,
@@ -703,6 +727,7 @@ pub async fn update_kitty_name(
 
 pub async fn get_txn_and_inpututxolist_for_td_kitty_name_update(
     headers: HeaderMap,
+    Extension(db): Extension<Arc<Mutex<Db>>>,
 ) -> Json<GetTxnAndUtxoListForList> {
     println!("Headers map = {:?}", headers);
     let dna_header = headers
@@ -711,7 +736,7 @@ pub async fn get_txn_and_inpututxolist_for_td_kitty_name_update(
         .to_str()
         .expect("Failed to parse Kitty DNA header");
     //let db = original_get_db().await.expect("Error");
-    let db = sync_and_get_db().await.expect("Error");
+    let db = db.lock().await;
 
     let new_name_header = headers
         .get("kitty-new-name")
@@ -802,6 +827,7 @@ pub async fn update_td_kitty_name(
 
 pub async fn get_txn_and_inpututxolist_for_td_kitty_price_update(
     headers: HeaderMap,
+    Extension(db): Extension<Arc<Mutex<Db>>>,
 ) -> Json<GetTxnAndUtxoListForList> {
     println!("Headers map = {:?}", headers);
     let dna_header = headers
@@ -820,7 +846,7 @@ pub async fn get_txn_and_inpututxolist_for_td_kitty_price_update(
         .expect("Failed to parse priceheader to u128");
 
     //let db = sync_and_get_db().await.expect("Error");
-    let db = sync_and_get_db().await.expect("Error");
+    let db = db.lock().await;
 
     let public_key_header = headers
         .get("owner_public_key")
@@ -929,6 +955,7 @@ pub async fn update_td_kitty_price(
 
 pub async fn get_txn_and_inpututxolist_for_breed_kitty(
     headers: HeaderMap,
+    Extension(db): Extension<Arc<Mutex<Db>>>,
 ) -> Json<GetTxnAndUtxoListForList> {
     println!("Headers map = {:?}", headers);
     let mom_dna = headers
@@ -948,7 +975,7 @@ pub async fn get_txn_and_inpututxolist_for_breed_kitty(
         .expect("Child Kitty name is missing");
 
     //let db = sync_and_get_db().await.expect("Error");
-    let db = sync_and_get_db().await.expect("Error");
+    let db = db.lock().await;
 
     let public_key_header = headers
         .get("owner_public_key")
@@ -1071,6 +1098,7 @@ pub async fn breed_kitty(
 
 pub async fn get_txn_and_inpututxolist_for_buy_kitty(
     headers: HeaderMap,
+    Extension(db): Extension<Arc<Mutex<Db>>>,
 ) -> Json<GetTxnAndUtxoListForList> {
     println!("Headers map = {:?}", headers);
 
@@ -1111,7 +1139,7 @@ pub async fn get_txn_and_inpututxolist_for_buy_kitty(
         .to_str()
         .expect("Failed to parse Kitty DNA header");
 
-    let db = sync_and_get_db().await.expect("Error");
+    let db = db.lock().await;
 
     let buyer_public_key = headers
         .get("buyer_public_key")

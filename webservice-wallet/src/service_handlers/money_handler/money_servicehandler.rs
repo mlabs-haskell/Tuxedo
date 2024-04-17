@@ -10,7 +10,10 @@ use crate::sync_and_get_db;
 
 /// The default RPC endpoint for the wallet to connect to
 //const DEFAULT_ENDPOINT: &str = "http://localhost:9944";
-use axum::{http::HeaderMap, Json};
+use axum::{http::HeaderMap, Extension, Json};
+use sled::Db;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[derive(Debug, Deserialize)]
 pub struct MintCoinsRequest {
@@ -60,9 +63,9 @@ pub struct GetCoinsResponse {
     pub coins: Option<Vec<(String, H256, u128)>>,
 }
 
-pub async fn get_all_coins() -> Json<GetCoinsResponse> {
+pub async fn get_all_coins(Extension(db): Extension<Arc<Mutex<Db>>>) -> Json<GetCoinsResponse> {
     //let db = original_get_db().await.expect("Error");
-    let db = sync_and_get_db().await.expect("Error");
+    let db = db.lock().await;
 
     match crate::sync::get_all_coins(&db) {
         Ok(all_coins) => {
@@ -88,7 +91,10 @@ pub async fn get_all_coins() -> Json<GetCoinsResponse> {
 }
 
 use std::str::FromStr;
-pub async fn get_owned_coins(headers: HeaderMap) -> Json<GetCoinsResponse> {
+pub async fn get_owned_coins(
+    headers: HeaderMap,
+    Extension(db): Extension<Arc<Mutex<Db>>>,
+) -> Json<GetCoinsResponse> {
     let public_key_header = headers
         .get("owner_public_key")
         .expect("public_key_header is missing");
@@ -99,7 +105,7 @@ pub async fn get_owned_coins(headers: HeaderMap) -> Json<GetCoinsResponse> {
     );
 
     //let db = original_get_db().await.expect("Error");
-    let db = sync_and_get_db().await.expect("Error");
+    let db = db.lock().await;
 
     match crate::sync::get_owned_coins(&db, &public_key_h256.unwrap()) {
         Ok(all_coins) => {

@@ -9,8 +9,10 @@ use std::path::PathBuf;
 //use crate::kitty::{create_kitty,list_kitty_for_sale};
 use sc_keystore::LocalKeystore;
 use sp_core::H256;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use tokio::time::{interval, Duration};
 use tuxedo_core::types::OutputRef;
-
 //mod amoeba;
 
 mod keystore;
@@ -65,7 +67,7 @@ use service_handlers::block_handler::block_service_handler::get_block;
 //const DEFAULT_ENDPOINT: &str = "http://localhost:9944";
 use axum::{
     routing::{get, patch, post, put},
-    Router,
+    Extension, Router,
 };
 use std::net::SocketAddr;
 use std::{fs, io};
@@ -102,6 +104,7 @@ async fn main() {
     println!("Blockchain node Endpoint: {}", block_chain_node_endpoint);
     println!("Socket Address: {}", socket_address);
     let cors = CorsLayer::new().allow_origin(Any);
+    let db = Arc::new(Mutex::new(get_db().await.expect("Failed to init db")));
 
     let app = Router::new()
         .route("/get-block", get(get_block))
@@ -156,7 +159,22 @@ async fn main() {
         // Below are for debug purpose only.
         .route("/debug-generate-key", post(debug_generate_key))
         .route("/debug-get-keys", get(debug_get_keys))
-        .layer(cors);
+        .layer(cors)
+        .layer(Extension(db.clone()));
+
+    let periodic_sync_interval = Duration::from_secs(60);
+    tokio::spawn(async move {
+        let mut interval_timer = interval(periodic_sync_interval);
+        loop {
+            interval_timer.tick().await;
+            match sync_and_get_db(db.clone()).await {
+                Ok(_) => {}
+                Err(e) => {
+                    eprintln!("Error syncing db: {:?}", e);
+                }
+            }
+        }
+    });
 
     axum::Server::bind(&socket_address)
         .serve(app.into_make_service())
@@ -196,7 +214,6 @@ async fn get_local_keystore() -> anyhow::Result<LocalKeystore> {
     Ok(keystore)
 }
 
-
 async fn sync_db<F: Fn(&OuterVerifier) -> bool>(
     db: &Db,
     client: &HttpClient,
@@ -226,15 +243,14 @@ async fn sync_db<F: Fn(&OuterVerifier) -> bool>(
     Ok(())
 }
 
-async fn sync_and_get_db() -> anyhow::Result<Db> {
-    let db = get_db().await?;
-//    let keystore = get_local_keystore().await?;
+async fn sync_and_get_db(db: Arc<Mutex<Db>>) -> anyhow::Result<()> {
     let client = HttpClientBuilder::default()
         .build(get_blockchain_node_endpoint().expect("Failed to get the node end point"))?;
 
     let keystore_filter = |_v: &OuterVerifier| -> bool { true };
-    sync_db(&db, &client, &keystore_filter).await?;
-    Ok(db)
+    let db_guard = db.lock().await;
+    sync_db(&*db_guard, &client, &keystore_filter).await?;
+    Ok(())
 }
 
 /// Parse a string into an H256 that represents a public key
