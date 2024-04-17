@@ -162,7 +162,7 @@ async fn main() {
         .layer(cors)
         .layer(Extension(db.clone()));
 
-    let periodic_sync_interval = Duration::from_secs(60);
+    let periodic_sync_interval = Duration::from_secs(10);
     tokio::spawn(async move {
         let mut interval_timer = interval(periodic_sync_interval);
         loop {

@@ -1,12 +1,9 @@
 use serde::{Deserialize, Serialize};
 
+use crate::get_blockchain_node_endpoint;
 use crate::money;
 use jsonrpsee::http_client::HttpClientBuilder;
 use sp_core::H256;
-
-//use crate::original_get_db;
-use crate::get_blockchain_node_endpoint;
-use crate::sync_and_get_db;
 
 /// The default RPC endpoint for the wallet to connect to
 //const DEFAULT_ENDPOINT: &str = "http://localhost:9944";
