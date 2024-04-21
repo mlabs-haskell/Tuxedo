@@ -31,7 +31,7 @@ pub struct CreateKittyRequest {
     pub owner_public_key: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize,Clone)]
 pub struct CreateKittyResponse {
     pub message: String,
     pub kitty: Option<KittyData>, // Add any additional fields as needed
@@ -55,10 +55,18 @@ pub async fn create_kitty(
         }
     };
 
-    // Convert the hexadecimal string to bytes
-    let public_key_bytes =
-        hex::decode(body.owner_public_key.clone()).expect("Invalid hexadecimal string");
-    let public_key_h256 = H256::from_slice(&public_key_bytes);
+    let pb_key_bytes = match hex::decode(body.owner_public_key.as_str()) {
+        Ok(p) => p,
+        Err(_) => {
+            return Ok(Json(CreateKittyResponse {
+                message: format!("Invalid in public key, Can't decode"),
+                kitty: None,
+            }));
+        },
+    };
+
+    // Convert the bytes to H256
+    let public_key_h256 = H256::from_slice(&pb_key_bytes);
 
     match kitty::create_kitty(&client, body.name.to_string(), public_key_h256).await {
         Ok(Some(created_kitty)) => {
@@ -1255,57 +1263,116 @@ pub async fn buy_kitty(
     }
 }
 
-/*
-pub async fn breed_kitty(body: Json<BreedKittyRequest>) -> Result<Json<BreedKittyResponse>, Infallible> {
-    println!("update_td_kitty_price is called {:?}",body);
-    let client_result = HttpClientBuilder::default().build(DEFAULT_ENDPOINT);
-    let db = sync_and_get_db().await.expect("Error");
+#[cfg(test)]
+mod tests {
+    use axum::{Extension,http::HeaderMap,http::HeaderValue};
+    use crate::create_kitty;
+    use std::convert::Infallible;
+    use crate::service_handlers::kitty_handler::kitty_service_handler::CreateKittyRequest;
+    use crate::service_handlers::kitty_handler::kitty_service_handler::CreateKittyResponse;
+    use axum::Json;
+    use crate::get_local_keystore;    
+    pub const SHAWN_PUB_KEY: &str = "d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67";
 
-    let client = match client_result {
-        Ok(client) => client,
-        Err(err) => {
-            return Ok(Json(BreedKittyResponse {
-                message: format!("Error creating HTTP client: {:?}", err),
-                mom_kitty:None,
-                dad_kitty:None,
-                child_kitty:None,
-            }));
-        }
-    };
+    #[tokio::test]
+    async fn test_create_kitty_success() {
+        // Create a MintCoinsRequest
+        let _ = get_local_keystore().await.expect("Error"); // this is prerequisite 
+        let request = CreateKittyRequest {
+            name: "Amit".to_string(),
+            owner_public_key: SHAWN_PUB_KEY.to_string(),
+        };
 
-    // Convert the hexadecimal string to bytes
-    let public_key_bytes = hex::decode(body.owner_public_key.clone()).expect("Invalid hexadecimal string");
-    let public_key_h256_of_owner = H256::from_slice(&public_key_bytes);
+        // Wrap it in Json
+        let json_request = Json(request);
 
-    let ks = get_local_keystore().await.expect("Error");
+        // Call create_kitty with the Json object
+        let response = create_kitty(json_request).await;
+        assert!(response.clone().unwrap().message.contains("Kitty created successfully")
+        && response.unwrap().kitty!=None)
+    }
 
-    match kitty::breed_kitty(&db, &client, &ks,BreedKittyArgs {
-        mom_name: body.mom_name.clone(),
-        dad_name: body.dad_name.clone(),
-        owner: public_key_h256_of_owner,
-    }).await {
-        Ok(Some(new_family)) => {
-            // Convert created_kitty to JSON and include it in the response
-            let response = BreedKittyResponse {
-                message: format!("breeding successfully"),
-                mom_kitty:Some(new_family[0].clone()),
-                dad_kitty:Some(new_family[1].clone()),
-                child_kitty:Some(new_family[2].clone()),
-            };
-            Ok(Json(response))
-        },
-        Ok(None) => Ok(Json(BreedKittyResponse {
-            message: format!("Error in breeding  failed: No data returned"),
-            mom_kitty:None,
-            dad_kitty:None,
-            child_kitty:None,
-        })),
-        Err(err) => Ok(Json(BreedKittyResponse {
-            message: format!("Error in breeding : {:?}", err),
-            mom_kitty:None,
-            dad_kitty:None,
-            child_kitty:None,
-        })),
+    #[tokio::test]
+    async fn test_create_kitty_fail_due_unknown_public_key() {
+        let _ = get_local_keystore().await.expect("Error");
+        let request = CreateKittyRequest {
+            name: "Amit".to_string(),
+            owner_public_key: SHAWN_PUB_KEY.to_string(),
+        };
+
+        // Wrap it in Json
+        let json_request = Json(request);
+
+        // Call create_kitty with the Json object
+        let response = create_kitty(json_request).await;
+        // Still minting coin is success with uninserted public key from blockchain.
+        assert!(response.clone().unwrap().message.contains("Kitty created successfully")
+        && response.unwrap().kitty!=None) 
+    }
+    //Invalid in public key, Can't decode
+
+    #[tokio::test]
+    async fn test_create_kitty_fail_due_inavlid_public_key() {
+        let _ = get_local_keystore().await.expect("Error");
+        let request = CreateKittyRequest {
+            name: "Amit".to_string(),
+            owner_public_key: "Invalid public key".to_string(),
+        };
+
+        // Wrap it in Json
+        let json_request = Json(request);
+
+        // Call create_kitty with the Json object
+        let response = create_kitty(json_request).await;
+        // Still minting coin is success with uninserted public key from blockchain.
+        assert!(response.clone().unwrap().message.contains("Invalid in public key, Can't decode"))  
+    }
+
+    // Test case for get_txn_and_inpututxolist_for_list_kitty_for_sale startts here :
+
+    async fn pre_requsite_create_kitty() -> Result<Json<CreateKittyResponse>, Infallible> {
+        let _ = get_local_keystore().await.expect("Error"); // this is prerequisite 
+        let request = CreateKittyRequest {
+            name: "Amit".to_string(),
+            owner_public_key: SHAWN_PUB_KEY.to_string(),
+        };
+
+        // Wrap it in Json
+        let json_request = Json(request);
+
+        // Call create_kitty with the Json object
+         create_kitty(json_request).await
+    }
+
+    use std::sync::Arc;
+    use tokio::sync::Mutex;
+    use tokio::time::{Duration};
+    use crate::get_txn_and_inpututxolist_for_list_kitty_for_sale;
+    use crate::sync_and_get_db;
+    use crate::get_db; 
+    use hex::encode; 
+    use tokio::time::sleep;
+    
+    #[tokio::test]
+    async fn test_get_txn_and_inpututxolist_for_list_kitty_for_sale_success() {
+        let kitty_create_response = pre_requsite_create_kitty();
+        let db = Arc::new(Mutex::new(get_db().await.expect("Failed to init db")));
+        let clone_db = db.clone();
+        sleep(Duration::from_secs(5)).await;
+        let _ = sync_and_get_db(clone_db).await;
+
+        let _ = get_local_keystore().await.expect("Error");
+        let mut headers = HeaderMap::new();
+        let kitty_dna = kitty_create_response.await.unwrap().kitty.clone().unwrap().dna;
+        let hex_string = encode(&kitty_dna.0);
+        
+        // Convert hex string to HeaderValue
+        let header_value = HeaderValue::from_str(&hex_string).unwrap();
+        headers.insert("kitty-dna", header_value);
+        headers.insert("kitty-price", HeaderValue::from_static("200"));
+        headers.insert("owner_public_key", HeaderValue::from_str(SHAWN_PUB_KEY).unwrap());
+        let response = get_txn_and_inpututxolist_for_list_kitty_for_sale(headers,
+            Extension(db.clone())).await;
+        assert!(response.message.contains("List kitty for Sale txn created successfull"))
     }
 }
-*/

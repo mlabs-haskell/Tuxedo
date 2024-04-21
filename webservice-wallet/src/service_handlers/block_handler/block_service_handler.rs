@@ -3,7 +3,7 @@ use serde::Serialize;
 use jsonrpsee::http_client::HttpClientBuilder;
 
 use crate::rpc;
-
+use anyhow::Error;
 use crate::get_blockchain_node_endpoint;
 
 /// The default RPC endpoint for the wallet to connect to
@@ -33,7 +33,7 @@ pub async fn get_block(headers: HeaderMap) -> Json<BlockResponse> {
 
     match get_blocks(block_number).await {
         Ok(Some(node_block)) => Json(BlockResponse {
-            message: format!("block  found {:?}", node_block),
+            message: format!("block found {:?}", node_block),
         }),
 
         Ok(None) => Json(BlockResponse {
@@ -52,13 +52,69 @@ async fn get_blocks(number: u128) -> anyhow::Result<Option<Block>> {
         .expect("http client buider error");
 
     let node_block_hash = rpc::node_get_block_hash(number.try_into().unwrap(), &client)
-        .await?
-        .expect("node should be able to return some genesis hash");
-    println!("Get blocks node_block_hash {:?} ", node_block_hash);
-    let maybe_block = rpc::node_get_block(node_block_hash, &client).await?;
+        .await;
+    //.expect("node should be able to return some hash");
+    let hash = match node_block_hash {
+        Ok(Some(h)) => h,
+        Ok(None) => {
+            return Ok(None);
+        },
+        Err(_) => {
+            let err = Error::msg("Error fetching block hash");
+            return Err(err);
+        },
+    };
+
+    let maybe_block = rpc::node_get_block(hash, &client).await?;
     println!("BlockData {:?} ", maybe_block.clone().unwrap());
     match maybe_block {
         Some(block) => Ok(Some(block)),
-        None => bail!("Block not found for hash: {:?}", node_block_hash),
+        None => bail!("Block not found for hash: {:?}", hash),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use axum::{http::HeaderMap};
+    //use axum::{body::Body, http::Request};
+    use crate::get_block;
+
+    #[tokio::test]
+    async fn test_get_genesis_block_success() {
+        let block_number = "0";
+        
+        let mut headers = HeaderMap::new();
+        headers.insert("Block-Number", block_number.parse().unwrap());
+    
+        //let response = get_block(headers).await.into_response();
+        let response = get_block(headers).await;
+        assert!(response.message.contains("parent_hash: 0x0000000000000000000000000000000000000000000000000000000000000000"));  
+    }
+
+    #[tokio::test]
+    async fn test_get_block_success() {
+        let block_number = "1";
+        
+        let mut headers = HeaderMap::new();
+        headers.insert("Block-Number", block_number.parse().unwrap());
+    
+        //let response = get_block(headers).await.into_response();
+        let response = get_block(headers).await;
+        assert!(response.message.contains("block found ") &&
+            response.message.contains("number: 1"));
+    }
+
+    #[tokio::test]
+    async fn test_get_block_block_number_not_present_fail() {
+        let block_number = "999999";
+        
+        let mut headers = HeaderMap::new();
+        headers.insert("Block-Number", block_number.parse().unwrap());
+    
+        //let response = get_block(headers).await.into_response();
+        let response = get_block(headers).await;
+        assert!(response.message.contains("Node's block not found"));
+    }
+}
+
+

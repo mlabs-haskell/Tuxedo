@@ -158,29 +158,6 @@ fn convert_name_string_tostr_slice(name: String, name_slice: &mut [u8; 4]) -> an
     name_slice.copy_from_slice(name.clone().as_bytes());
     return Ok(());
 }
-/*
-fn validate_kitty_name_from_db(
-    db: &Db,
-    owner_pubkey: &H256,
-    name: String,
-    name_slice: &mut [u8; 4],
-) -> anyhow::Result<()> {
-
-
-    match crate::sync::is_kitty_name_duplicate(&db, name.clone(), &owner_pubkey) {
-        Ok(Some(true)) => {
-            println!("Kitty name is duplicate , select another name");
-            return Err(anyhow!(
-                "Please input a non-duplicate name of length 4 characters"
-            ));
-        }
-        _ => {}
-    };
-    convert_name_string_tostr_slice(name,name_slice)?;
-
-    return Ok(());
-}
-*/
 
 fn create_new_family(
     new_mom: &mut KittyData,
