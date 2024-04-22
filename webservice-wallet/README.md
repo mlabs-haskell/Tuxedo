@@ -33,6 +33,13 @@ Webservice can be run by using
 $ cargo run
 ```
 
+Webservice tests can be run using:
+
+```sh
+$ cargo test
+```
+
+
 When we trigger the below REST APIs, we will get the below error as there will be a mismatch between the current Genesis block and the previously stored Genesis block in the local sled db.
 This usually happens when we restart the blockchain node which causes the mismatch between genesis and genesis in our local sled db.
 
