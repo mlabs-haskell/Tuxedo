@@ -31,7 +31,7 @@ pub struct CreateKittyRequest {
     pub owner_public_key: String,
 }
 
-#[derive(Debug, Serialize,Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct CreateKittyResponse {
     pub message: String,
     pub kitty: Option<KittyData>, // Add any additional fields as needed
@@ -62,7 +62,7 @@ pub async fn create_kitty(
                 message: format!("Invalid in public key, Can't decode"),
                 kitty: None,
             }));
-        },
+        }
     };
 
     // Convert the bytes to H256
@@ -1265,19 +1265,20 @@ pub async fn buy_kitty(
 
 #[cfg(test)]
 mod tests {
-    use axum::{Extension,http::HeaderMap,http::HeaderValue};
     use crate::create_kitty;
-    use std::convert::Infallible;
+    use crate::get_local_keystore;
     use crate::service_handlers::kitty_handler::kitty_service_handler::CreateKittyRequest;
     use crate::service_handlers::kitty_handler::kitty_service_handler::CreateKittyResponse;
     use axum::Json;
-    use crate::get_local_keystore;    
-    pub const SHAWN_PUB_KEY: &str = "d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67";
+    use axum::{http::HeaderMap, http::HeaderValue, Extension};
+    use std::convert::Infallible;
+    pub const SHAWN_PUB_KEY: &str =
+        "d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67";
 
     #[tokio::test]
     async fn test_create_kitty_success() {
         // Create a MintCoinsRequest
-        let _ = get_local_keystore().await.expect("Error"); // this is prerequisite 
+        let _ = get_local_keystore().await.expect("Error"); // this is prerequisite
         let request = CreateKittyRequest {
             name: "Amit".to_string(),
             owner_public_key: SHAWN_PUB_KEY.to_string(),
@@ -1288,8 +1289,14 @@ mod tests {
 
         // Call create_kitty with the Json object
         let response = create_kitty(json_request).await;
-        assert!(response.clone().unwrap().message.contains("Kitty created successfully")
-        && response.unwrap().kitty!=None)
+        assert!(
+            response
+                .clone()
+                .unwrap()
+                .message
+                .contains("Kitty created successfully")
+                && response.unwrap().kitty != None
+        )
     }
 
     #[tokio::test]
@@ -1306,8 +1313,14 @@ mod tests {
         // Call create_kitty with the Json object
         let response = create_kitty(json_request).await;
         // Still minting coin is success with uninserted public key from blockchain.
-        assert!(response.clone().unwrap().message.contains("Kitty created successfully")
-        && response.unwrap().kitty!=None) 
+        assert!(
+            response
+                .clone()
+                .unwrap()
+                .message
+                .contains("Kitty created successfully")
+                && response.unwrap().kitty != None
+        )
     }
     //Invalid in public key, Can't decode
 
@@ -1325,13 +1338,17 @@ mod tests {
         // Call create_kitty with the Json object
         let response = create_kitty(json_request).await;
         // Still minting coin is success with uninserted public key from blockchain.
-        assert!(response.clone().unwrap().message.contains("Invalid in public key, Can't decode"))  
+        assert!(response
+            .clone()
+            .unwrap()
+            .message
+            .contains("Invalid in public key, Can't decode"))
     }
 
     // Test case for get_txn_and_inpututxolist_for_list_kitty_for_sale startts here :
 
     async fn pre_requsite_create_kitty() -> Result<Json<CreateKittyResponse>, Infallible> {
-        let _ = get_local_keystore().await.expect("Error"); // this is prerequisite 
+        let _ = get_local_keystore().await.expect("Error"); // this is prerequisite
         let request = CreateKittyRequest {
             name: "Amit".to_string(),
             owner_public_key: SHAWN_PUB_KEY.to_string(),
@@ -1341,21 +1358,21 @@ mod tests {
         let json_request = Json(request);
 
         // Call create_kitty with the Json object
-         create_kitty(json_request).await
+        create_kitty(json_request).await
     }
 
-    use std::sync::Arc;
-    use tokio::sync::Mutex;
-    use tokio::time::{Duration};
+    use crate::get_db;
     use crate::get_txn_and_inpututxolist_for_list_kitty_for_sale;
     use crate::sync_and_get_db;
-    use crate::get_db; 
-    use hex::encode; 
+    use hex::encode;
+    use std::sync::Arc;
+    use tokio::sync::Mutex;
     use tokio::time::sleep;
-    
+    use tokio::time::Duration;
+
     #[tokio::test]
     async fn test_get_txn_and_inpututxolist_for_list_kitty_for_sale_success() {
-        let kitty_create_response = pre_requsite_create_kitty();
+        let kitty_create_response = pre_requsite_create_kitty().await;
         let db = Arc::new(Mutex::new(get_db().await.expect("Failed to init db")));
         let clone_db = db.clone();
         sleep(Duration::from_secs(5)).await;
@@ -1363,16 +1380,21 @@ mod tests {
 
         let _ = get_local_keystore().await.expect("Error");
         let mut headers = HeaderMap::new();
-        let kitty_dna = kitty_create_response.await.unwrap().kitty.clone().unwrap().dna;
+        let kitty_dna = kitty_create_response.unwrap().kitty.clone().unwrap().dna;
         let hex_string = encode(&kitty_dna.0);
-        
+
         // Convert hex string to HeaderValue
         let header_value = HeaderValue::from_str(&hex_string).unwrap();
         headers.insert("kitty-dna", header_value);
         headers.insert("kitty-price", HeaderValue::from_static("200"));
-        headers.insert("owner_public_key", HeaderValue::from_str(SHAWN_PUB_KEY).unwrap());
-        let response = get_txn_and_inpututxolist_for_list_kitty_for_sale(headers,
-            Extension(db.clone())).await;
-        assert!(response.message.contains("List kitty for Sale txn created successfull"))
+        headers.insert(
+            "owner_public_key",
+            HeaderValue::from_str(SHAWN_PUB_KEY).unwrap(),
+        );
+        let response =
+            get_txn_and_inpututxolist_for_list_kitty_for_sale(headers, Extension(db.clone())).await;
+        assert!(response
+            .message
+            .contains("List kitty for Sale txn created successfull"))
     }
 }
