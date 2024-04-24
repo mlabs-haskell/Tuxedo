@@ -2,6 +2,7 @@ use crate::money::get_coin_from_storage;
 use crate::rpc::fetch_storage;
 use crate::sync;
 
+use serde::{Deserialize, Serialize};
 //use crate::cli::BreedArgs;
 use tuxedo_core::{
     dynamic_typing::UtxoData,
@@ -48,7 +49,7 @@ pub fn generate_random_string(length: usize) -> String {
     random_string
 }
 
-#[derive(Encode, Decode, Debug, Clone, PartialEq)]
+#[derive(Encode, Decode, Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub enum Gender {
     Male,
     Female,
@@ -217,10 +218,15 @@ pub async fn create_kitty(
     client: &HttpClient,
     k_name: String,
     public_key: H256,
+    k_gender: Option<Gender>,
 ) -> anyhow::Result<Option<KittyData>> {
     let mut kitty_name = [0; 4];
 
-    let g = gen_random_gender();
+    let g = if let Some(gender) = k_gender {
+        gender
+    } else {
+        gen_random_gender()
+    };
     let gender = match g {
         Gender::Male => Parent::dad(),
         Gender::Female => Parent::mom(),

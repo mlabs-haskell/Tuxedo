@@ -22,6 +22,7 @@ mod output_filter;
 mod rpc;
 mod sync;
 mod timestamp;
+mod util;
 
 //use moneyServicehandler::{MintCoinsRequest, MintCoinsResponse};
 mod service_handlers {

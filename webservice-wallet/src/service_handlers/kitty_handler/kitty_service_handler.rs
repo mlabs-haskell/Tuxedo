@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use jsonrpsee::http_client::HttpClientBuilder;
 
 use crate::kitty;
+use crate::kitty::Gender;
 use crate::kitty::TransactionResponse;
 use sled::Db;
 use sp_core::H256;
@@ -29,6 +30,7 @@ use tuxedo_core::types::OutputRef;
 pub struct CreateKittyRequest {
     pub name: String,
     pub owner_public_key: String,
+    pub gender: Option<Gender>,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -68,7 +70,14 @@ pub async fn create_kitty(
     // Convert the bytes to H256
     let public_key_h256 = H256::from_slice(&pb_key_bytes);
 
-    match kitty::create_kitty(&client, body.name.to_string(), public_key_h256).await {
+    match kitty::create_kitty(
+        &client,
+        body.name.to_string(),
+        public_key_h256,
+        body.gender.clone(),
+    )
+    .await
+    {
         Ok(Some(created_kitty)) => {
             // Convert created_kitty to JSON and include it in the response
             let response = CreateKittyResponse {
@@ -1269,6 +1278,7 @@ mod tests {
     use crate::get_local_keystore;
     use crate::service_handlers::kitty_handler::kitty_service_handler::CreateKittyRequest;
     use crate::service_handlers::kitty_handler::kitty_service_handler::CreateKittyResponse;
+    use crate::util::create_seller;
     use axum::Json;
     use axum::{http::HeaderMap, http::HeaderValue, Extension};
     use std::convert::Infallible;
@@ -1282,6 +1292,7 @@ mod tests {
         let request = CreateKittyRequest {
             name: "Amit".to_string(),
             owner_public_key: SHAWN_PUB_KEY.to_string(),
+            gender: None,
         };
 
         // Wrap it in Json
@@ -1305,6 +1316,7 @@ mod tests {
         let request = CreateKittyRequest {
             name: "Amit".to_string(),
             owner_public_key: SHAWN_PUB_KEY.to_string(),
+            gender: None,
         };
 
         // Wrap it in Json
@@ -1330,6 +1342,7 @@ mod tests {
         let request = CreateKittyRequest {
             name: "Amit".to_string(),
             owner_public_key: "Invalid public key".to_string(),
+            gender: None,
         };
 
         // Wrap it in Json
@@ -1352,6 +1365,7 @@ mod tests {
         let request = CreateKittyRequest {
             name: "Amit".to_string(),
             owner_public_key: SHAWN_PUB_KEY.to_string(),
+            gender: None,
         };
 
         // Wrap it in Json
@@ -1361,9 +1375,13 @@ mod tests {
         create_kitty(json_request).await
     }
 
+    use super::*;
     use crate::get_db;
+    use crate::get_owned_kitty_list;
     use crate::get_txn_and_inpututxolist_for_list_kitty_for_sale;
+    use crate::service_handlers::money_handler::money_servicehandler::get_owned_coins;
     use crate::sync_and_get_db;
+    use crate::util::{mint_kitty, use_test_db};
     use hex::encode;
     use std::sync::Arc;
     use tokio::sync::Mutex;
@@ -1396,5 +1414,355 @@ mod tests {
         assert!(response
             .message
             .contains("List kitty for Sale txn created successfull"))
+    }
+
+    #[tokio::test]
+    async fn test_get_owned_kitty_list() {
+        let name = "cat1";
+        let _ = mint_kitty(SHAWN_PUB_KEY, name, None).await;
+        let db = use_test_db().await;
+        let clone_db = db.clone();
+        let _ = sync_and_get_db(clone_db).await;
+
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "owner_public_key",
+            HeaderValue::from_str(SHAWN_PUB_KEY).unwrap(),
+        );
+
+        let response = get_owned_kitty_list(headers, Extension(db)).await;
+        assert!(response.kitty_list.is_some());
+        let kitty_list = response.kitty_list.as_ref().unwrap();
+        let mut array = [0; 4];
+        let kitty_name: &[u8; 4] = {
+            array.copy_from_slice(name.as_bytes());
+            &array
+        };
+        assert!(kitty_list.iter().any(|kitty| kitty.name == &kitty_name[..]));
+    }
+
+    #[tokio::test]
+    async fn test_get_all_kitty_list() {
+        let name = "cat1";
+        let _ = mint_kitty(SHAWN_PUB_KEY, name, None).await;
+        let db = use_test_db().await;
+        let clone_db = db.clone();
+        let _ = sync_and_get_db(clone_db).await;
+
+        let response = get_all_kitty_list(Extension(db)).await;
+        assert!(response.owner_kitty_list.is_some());
+        let kitty_list = response.owner_kitty_list.as_ref().unwrap();
+        let mut array = [0; 4];
+        let kitty_name: &[u8; 4] = {
+            array.copy_from_slice(name.as_bytes());
+            &array
+        };
+        let public_key_h256 = H256::from_str(SHAWN_PUB_KEY).expect("Failed to convert to H256");
+        assert!(kitty_list.iter().any(
+            |list| list.kitty.name == &kitty_name[..] && list.owner_pub_key == public_key_h256
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_get_kitty_by_dna() {
+        let name = "cat1";
+        let response = mint_kitty(SHAWN_PUB_KEY, name, None).await.unwrap();
+        sleep(Duration::from_secs(5)).await;
+        let db = use_test_db().await;
+        let clone_db = db.clone();
+        let _ = sync_and_get_db(clone_db).await;
+        if let Some(kitty) = &response.kitty {
+            let hex_string = encode(&kitty.dna.0);
+            let mut headers = HeaderMap::new();
+            headers.insert("kitty-dna", HeaderValue::from_str(&hex_string).unwrap());
+            let fetch_kitty_response = get_kitty_by_dna(headers, Extension(db)).await;
+            println!("Fetch res: {:?}", fetch_kitty_response.message);
+            assert!(fetch_kitty_response.message.contains("Success"));
+            assert!(fetch_kitty_response.kitty.is_some());
+        } else {
+            panic!("No kitty was minted");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_td_kitty_by_dna() {
+        let name = "cat1";
+        let response = mint_kitty(SHAWN_PUB_KEY, name, None).await.unwrap();
+        sleep(Duration::from_secs(5)).await;
+        let db = use_test_db().await;
+        let _ = sync_and_get_db(db.clone()).await;
+        if let Some(kitty) = &response.kitty {
+            let hex_string = encode(&kitty.dna.0);
+
+            // List kitty for sale
+            let header_value = HeaderValue::from_str(&hex_string).unwrap();
+            let mut list_headers = HeaderMap::new();
+            list_headers.insert("kitty-dna", header_value);
+            list_headers.insert("kitty-price", HeaderValue::from_static("200"));
+            list_headers.insert(
+                "owner_public_key",
+                HeaderValue::from_str(SHAWN_PUB_KEY).unwrap(),
+            );
+            let list_tx_response = get_txn_and_inpututxolist_for_list_kitty_for_sale(
+                list_headers,
+                Extension(db.clone()),
+            )
+            .await;
+            let signed_txn_request = SignedTxnRequest {
+                signed_transaction: list_tx_response.transaction.as_ref().unwrap().clone(),
+            };
+
+            let list_response = list_kitty_for_sale(Json(signed_txn_request)).await.unwrap();
+            assert!(list_response
+                .message
+                .contains("Kitty listed for sale successfully"));
+            sleep(Duration::from_secs(5)).await;
+            let _ = sync_and_get_db(db.clone()).await;
+            let mut get_headers = HeaderMap::new();
+            get_headers.insert("td-kitty-dna", HeaderValue::from_str(&hex_string).unwrap());
+            let fetch_kitty_response = get_td_kitty_by_dna(get_headers, Extension(db)).await;
+            assert!(fetch_kitty_response.message.contains("Success"));
+            assert!(fetch_kitty_response.td_kitty.is_some());
+        } else {
+            panic!("No kitty was minted");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_all_td_kitty_list() {
+        let name = "cat1";
+        let response = mint_kitty(SHAWN_PUB_KEY, name, None).await.unwrap();
+        sleep(Duration::from_secs(5)).await;
+        let db = use_test_db().await;
+        let _ = sync_and_get_db(db.clone()).await;
+        if let Some(kitty) = &response.kitty {
+            let hex_string = encode(&kitty.dna.0);
+
+            // List kitty for sale
+            let header_value = HeaderValue::from_str(&hex_string).unwrap();
+            let mut list_headers = HeaderMap::new();
+            list_headers.insert("kitty-dna", header_value);
+            list_headers.insert("kitty-price", HeaderValue::from_static("200"));
+            list_headers.insert(
+                "owner_public_key",
+                HeaderValue::from_str(SHAWN_PUB_KEY).unwrap(),
+            );
+            let list_tx_response = get_txn_and_inpututxolist_for_list_kitty_for_sale(
+                list_headers,
+                Extension(db.clone()),
+            )
+            .await;
+            let signed_txn_request = SignedTxnRequest {
+                signed_transaction: list_tx_response.transaction.as_ref().unwrap().clone(),
+            };
+
+            let list_response = list_kitty_for_sale(Json(signed_txn_request)).await.unwrap();
+            assert!(list_response
+                .message
+                .contains("Kitty listed for sale successfully"));
+            sleep(Duration::from_secs(5)).await;
+            let _ = sync_and_get_db(db.clone()).await;
+            let fetch_kitty_response = get_all_td_kitty_list(Extension(db)).await;
+            assert!(fetch_kitty_response.message.contains("Success"));
+
+            let kitty_list = fetch_kitty_response.td_kitty_list.as_ref().unwrap();
+            let mut array = [0; 4];
+            let kitty_name: &[u8; 4] = {
+                array.copy_from_slice(name.as_bytes());
+                &array
+            };
+            assert!(kitty_list
+                .iter()
+                .any(
+                    |list| list.td_kitty.kitty_basic_data.name == &kitty_name[..]
+                        && list.td_kitty.price == 200
+                ));
+        } else {
+            panic!("No kitty was minted");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_owned_td_kitty_list() {
+        let name = "cat1";
+        let response = mint_kitty(SHAWN_PUB_KEY, name, None).await.unwrap();
+        sleep(Duration::from_secs(5)).await;
+        let db = use_test_db().await;
+        let _ = sync_and_get_db(db.clone()).await;
+        if let Some(kitty) = &response.kitty {
+            let hex_string = encode(&kitty.dna.0);
+
+            // List kitty for sale
+            let header_value = HeaderValue::from_str(&hex_string).unwrap();
+            let mut list_headers = HeaderMap::new();
+            list_headers.insert("kitty-dna", header_value);
+            list_headers.insert("kitty-price", HeaderValue::from_static("200"));
+            list_headers.insert(
+                "owner_public_key",
+                HeaderValue::from_str(SHAWN_PUB_KEY).unwrap(),
+            );
+            let list_tx_response = get_txn_and_inpututxolist_for_list_kitty_for_sale(
+                list_headers,
+                Extension(db.clone()),
+            )
+            .await;
+            let signed_txn_request = SignedTxnRequest {
+                signed_transaction: list_tx_response.transaction.as_ref().unwrap().clone(),
+            };
+
+            let list_response = list_kitty_for_sale(Json(signed_txn_request)).await.unwrap();
+            assert!(list_response
+                .message
+                .contains("Kitty listed for sale successfully"));
+            sleep(Duration::from_secs(5)).await;
+            let _ = sync_and_get_db(db.clone()).await;
+            let mut get_headers = HeaderMap::new();
+            get_headers.insert(
+                "owner_public_key",
+                HeaderValue::from_str(SHAWN_PUB_KEY).unwrap(),
+            );
+            let fetch_kitty_response = get_owned_td_kitty_list(get_headers, Extension(db)).await;
+            assert!(fetch_kitty_response.message.contains("Success"));
+
+            let kitty_list = fetch_kitty_response.td_kitty_list.as_ref().unwrap();
+            let mut array = [0; 4];
+            let kitty_name: &[u8; 4] = {
+                array.copy_from_slice(name.as_bytes());
+                &array
+            };
+            assert!(kitty_list
+                .iter()
+                .any(|list| list.kitty_basic_data.name == &kitty_name[..] && list.price == 200));
+        } else {
+            panic!("No kitty was minted");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_buy_kitty() {
+        let db = use_test_db().await;
+        let name = "cat1";
+        let response = mint_kitty(SHAWN_PUB_KEY, name, None).await.unwrap();
+        let buyer_key = create_seller().await;
+
+        sleep(Duration::from_secs(5)).await;
+        let _ = sync_and_get_db(db.clone()).await;
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "owner_public_key",
+            HeaderValue::from_str(&buyer_key).unwrap(),
+        );
+
+        let coin_response = get_owned_coins(headers, Extension(db.clone())).await;
+        assert!(coin_response.coins.is_some());
+        let coins = coin_response.coins.as_ref().unwrap();
+
+        let _ = sync_and_get_db(db.clone()).await;
+        if let Some(kitty) = &response.kitty {
+            let hex_string = encode(&kitty.dna.0);
+
+            // List kitty for sale
+            let header_value = HeaderValue::from_str(&hex_string).unwrap();
+            let mut list_headers = HeaderMap::new();
+            list_headers.insert("kitty-dna", header_value);
+            list_headers.insert("kitty-price", HeaderValue::from_static("200"));
+            list_headers.insert(
+                "owner_public_key",
+                HeaderValue::from_str(SHAWN_PUB_KEY).unwrap(),
+            );
+            let list_tx_response = get_txn_and_inpututxolist_for_list_kitty_for_sale(
+                list_headers,
+                Extension(db.clone()),
+            )
+            .await;
+            let signed_txn_request = SignedTxnRequest {
+                signed_transaction: list_tx_response.transaction.as_ref().unwrap().clone(),
+            };
+
+            let list_response = list_kitty_for_sale(Json(signed_txn_request)).await.unwrap();
+            assert!(list_response
+                .message
+                .contains("Kitty listed for sale successfully"));
+            sleep(Duration::from_secs(5)).await;
+            let _ = sync_and_get_db(db.clone()).await;
+
+            let header_value = HeaderValue::from_str(&hex_string).unwrap();
+            let mut buy_headers = HeaderMap::new();
+            buy_headers.insert("kitty-dna", header_value);
+            buy_headers.insert(
+                "input-coins",
+                HeaderValue::from_str(coins[0].0.as_str()).unwrap(),
+            );
+            buy_headers.insert("output_amount", HeaderValue::from_str("100").unwrap());
+            buy_headers.insert(
+                "seller_public_key",
+                HeaderValue::from_str(SHAWN_PUB_KEY).unwrap(),
+            );
+            buy_headers.insert(
+                "buyer_public_key",
+                HeaderValue::from_str(&buyer_key).unwrap(),
+            );
+
+            let buy_tx_response =
+                get_txn_and_inpututxolist_for_buy_kitty(buy_headers, Extension(db.clone())).await;
+            let signed_buy_txn_request = SignedTxnRequest {
+                signed_transaction: buy_tx_response.transaction.as_ref().unwrap().clone(),
+            };
+
+            let buy_response = buy_kitty(Json(signed_buy_txn_request)).await.unwrap();
+            assert!(buy_response.message.contains("Kitty traded successfully"));
+        } else {
+            panic!("No kitty was minted");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_breed_kitty() {
+        let db = use_test_db().await;
+        let name1 = "bre1";
+        let name2 = "bre2";
+        let cat1_response = mint_kitty(SHAWN_PUB_KEY, name1, Some(Gender::Female))
+            .await
+            .unwrap();
+        let cat2_response = mint_kitty(SHAWN_PUB_KEY, name2, Some(Gender::Male))
+            .await
+            .unwrap();
+
+        sleep(Duration::from_secs(5)).await;
+        let _ = sync_and_get_db(db.clone()).await;
+        if let Some(mom) = &cat1_response.kitty {
+            if let Some(dad) = &cat2_response.kitty {
+                let mom_hex_string = encode(&mom.dna.0);
+                let dad_hex_string = encode(&dad.dna.0);
+
+                // List kitty for sale
+                let mom_header_value = HeaderValue::from_str(&mom_hex_string).unwrap();
+                let dad_header_value = HeaderValue::from_str(&dad_hex_string).unwrap();
+                let mut breed_headers = HeaderMap::new();
+                breed_headers.insert("mom-dna", mom_header_value);
+                breed_headers.insert("dad-dna", dad_header_value);
+                breed_headers.insert("child-kitty-name", HeaderValue::from_static("bre3"));
+                breed_headers.insert(
+                    "owner_public_key",
+                    HeaderValue::from_str(SHAWN_PUB_KEY).unwrap(),
+                );
+
+                let breed_tx_response =
+                    get_txn_and_inpututxolist_for_breed_kitty(breed_headers, Extension(db.clone()))
+                        .await;
+                let signed_txn_request = SignedTxnRequest {
+                    signed_transaction: breed_tx_response.transaction.as_ref().unwrap().clone(),
+                };
+
+                let breed_response = breed_kitty(Json(signed_txn_request)).await.unwrap();
+                assert!(breed_response
+                    .message
+                    .contains("Kitty breeding done successfully"));
+            } else {
+                panic!("No dad kitty was minted");
+            }
+        } else {
+            panic!("No mom kitty was minted");
+        }
     }
 }

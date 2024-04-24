@@ -14,6 +14,7 @@ use sp_keystore::Keystore;
 use sp_runtime::KeyTypeId;
 
 use crate::get_local_keystore;
+use sp_core::H256;
 /// A KeyTypeId to use in the keystore for Tuxedo transactions. We'll use this everywhere
 /// until it becomes clear that there is a reason to use multiple of them
 const KEY_TYPE: KeyTypeId = KeyTypeId(*b"_tux");
@@ -97,7 +98,8 @@ pub async fn generate_key(password: Option<String>) -> anyhow::Result<(String, S
         .await
         .unwrap_or_else(|_| panic!("Error in extracting local key store"));
     let (pair, phrase, _) = Pair::generate_with_phrase(password.as_deref());
-    println!("Generated public key is {:?}", pair.public());
+    let public_key_h256: H256 = pair.public().into();
+    println!("Generated public key is {:?}", public_key_h256);
     println!("Generated Phrase is {}", phrase);
 
     // Insert the generated key pair into the keystore
@@ -108,7 +110,7 @@ pub async fn generate_key(password: Option<String>) -> anyhow::Result<(String, S
         println!("key: 0x{}", hex::encode(pubkey));
     });
 
-    let public_key_hex = hex::encode(pair.public());
+    let public_key_hex = hex::encode(public_key_h256);
 
     Ok((public_key_hex.to_string(), phrase))
 }

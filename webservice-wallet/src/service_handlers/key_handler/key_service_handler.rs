@@ -1,4 +1,3 @@
-
 use serde::{Deserialize, Serialize};
 
 use crate::keystore;
@@ -60,3 +59,26 @@ pub async fn debug_get_keys() -> Json<GetKeyResponse> {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_debug_generate_key_success() {
+        let request_body = GenerateKeyRequest {
+            password: Some("securepassword123".to_string()),
+        };
+
+        let response = debug_generate_key(Json(request_body)).await;
+        assert_eq!(response.0.message, "Keys generated successfully");
+        assert!(response.0.public_key.is_some());
+        assert!(response.0.phrase.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_debug_get_keys_success() {
+        let response = debug_get_keys().await;
+        assert_eq!(response.0.message, "Keys retrieved successfully");
+        assert!(response.0.keys.is_some());
+    }
+}
