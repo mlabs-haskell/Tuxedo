@@ -134,16 +134,14 @@ Both sources agree that the coin exists, is worth 100, and is owned by Shawn.
 Let's "split" this coin by creating a transaction that spends it and creates two new coins worth 40 and 50, burning the remaining 10.
 
 ```sh
-$ tuxedo-template-wallet spend-coins \
-  --output-amount 40 \
-  --output-amount 50
+$ ./target/release/tuxedo-template-wallet spend-coins -r "40 50"
 
-[2023-04-11T17:58:00Z INFO  tuxedo_template_wallet] Number of blocks in the db: 80
-[2023-04-11T17:58:00Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 87
-[2023-04-11T17:58:00Z INFO  tuxedo_template_wallet] Node's response to spend transaction: Ok("0xad0de5922a27fab1a3ce116868ada789677c80a0e70018bd32464b2e737d3546")
+The args are:: SpendArgs { input: [], recipients: [(0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67, [40, 50])] }
+in Sync::get_arbitrary_unspent_set output_ref = OutputRef { tx_hash: 0xa95362504966abd5ee55223d09e860bb1dd60eba1425b80fb05e1cc3ad66bf71, index: 0 }
+[2024-04-24T14:00:28Z INFO  tuxedo_template_wallet::money] Node's response to spend transaction: Ok("0x7e0f3ad4103e6daaa12faa6b7ad76b70a1f520f48dc1ee4ed77404996cf8360c")
+Created "792a03115790d50501cc0fa504d86c040c96a754dc633203f99505f74f61ae7000000000" worth 40. owned by 0xd2bf…df67
+Created "792a03115790d50501cc0fa504d86c040c96a754dc633203f99505f74f61ae7001000000" worth 50. owned by 0xd2bf…df67
 
-Created "9b3b0d17ad5f7784e840c40089d4d0aa0de990c5c620d49a0729c3a45afa35bf00000000" worth 40. owned by 0xd2bf…df67
-Created "9b3b0d17ad5f7784e840c40089d4d0aa0de990c5c620d49a0729c3a45afa35bf01000000" worth 50. owned by 0xd2bf…df67
 ```
 
 Our command told the wallet to create a transaction that spends some coins (in this case the genesis coin) and creates two new coins with the given amounts, burning the remaining 10.
@@ -176,8 +174,9 @@ To follow this guide as closely as possible, you should insert the same key we g
 # Generate a new key
 $ tuxedo-template-wallet generate-key
 
-  Generated public key is f41a866782d45a4d2d8a623a097c62aee6955a9e580985e3910ba49eded9e06b (5HamRMAa...)
-  Generated Phrase is decide city tattoo arrest jeans split main sad slam blame crack farm
+  Generated public key is 0x1c0cf1c1cc741596cc115c4f2eabe1377fcd5d23774516c5dd521525516 
+  (5HamRMAa...)
+ Generated Phrase is path second heart chapter pilot artwork reward other surge energy deer tackle
 
 # Or, to continue on with demo, insert the same generated key
 $ tuxedo-template-wallet insert-key "decide city tattoo arrest jeans split main sad slam blame crack farm"
@@ -189,16 +188,15 @@ With our new keys in the keystore, let's send some coins from Shawn to our own k
 
 ```sh
 $ tuxedo-template-wallet spend-coins \
- --recipient f41a866782d45a4d2d8a623a097c62aee6955a9e580985e3910ba49eded9e06b \
- --output-amount 20 \
- --output-amount 10
-
-[2023-04-11T18:53:46Z INFO  tuxedo_template_wallet] Number of blocks in the db: 95
-[2023-04-11T18:53:46Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 99
-[2023-04-11T18:53:46Z INFO  tuxedo_template_wallet::money] Node's response to spend transaction: Ok("0x7b8466f6c418637958f8090304dbdd7f115c27abf787b8f034a41d522bdf2baf")
-
-Created "90695702dabcca93d2c5f84a45b07bf59626ddb49a9b5255e202777127a3323d00000000" worth 20. owned by 0xf41a…e06b
-Created "90695702dabcca93d2c5f84a45b07bf59626ddb49a9b5255e202777127a3323d01000000" worth 10. owned by 0xf41a…e06b
+ -r "0x1c0cf1c1cc741596cc115c4f2eabe1377fcd5d23774516c5dd521525516 \
+ 20 \
+ 10"
+ 
+[2024-04-24T14:06:42Z INFO  tuxedo_template_wallet::money] In the spend_coins_to_multiple_recipient The args are:: SpendArgs { input: [], recipients: [(0x1c0cf1c1cc741596cc115c4f2eabe1377fcd5d23774516c5dd521525516e2d08, [20, 10])] }
+in Sync::get_arbitrary_unspent_set output_ref = OutputRef { tx_hash: 0x792a03115790d50501cc0fa504d86c040c96a754dc633203f99505f74f61ae70, index: 0 }
+[2024-04-24T14:06:42Z INFO  tuxedo_template_wallet::money] Node's response to spend transaction: Ok("0x5f3e867662114157e7cf8333180f90e42a9f309320b64e0f8efa0328a507360c")
+Created "5a13b5e7a8b0bd07ac76e5ef58351d1e9417387b4c0ceb7d8982eb0ba65ebd2c00000000" worth 20. owned by 0x1c0c…2d08
+Created "5a13b5e7a8b0bd07ac76e5ef58351d1e9417387b4c0ceb7d8982eb0ba65ebd2c01000000" worth 10. owned by 0x1c0c…2d08
 ```
 
 This command will consume one of the existing coins, and create two new ones owned by our key.
@@ -264,8 +262,7 @@ Because we are sending to Shawn, and Shawn is the default recipient, we could le
 # The input value has to be copied from your own `show-all-outputs` results
 $ tuxedo-template-wallet spend-coins \
   --input 90695702dabcca93d2c5f84a45b07bf59626ddb49a9b5255e202777127a3323d00000000 \
-  --recipient 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 \
-  --output-amount 15
+  -r "0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 15"
 
 [2023-04-11T18:57:20Z INFO  tuxedo_template_wallet] Number of blocks in the db: 94
 [2023-04-11T18:57:20Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 133
@@ -276,6 +273,35 @@ Created "4788fd9d517af94c2cfac80cb23fa6a63c41784b6fab01efd5d33b907af255050000000
 
 You should confirm for yourself that both the balance summary and the complete list of UTXOs look as you expect.
 
+### Multi recipients 
+ we will demonstrate is its ability to construct transactions where we can send the monmey to multiple recipients.
+
+```sh
+# The input value has to be copied from your own `show-all-outputs` results
+$ tuxedo-template-wallet spend-coins \
+-i a95362504966abd5ee55223d09e860bb1dd60eba1425b80fb05e1cc3ad66bf7100000000 \
+-r "0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 30 40 10" \
+-r "0xe0c99ddba50d55a82d1313eaf1897eefe6e599e5dcf0e9e14f56f5a736b6f933 5 3 12"
+
+[2024-04-24T13:44:18Z INFO  tuxedo_template_wallet] cli from cmd args = Cli { endpoint: "http://localhost:9944", path: None, no_sync: false, tmp: false, dev: false, command: Some(SpendCoins(SpendArgs { input: [OutputRef { tx_hash: 0xa95362504966abd5ee55223d09e860bb1dd60eba1425b80fb05e1cc3ad66bf71, index: 0 }], recipients: [(0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67, [30, 40, 10]), (0xe0c99ddba50d55a82d1313eaf1897eefe6e599e5dcf0e9e14f56f5a736b6f933, [5, 3, 12])] })) }
+h256_from_string called
+[2024-04-24T13:44:18Z INFO  tuxedo_template_wallet] Number of blocks in the db: 5
+
+h256_from_string called
+[2024-04-24T13:44:18Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 17
+[2024-04-24T13:44:18Z INFO  tuxedo_template_wallet::money] In the spend_coins_to_multiple_recipient The args are:: SpendArgs { input: [OutputRef { tx_hash: 0xa95362504966abd5ee55223d09e860bb1dd60eba1425b80fb05e1cc3ad66bf71, index: 0 }], recipients: [(0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67, [30, 40, 10]), (0xe0c99ddba50d55a82d1313eaf1897eefe6e599e5dcf0e9e14f56f5a736b6f933, [5, 3, 12])] }
+[2024-04-24T13:44:18Z INFO  tuxedo_template_wallet::money] Node's response to spend transaction: Ok("0xbcd1620519e11e25fc8e76fcf9747fae2be4cb26b66c51a9052031e8be05461e")
+Created "6db953f4c36a1218e0dcb92a30ac43e753310688a82ebf0e743d46c656fb98a800000000" worth 30. owned by 0xd2bf…df67
+Created "6db953f4c36a1218e0dcb92a30ac43e753310688a82ebf0e743d46c656fb98a801000000" worth 40. owned by 0xd2bf…df67
+Created "6db953f4c36a1218e0dcb92a30ac43e753310688a82ebf0e743d46c656fb98a802000000" worth 10. owned by 0xd2bf…df67
+Created "6db953f4c36a1218e0dcb92a30ac43e753310688a82ebf0e743d46c656fb98a803000000" worth 5. owned by 0xe0c9…f933
+Created "6db953f4c36a1218e0dcb92a30ac43e753310688a82ebf0e743d46c656fb98a804000000" worth 3. owned by 0xe0c9…f933
+Created "6db953f4c36a1218e0dcb92a30ac43e753310688a82ebf0e743d46c656fb98a805000000" worth 12. owned by 0xe0c9…f933
+
+```
+You should confirm for yourself that both the show all outputs and the complete list of UTXOs look as you expect.
+
+
 ### Multi Owner
 
 The final wallet feature that we will demonstrate is its ability to construct transactions with inputs coming from multiple different owners.
@@ -285,8 +311,7 @@ This will require inputs from both Shawn and us, and the wallet is able to handl
 
 ```sh
 $ tuxedo-template-wallet spend-coins \
-  --recipient 0x066ae8f6f5c3f04e7fc163555d6ef62f6f8878435a931ba7eaf02424a16afe62 \
-  --output-amount 70
+  -r "0x066ae8f6f5c3f04e7fc163555d6ef62f6f8878435a931ba7eaf02424a16afe62 70"
 
 [2023-04-11T18:59:18Z INFO  tuxedo_template_wallet] Number of blocks in the db: 146
 [2023-04-11T18:59:18Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 173
