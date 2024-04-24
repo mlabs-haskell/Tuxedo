@@ -9,41 +9,16 @@ use sp_core::H256;
 use tuxedo_core::types::OutputRef;
 
 use crate::{h256_from_string, keystore::SHAWN_PUB_KEY, output_ref_from_string, DEFAULT_ENDPOINT};
-
+use crate::parse_recipient_coins;
 /// The default number of coins to be minted.
 pub const DEFAULT_MINT_VALUE: &str = "100";
 
 /// Default recipient is  SHAWN_KEY and output amount is 0
-pub const DEFAULT_RECIPIENT: &str = "d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 0";
+pub const DEFAULT_RECIPIENT: &str =
+    "d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 0";
 
 /// The default name of the kitty to be created. Show be 4 character long
 pub const DEFAULT_KITTY_NAME: &str = "    ";
-
-/// The default gender of the kitty to be created.
-pub const DEFAULT_KITTY_GENDER: &str = "female";
-use crate::keystore;
-
-
-fn parse_recipient_coins(s: &str) -> Result<(H256, Vec<u128>), &'static str> {
-    println!("In parse_recipient_coins");
-    let parts: Vec<&str> = s.split_whitespace().collect();
-    if parts.len() >= 2 {
-        let mut recipient = h256_from_string(parts[0]);
-        let coins = parts[1..].iter().filter_map(|&c| c.parse().ok()).collect();
-        match recipient {
-            Ok(r) => {
-                println!("Recipient: {}", r);
-                return Ok((r, coins));
-            },
-            _ => {},
-        };
-    }
-    println!("Sending the error value ");
-    Err("Invalid input format")
-}
-
-
-
 
 /// The wallet's main CLI struct
 #[derive(Debug, Parser)]
@@ -81,7 +56,7 @@ pub struct Cli {
 pub enum Command {
     /// Print the block based on block height.
     /// get the block hash ad print the block.
-    getBlock {
+    GetBlock {
         /// Input the blockheight to be retrived.
         block_height: Option<u32>, // fixme
     },
@@ -209,7 +184,7 @@ pub struct MintCoinArgs {
 }
 
 /*
-// Old implementation 
+// Old implementation
 #[derive(Debug, Args)]
 pub struct SpendArgs {
     /// An input to be consumed by this transaction. This argument may be specified multiple times.
@@ -236,7 +211,7 @@ pub struct SpendArgs {
 }
 */
 
-#[derive(Debug, Args,Clone)]
+#[derive(Debug, Args, Clone)]
 pub struct SpendArgs {
     /// An input to be consumed by this transaction. This argument may be specified multiple times.
     /// They must all be coins.
@@ -245,19 +220,15 @@ pub struct SpendArgs {
 
     /// Variable number of recipients and their associated coins.
     /// For example, "--recipients 0x1234 1 2 --recipients 0x5678 3 4 6"
-   // #[arg(long, short, verbatim_doc_comment, value_parser = parse_recipient_coins, action = Append)]
-   // pub recipients: Vec<(H256, Vec<u128>)>,
-   #[arg(long, short, verbatim_doc_comment, value_parser = parse_recipient_coins, action = Append, 
+    // #[arg(long, short, verbatim_doc_comment, value_parser = parse_recipient_coins, action = Append)]
+    // pub recipients: Vec<(H256, Vec<u128>)>,
+    #[arg(long, short, verbatim_doc_comment, value_parser = parse_recipient_coins, action = Append, 
     default_value = DEFAULT_RECIPIENT)]
-   pub recipients: Vec<(H256, Vec<u128>)>,
+    pub recipients: Vec<(H256, Vec<u128>)>,
 }
 
 #[derive(Debug, Args)]
 pub struct CreateKittyArgs {
-    /// Pass the name of the kitty to be minted.
-    #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_GENDER)]
-    pub kitty_gender: String, // Todo: This will be removed , gender will be decided randomly.
-
     /// Pass the name of the kitty to be minted.
     /// If kitty name is not passed ,name is choosen randomly from predefine name vector.
     #[arg(long, short, action = Append, default_value = DEFAULT_KITTY_NAME)]
@@ -281,13 +252,13 @@ pub struct ShowOwnedKittyArgs {
 
 #[derive(Debug, Args)]
 pub struct BreedKittyArgs {
-    /// Name of Mom to be used for breeding .
+    /// Dna of Mom to be used for breeding .
     #[arg(long, short, verbatim_doc_comment, action = Append)]
-    pub mom_name: String,
+    pub mom_dna: String,
 
-    /// Name of Dad to be used for breeding .
+    /// DNA of Dad to be used for breeding .
     #[arg(long, short, verbatim_doc_comment, action = Append)]
-    pub dad_name: String,
+    pub dad_dna: String,
 
     // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
     // shows how to specify a custom parsing function
@@ -298,9 +269,9 @@ pub struct BreedKittyArgs {
 
 #[derive(Debug, Args)]
 pub struct UpdateKittyNameArgs {
-    /// Current name of Kitty.
+    /// Dna of Kitty.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
-    pub current_name: String,
+    pub dna: String,
 
     /// New name of Kitty.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
@@ -315,9 +286,9 @@ pub struct UpdateKittyNameArgs {
 
 #[derive(Debug, Args)]
 pub struct UpdateKittyPriceArgs {
-    /// Current name of Kitty.
+    ///Dna of Kitty.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
-    pub current_name: String,
+    pub dna: String,
 
     /// Price of Kitty.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
@@ -349,9 +320,9 @@ pub struct BuyKittyArgs {
     #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
     pub owner: H256,
 
-    /// Name of kitty to be bought.
+    /// Dna of kitty to be bought.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
-    pub kitty_name: String,
+    pub dna: String,
 
     // The `action = Append` allows us to accept the same value multiple times.
     /// An output amount. For the transaction to be valid, the outputs must add up to less than the sum of the inputs.
@@ -362,9 +333,9 @@ pub struct BuyKittyArgs {
 
 #[derive(Debug, Args)]
 pub struct ListKittyForSaleArgs {
-    /// Pass the name of the kitty to be listed for sale.
+    /// Pass the DNA of the kitty to be listed for sale.
     #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_NAME)]
-    pub name: String,
+    pub dna: String,
 
     /// Price of Kitty.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
@@ -379,9 +350,9 @@ pub struct ListKittyForSaleArgs {
 
 #[derive(Debug, Args)]
 pub struct DelistKittyFromSaleArgs {
-    /// Pass the name of the kitty to be delisted or removed from the sale .
+    /// Pass the Dna of the kitty to be delisted or removed from the sale .
     #[arg(long, short, verbatim_doc_comment, action = Append, default_value = DEFAULT_KITTY_NAME)]
-    pub name: String,
+    pub dna: String,
 
     // https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
     // shows how to specify a custom parsing function

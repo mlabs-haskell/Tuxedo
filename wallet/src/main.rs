@@ -8,9 +8,9 @@ use std::path::PathBuf;
 use tuxedo_core::{types::OutputRef, verifier::*};
 
 use sp_core::H256;
+use crate::keystore::SHAWN_PUB_KEY;
 
 //mod amoeba;
-mod TradableKitties;
 mod cli;
 mod keystore;
 mod kitty;
@@ -103,7 +103,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Dispatch to proper subcommand
     match cli.command {
-        Some(Command::getBlock { block_height }) => {
+        Some(Command::GetBlock { block_height }) => {
             let node_hash = rpc::node_get_block_hash(block_height.unwrap(), &client)
                 .await?
                 .expect("node should be able to return some  hash");
@@ -217,7 +217,7 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
 
-        Some(Command::CreateKitty(args)) => kitty::create_kitty(&db, &client, args).await,
+        Some(Command::CreateKitty(args)) => kitty::create_kitty(&client, args).await,
         Some(Command::BreedKitty(args)) => kitty::breed_kitty(&db, &client, &keystore, args).await,
         Some(Command::ListKittyForSale(args)) => {
             kitty::list_kitty_for_sale(&db, &client, &keystore, args).await
@@ -265,7 +265,7 @@ async fn main() -> anyhow::Result<()> {
             println!("ShowOwnedKitties Kitty Summary");
             println!("==========================================");
             let owned_kitties = sync::get_owned_kitties_from_local_db(&db, &args)?;
-            for (owner, kitty_data, output_ref) in owned_kitties {
+            for (_owner, kitty_data, _output_ref) in owned_kitties {
                 println!(
                     "{:?} => {:?} -> ",
                     kitty::convert_kitty_name_string(&kitty_data),
@@ -276,7 +276,7 @@ async fn main() -> anyhow::Result<()> {
             println!("=-===================================================");
             let owned_tradable_kitties =
                 sync::get_owned_tradable_kitties_from_local_db(&db, &args)?;
-            for (owner, kitty_data, output_ref) in owned_tradable_kitties {
+            for (_owner, kitty_data, _output_ref) in owned_tradable_kitties {
                 println!(
                     "{:?} => {:?} -> ",
                     kitty::convert_td_kitty_name_string(&kitty_data),
@@ -310,10 +310,44 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+fn parse_recipient_coins(s: &str) -> Result<(H256, Vec<u128>), &'static str> {
+    //    println!("In parse_recipient_coins");
+        let parts: Vec<&str> = s.split_whitespace().collect();
+        if parts.len() >= 2 {
+            let recipient = h256_from_string(parts[0]);
+            match recipient {
+                Ok(r) => {
+                    let coins = parts[1..].iter().filter_map(|&c| c.parse().ok()).collect();
+                    println!("Recipient: {}", r);
+                    return Ok((r, coins));
+                }
+                _ => {
+     //               println!("For default Recipient");
+                    let coins = parts[0..].iter().filter_map(|&c| c.parse().ok()).collect();
+                    return Ok((h256_from_string_without_stripping(SHAWN_PUB_KEY).unwrap(), coins));
+                }
+            };
+        }
+      //  println!("Sending the error value ");
+        Err("Invalid input format")
+    }
+
 /// Parse a string into an H256 that represents a public key
 pub(crate) fn h256_from_string(s: &str) -> anyhow::Result<H256> {
-    let s = strip_0x_prefix(s);
+    let st:&str;
+    if s.len() > 2{
+        st = strip_0x_prefix(s);
+    } else {
+        st = s;
+    }
+    let s = st;
+    let mut bytes: [u8; 32] = [0; 32];
+    hex::decode_to_slice(s, &mut bytes as &mut [u8])
+        .map_err(|_| clap::Error::new(clap::error::ErrorKind::ValueValidation))?;
+    Ok(H256::from(bytes))
+}
 
+pub(crate) fn h256_from_string_without_stripping(s: &str) -> anyhow::Result<H256> {
     let mut bytes: [u8; 32] = [0; 32];
     hex::decode_to_slice(s, &mut bytes as &mut [u8])
         .map_err(|_| clap::Error::new(clap::error::ErrorKind::ValueValidation))?;
@@ -322,7 +356,13 @@ pub(crate) fn h256_from_string(s: &str) -> anyhow::Result<H256> {
 
 /// Parse an output ref from a string
 fn output_ref_from_string(s: &str) -> Result<OutputRef, clap::Error> {
-    let s = strip_0x_prefix(s);
+    let st:&str;
+    if s.contains("0x") {
+        st = strip_0x_prefix(s);
+    } else {
+        st = s;
+    }
+    let s = st;
     let bytes =
         hex::decode(s).map_err(|_| clap::Error::new(clap::error::ErrorKind::ValueValidation))?;
 

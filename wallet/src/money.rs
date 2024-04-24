@@ -1,6 +1,6 @@
 //! Wallet features related to spending money and checking balances.
 
-use crate::{cli::MintCoinArgs, cli::SpendArgs,rpc::fetch_storage, sync};
+use crate::{cli::MintCoinArgs, cli::SpendArgs, rpc::fetch_storage, sync};
 
 use anyhow::anyhow;
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
@@ -59,16 +59,16 @@ pub async fn mint_coins(client: &HttpClient, args: MintCoinArgs) -> anyhow::Resu
     Ok(())
 }
 use sp_core::H256;
-struct recipient_output {
-    pub recipient:H256,
-    pub output_amount:Vec<u128>
+struct RecipientOutput {
+    pub recipient: H256,
+    pub output_amount: Vec<u128>,
 }
-fn extract_recipient_list_from_args(args: SpendArgs,) -> Vec<recipient_output> {
-    let mut recipient_list:Vec<recipient_output> = Vec::new();
+fn extract_recipient_list_from_args(args: SpendArgs) -> Vec<RecipientOutput> {
+    let mut recipient_list: Vec<RecipientOutput> = Vec::new();
     for i in args.recipients {
-        let rec_pient = recipient_output {
-            recipient:i.0,
-            output_amount:i.1,
+        let rec_pient = RecipientOutput {
+            recipient: i.0,
+            output_amount: i.1,
         };
         recipient_list.push(rec_pient);
     }
@@ -81,8 +81,10 @@ pub async fn spend_coins(
     keystore: &LocalKeystore,
     args: SpendArgs,
 ) -> anyhow::Result<()> {
-    
-    log::info!("In the spend_coins_to_multiple_recipient The args are:: {:?}", args);
+    log::info!(
+        "In the spend_coins_to_multiple_recipient The args are:: {:?}",
+        args
+    );
     let mut transaction = Transaction {
         inputs: Vec::new(),
         peeks: Vec::new(),
@@ -90,7 +92,7 @@ pub async fn spend_coins(
         checker: OuterConstraintChecker::Money(MoneyConstraintChecker::Spend),
     };
 
-    let mut recipient_list:Vec<recipient_output> = extract_recipient_list_from_args(args.clone());
+    let recipient_list: Vec<RecipientOutput> = extract_recipient_list_from_args(args.clone());
 
     let mut total_output_amount = 0;
     for recipient in &recipient_list {
