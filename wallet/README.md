@@ -385,9 +385,9 @@ Some("limi") => KittyData { parent: Mom(RearinToGo), free_breedings: 2, dna: Kit
 --------------------------------------------------e2dfcacdcd877b2fbcb521bf8961ccb60a51b876412463febc8bb7ff1faab2700000000" basic Kitty 0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815. owned by 0xd2bf…df67****
 ```
 
-### Update the name of the kitty 
+### Breed kitty
 We can breed the kitties using mom and Dad kitty.
-For this we created one more kitty which is dad kitty.
+For this, we created one more kitty which is dad kitty.
 
 ```sh
 $ amit@DESKTOP-TF687VE:~/OmBlockchain/OmTest/Tuxedo$ ./target/release/tuxedo-template-wallet breed-kitty --mom-dna d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815 --dad-dna 6966efbf9f73cfc36724994dea537f9818701c0a22b939097e2cce75b24d8c15
@@ -417,7 +417,7 @@ Created "05d3cf55bbe68399c51ddaa9f0576eb72220a31d6d525cd3ce6e2f6312db88800200000
 
 ```
 
-Let's check if can have 3 kitties. 1 mom kitty, 1 dada kitty, and newly created child kitty 
+Let's check if we have 3 kitties. 1 mom kitty, 1 dada kitty, and a newly created child kitty 
 
 ```sh
 $ ./target/release/tuxedo-template-wallet show-all-kitties
@@ -441,7 +441,7 @@ Some("tomy") => KittyData { parent: Dad(RearinToGo), free_breedings: 2, dna: Kit
 --------------------------------------------------
 
 ```
-### lit kitty for sale 
+### list kitty for sale 
 We make kitty available for sale using the below command.
 After this command is executed the basic kitty is converted to tradable kitty.
 
@@ -484,8 +484,8 @@ Some("limi") => TradableKittyData { kitty_basic_data: KittyData { parent: Mom(Ha
 
 ### kitty price update 
 We can update the price of the tradable kitty.
-You can see the price of limi is 150.
-After execution of below command it will be updated to 200.
+You can see the price of "limi" is 150.
+After execution of the below command, it will be updated to 200.
 
 ```sh
 $ ./target/release/tuxedo-template-wallet update-kitty-price --dna d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815 --price 200
@@ -611,7 +611,7 @@ c1c7e6b18a4da9035a4f488198afb54cc0849d165dcce20b684701f5ca63272701000000: owner 
 
 ###  Delist kitty from sale
 When owner of the kitty decides not sell the kitty, he can de-list the kitty from sale making it unavailable for sale.
-With this operation tradable kitty is converted to basic kitty as below:
+With this operation, tradable kitty is converted to basic kitty as below:
 
 ```sh
 $ ./target/release/tuxedo-template-wallet delist-kitty-from-sale  --dna d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815 --owner 0xf47c90b21c22b6b9312fc5cd65583b759f80288abe04b052bd49d2d727c5a600
@@ -628,7 +628,7 @@ Created "a058d2d3ecfadf74c58cab37c18c5ff4f05c36e39e8999fd31b3726498e4ed180000000
 
 ```
 
-Just cross whether the kitty "limi" is converted from tradable to the basic kitty or not.
+Let's cross whether the kitty "limi" is converted from a tradable to a basic kitty or not.
 
 ```sh
 $ ./target/release/tuxedo-template-wallet show-all-kitties
