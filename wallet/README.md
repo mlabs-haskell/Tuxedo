@@ -322,3 +322,329 @@ Created "d0f722019e05863769e64ac6d33ad3ebeb359ce0469e93a9856bfcc236c4bad70000000
 
 Now we check the balance summary and find it is empty.
 That is because Jose's keys are not in the keystore, so the wallet does not track his tokens.
+
+Now let's begin our journey for kitty management using this wallet 
+
+### kitty creation
+A new kitty can be created using below command 
+```sh
+$ ./target/release/tuxedo-template-wallet create-kitty --kitty-name amit
+[2024-04-26T06:27:29Z INFO  tuxedo_template_wallet] cli from cmd args = Cli { endpoint: "http://localhost:9944", path: None, no_sync: false, tmp: false, dev: false, command: Some(CreateKitty(CreateKittyArgs { kitty_name: "amit", owner: 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 })) }
+[2024-04-26T06:27:29Z INFO  tuxedo_template_wallet] Number of blocks in the db: 796
+[2024-04-26T06:27:29Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 1019
+Node's response to spawn transaction: Ok("0xb3c848749029bce7fae68d81cba91dd60128a4cec7d038d97aafc16df3b6ea19")
+Created "20fbaf62b7b9b95417744f6f6e3d6a275c74036e3e1520036c77539ebf965f4000000000" basic Kitty 0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815. owned by 0xd2bf…df67
+
+```
+
+### Show all kitties 
+We Can see all the kitties. It will show all the kitties owned by all the users :
+
+```sh
+$ ./target/release/tuxedo-template-wallet show-all-kitties
+[2024-04-26T06:28:02Z INFO  tuxedo_template_wallet] cli from cmd args = Cli { endpoint: "http://localhost:9944", path: None, no_sync: false, tmp: false, dev: false, command: Some(ShowAllKitties) }
+[2024-04-26T06:28:02Z INFO  tuxedo_template_wallet] Number of blocks in the db: 1019
+in kitty:apply_transaction output_ref = OutputRef { tx_hash: 0x20fbaf62b7b9b95417744f6f6e3d6a275c74036e3e1520036c77539ebf965f40, index: 0 }
+[2024-04-26T06:28:02Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 1030
+Show All Kitty Summary
+==========================================
+Owner -> 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+Some("amit") => KittyData { parent: Mom(RearinToGo), free_breedings: 2, dna: KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815), num_breedings: 3, name: [97, 109, 105, 116] } ->
+--------------------------------------------------
+```
+
+### Update the name of the kitty 
+We Can update the name of the kitty. We can update the name of the tradable kitty also.
+
+```sh
+$ ./target/release/tuxedo-template-wallet update-kitty-name --dna d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815 --new-name limi
+[2024-04-26T06:29:18Z INFO  tuxedo_template_wallet] cli from cmd args = Cli { endpoint: "http://localhost:9944", path: None, no_sync: false, tmp: false, dev: false, command: Some(UpdateKittyName(UpdateKittyNameArgs { dna: "d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815", new_name: "limi", owner: 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 })) }
+[2024-04-26T06:29:19Z INFO  tuxedo_template_wallet] Number of blocks in the db: 1030
+[2024-04-26T06:29:19Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 1056
+[2024-04-26T06:29:19Z INFO  tuxedo_template_wallet::kitty] The set_kitty_property are:: UpdateKittyNameArgs { dna: "d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815", new_name: "limi", owner: 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 }
+Owner  = 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 Dna : KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815)  -> output_ref OutputRef { tx_hash: 0x20fbaf62b7b9b95417744f6f6e3d6a275c74036e3e1520036c77539ebf965f40, index: 0 }
+ Name : KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815)  matched
+output_ref = OutputRef { tx_hash: 0x20fbaf62b7b9b95417744f6f6e3d6a275c74036e3e1520036c77539ebf965f40, index: 0 }
+kitty dna  KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815) found_status = Some(KittyData { parent: Mom(RearinToGo), free_breedings: 2, dna: KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815), num_breedings: 3, name: [97, 109, 105, 116] })
+Node's response to spawn transaction: Ok("0x106eb13bc3be6aeb656e23ce559d87b9907d0016ad963c0d979cfc3ddb04721f")
+Created "4e2dfcacdcd877b2fbcb521bf8961ccb60a51b876412463febc8bb7ff1faab2700000000" basic Kitty 0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815. owned by 0xd2bf…df67****
+```
+
+To confirm the updated name please execute the below :
+
+```sh
+$ ./target/release/tuxedo-template-wallet show-all-kitties
+[2024-04-26T06:30:31Z INFO  tuxedo_template_wallet] cli from cmd args = Cli { endpoint: "http://localhost:9944", path: None, no_sync: false, tmp: false, dev: false, command: Some(ShowAllKitties) }
+[2024-04-26T06:30:31Z INFO  tuxedo_template_wallet] Number of blocks in the db: 1056
+in kitty:apply_transaction output_ref = OutputRef { tx_hash: 0x4e2dfcacdcd877b2fbcb521bf8961ccb60a51b876412463febc8bb7ff1faab27, index: 0 }
+[2024-04-26T06:30:31Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 1080
+Show All Kitty Summary
+==========================================
+Owner -> 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+Some("limi") => KittyData { parent: Mom(RearinToGo), free_breedings: 2, dna: KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815), num_breedings: 3, name: [108, 105, 109, 105] } ->
+--------------------------------------------------e2dfcacdcd877b2fbcb521bf8961ccb60a51b876412463febc8bb7ff1faab2700000000" basic Kitty 0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815. owned by 0xd2bf…df67****
+```
+
+### Update the name of the kitty 
+We can breed the kitties using mom and Dad kitty.
+For this we created one more kitty which is dad kitty.
+
+```sh
+$ amit@DESKTOP-TF687VE:~/OmBlockchain/OmTest/Tuxedo$ ./target/release/tuxedo-template-wallet breed-kitty --mom-dna d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815 --dad-dna 6966efbf9f73cfc36724994dea537f9818701c0a22b939097e2cce75b24d8c15
+[2024-04-26T06:35:59Z INFO  tuxedo_template_wallet] cli from cmd args = Cli { endpoint: "http://localhost:9944", path: None, no_sync: false, tmp: false, dev: false, command: Some(BreedKitty(BreedKittyArgs { mom_dna: "d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815", dad_dna: "6966efbf9f73cfc36724994dea537f9818701c0a22b939097e2cce75b24d8c15", owner: 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 })) }
+[2024-04-26T06:35:59Z INFO  tuxedo_template_wallet] Number of blocks in the db: 1174
+[2024-04-26T06:35:59Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 1189
+[2024-04-26T06:35:59Z INFO  tuxedo_template_wallet::kitty] The Breed kittyArgs are:: BreedKittyArgs { mom_dna: "d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815", dad_dna: "6966efbf9f73cfc36724994dea537f9818701c0a22b939097e2cce75b24d8c15", owner: 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 }
+Owner  = 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 Dna : KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815)  -> output_ref OutputRef { tx_hash: 0x4e2dfcacdcd877b2fbcb521bf8961ccb60a51b876412463febc8bb7ff1faab27, index: 0 }
+ Name : KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815)  matched
+output_ref = OutputRef { tx_hash: 0x4e2dfcacdcd877b2fbcb521bf8961ccb60a51b876412463febc8bb7ff1faab27, index: 0 }
+kitty dna  KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815) found_status = Some(KittyData { parent: Mom(RearinToGo), free_breedings: 2, dna: KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815), num_breedings: 3, name: [108, 105, 109, 105] })
+Owner  = 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 Dna : KittyDNA(0x6966efbf9f73cfc36724994dea537f9818701c0a22b939097e2cce75b24d8c15)  -> output_ref OutputRef { tx_hash: 0x4e2dfcacdcd877b2fbcb521bf8961ccb60a51b876412463febc8bb7ff1faab27, index: 0 }
+ Name : KittyDNA(0x6966efbf9f73cfc36724994dea537f9818701c0a22b939097e2cce75b24d8c15)  NOTmatched
+Owner  = 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 Dna : KittyDNA(0x6966efbf9f73cfc36724994dea537f9818701c0a22b939097e2cce75b24d8c15)  -> output_ref OutputRef { tx_hash: 0x7f406d8605899c6f347bd4b60253c61e15b4b6edae06240fe0cd97573038b2f8, index: 0 }
+ Name : KittyDNA(0x6966efbf9f73cfc36724994dea537f9818701c0a22b939097e2cce75b24d8c15)  NOTmatched
+Owner  = 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 Dna : KittyDNA(0x6966efbf9f73cfc36724994dea537f9818701c0a22b939097e2cce75b24d8c15)  -> output_ref OutputRef { tx_hash: 0xca4280eb22231abefc7136ac8e0fa7ec981f28c63712fc4022d29a0a1a889700, index: 0 }
+ Name : KittyDNA(0x6966efbf9f73cfc36724994dea537f9818701c0a22b939097e2cce75b24d8c15)  matched
+output_ref = OutputRef { tx_hash: 0xca4280eb22231abefc7136ac8e0fa7ec981f28c63712fc4022d29a0a1a889700, index: 0 }
+kitty dna  KittyDNA(0x6966efbf9f73cfc36724994dea537f9818701c0a22b939097e2cce75b24d8c15) found_status = Some(KittyData { parent: Dad(RearinToGo), free_breedings: 2, dna: KittyDNA(0x6966efbf9f73cfc36724994dea537f9818701c0a22b939097e2cce75b24d8c15), num_breedings: 3, name: [100, 105, 110, 97] })
+New mom Dna = KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815)
+New Dad Dna = KittyDNA(0x6966efbf9f73cfc36724994dea537f9818701c0a22b939097e2cce75b24d8c15)
+Child Dna = KittyDNA(0x8a6d25fe23328d4c47a9ecd13b91b5aca2747708af65d27e2fbc83ae72415492)
+Node's response to spawn transaction: Ok("0x8c4c77922e6be143ab028c5cda702b928fdf4b16badc63f6936f8b6933a6332a")
+Created "05d3cf55bbe68399c51ddaa9f0576eb72220a31d6d525cd3ce6e2f6312db888000000000" basic Kitty 0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815. owned by 0xd2bf…df67
+Created "05d3cf55bbe68399c51ddaa9f0576eb72220a31d6d525cd3ce6e2f6312db888001000000" basic Kitty 0x6966efbf9f73cfc36724994dea537f9818701c0a22b939097e2cce75b24d8c15. owned by 0xd2bf…df67
+Created "05d3cf55bbe68399c51ddaa9f0576eb72220a31d6d525cd3ce6e2f6312db888002000000" basic Kitty 0x8a6d25fe23328d4c47a9ecd13b91b5aca2747708af65d27e2fbc83ae72415492. owned by 0xd2bf…df67
+
+```
+
+Let's check if can have 3 kitties. 1 mom kitty, 1 dada kitty, and newly created child kitty 
+
+```sh
+$ ./target/release/tuxedo-template-wallet show-all-kitties
+[2024-04-26T06:36:17Z INFO  tuxedo_template_wallet] cli from cmd args = Cli { endpoint: "http://localhost:9944", path: None, no_sync: false, tmp: false, dev: false, command: Some(ShowAllKitties) }
+[2024-04-26T06:36:17Z INFO  tuxedo_template_wallet] Number of blocks in the db: 1189
+in kitty:apply_transaction output_ref = OutputRef { tx_hash: 0x05d3cf55bbe68399c51ddaa9f0576eb72220a31d6d525cd3ce6e2f6312db8880, index: 0 }
+in kitty:apply_transaction output_ref = OutputRef { tx_hash: 0x05d3cf55bbe68399c51ddaa9f0576eb72220a31d6d525cd3ce6e2f6312db8880, index: 1 }
+in kitty:apply_transaction output_ref = OutputRef { tx_hash: 0x05d3cf55bbe68399c51ddaa9f0576eb72220a31d6d525cd3ce6e2f6312db8880, index: 2 }
+[2024-04-26T06:36:17Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 1195
+Show All Kitty Summary
+==========================================
+Owner -> 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+Some("limi") => KittyData { parent: Mom(HadBirthRecently), free_breedings: 1, dna: KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815), num_breedings: 4, name: [108, 105, 109, 105] } ->
+--------------------------------------------------
+Owner -> 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+Some("dina") => KittyData { parent: Dad(Tired), free_breedings: 1, dna: KittyDNA(0x6966efbf9f73cfc36724994dea537f9818701c0a22b939097e2cce75b24d8c15), num_breedings: 4, name: [100, 105, 110, 97] } ->
+--------------------------------------------------
+Owner -> 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+Some("tomy") => KittyData { parent: Dad(RearinToGo), free_breedings: 2, dna: KittyDNA(0x8a6d25fe23328d4c47a9ecd13b91b5aca2747708af65d27e2fbc83ae72415492), num_breedings: 0, name: [116, 111, 109, 121] } ->
+
+--------------------------------------------------
+
+```
+### lit kitty for sale 
+We make kitty available for sale using the below command.
+After this command is executed the basic kitty is converted to tradable kitty.
+
+```sh
+$ ./target/release/tuxedo-template-wallet list-kitty-for-sale --dna d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815 --price 150 --owner d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+[2024-04-26T06:40:43Z INFO  tuxedo_template_wallet] cli from cmd args = Cli { endpoint: "http://localhost:9944", path: None, no_sync: false, tmp: false, dev: false, command: Some(ListKittyForSale(ListKittyForSaleArgs { dna: "d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815", price: 150, owner: 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 })) }
+[2024-04-26T06:40:43Z INFO  tuxedo_template_wallet] Number of blocks in the db: 1195
+[2024-04-26T06:40:43Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 1284
+[2024-04-26T06:40:43Z INFO  tuxedo_template_wallet::kitty] The list_kitty_for_sale args : ListKittyForSaleArgs { dna: "d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815", price: 150, owner: 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 }
+Owner  = 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 Dna : KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815)  -> output_ref OutputRef { tx_hash: 0x05d3cf55bbe68399c51ddaa9f0576eb72220a31d6d525cd3ce6e2f6312db8880, index: 0 }
+ Name : KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815)  matched
+output_ref = OutputRef { tx_hash: 0x05d3cf55bbe68399c51ddaa9f0576eb72220a31d6d525cd3ce6e2f6312db8880, index: 0 }
+kitty dna  KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815) found_status = Some(KittyData { parent: Mom(HadBirthRecently), free_breedings: 1, dna: KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815), num_breedings: 4, name: [108, 105, 109, 105] })
+Node's response to spawn transaction: Ok("0x991de30918c2eb65bee49372a6ecbdd6a180830f202944f17c79c85f9cbe2dc4")
+Created "8e5c56c7b267b6727d508b0a6ae740cd3b849a4f513295c06a504a77d75facc200000000" TradableKitty 0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815. owned by 0xd2bf…df67
+
+```
+Now let's see if the basic kitty is converted to tradable kitty or not.
+
+```sh
+$ ./target/release/tuxedo-template-wallet show-all-kitties
+[2024-04-26T06:41:50Z INFO  tuxedo_template_wallet] cli from cmd args = Cli { endpoint: "http://localhost:9944", path: None, no_sync: false, tmp: false, dev: false, command: Some(ShowAllKitties) }
+[2024-04-26T06:41:50Z INFO  tuxedo_template_wallet] Number of blocks in the db: 1284
+in Tradable kitty:apply_transaction output_ref = OutputRef { tx_hash: 0x8e5c56c7b267b6727d508b0a6ae740cd3b849a4f513295c06a504a77d75facc2, index: 0 }
+[2024-04-26T06:41:50Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 1306
+Show All Kitty Summary
+==========================================
+Owner -> 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+Some("dina") => KittyData { parent: Dad(Tired), free_breedings: 1, dna: KittyDNA(0x6966efbf9f73cfc36724994dea537f9818701c0a22b939097e2cce75b24d8c15), num_breedings: 4, name: [100, 105, 110, 97] } ->
+--------------------------------------------------
+Owner -> 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+Some("tomy") => KittyData { parent: Dad(RearinToGo), free_breedings: 2, dna: KittyDNA(0x8a6d25fe23328d4c47a9ecd13b91b5aca2747708af65d27e2fbc83ae72415492), num_breedings: 0, name: [116, 111, 109, 121] } ->
+=-===================================================
+Owner -> 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+Some("limi") => TradableKittyData { kitty_basic_data: KittyData { parent: Mom(HadBirthRecently), free_breedings: 1, dna: KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815), num_breedings: 4, name: [108, 105, 109, 105] }, price: 150 } ->
+--------------------------------------------------
+=-===================================================
+
+```
+
+### kitty price update 
+We can update the price of the tradable kitty.
+You can see the price of limi is 150.
+After execution of below command it will be updated to 200.
+
+```sh
+$ ./target/release/tuxedo-template-wallet update-kitty-price --dna d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815 --price 200
+[2024-04-26T06:45:14Z INFO  tuxedo_template_wallet] cli from cmd args = Cli { endpoint: "http://localhost:9944", path: None, no_sync: false, tmp: false, dev: false, command: Some(UpdateKittyPrice(UpdateKittyPriceArgs { dna: "d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815", price: 200, owner: 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 })) }
+[2024-04-26T06:45:14Z INFO  tuxedo_template_wallet] Number of blocks in the db: 1306
+[2024-04-26T06:45:14Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 1374
+[2024-04-26T06:45:14Z INFO  tuxedo_template_wallet::kitty] The set_kitty_property are:: UpdateKittyPriceArgs { dna: "d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815", price: 200, owner: 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 }
+Owner  = 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 Dna : KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815)  -> output_ref OutputRef { tx_hash: 0x8e5c56c7b267b6727d508b0a6ae740cd3b849a4f513295c06a504a77d75facc2, index: 0 }
+ Name : KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815)  matched
+output_ref = OutputRef { tx_hash: 0x8e5c56c7b267b6727d508b0a6ae740cd3b849a4f513295c06a504a77d75facc2, index: 0 }
+kitty dna  KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815) found_status = Some(TradableKittyData { kitty_basic_data: KittyData { parent: Mom(HadBirthRecently), free_breedings: 1, dna: KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815), num_breedings: 4, name: [108, 105, 109, 105] }, price: 150 })
+Node's response to spawn transaction: Ok("0xb618175d4f6e164f74f8c0e7eed6a21347d19b45edf63a3dd43dc5d6f58c2b71")
+Created "b474c81bcac92ccb2f19d0fef2ae0b06606b1251b5ec8e53a931101c1f438eee00000000" TradableKitty 0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815. owned by 0xd2bf…df67
+
+```
+
+Let's see again if the price of the kitty is updated or not.
+
+```sh
+$ ./target/release/tuxedo-template-wallet show-all-kitties
+[2024-04-26T06:46:11Z INFO  tuxedo_template_wallet] cli from cmd args = Cli { endpoint: "http://localhost:9944", path: None, no_sync: false, tmp: false, dev: false, command: Some(ShowAllKitties) }
+[2024-04-26T06:46:11Z INFO  tuxedo_template_wallet] Number of blocks in the db: 1374
+in Tradable kitty:apply_transaction output_ref = OutputRef { tx_hash: 0xb474c81bcac92ccb2f19d0fef2ae0b06606b1251b5ec8e53a931101c1f438eee, index: 0 }
+[2024-04-26T06:46:11Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 1393
+Show All Kitty Summary
+==========================================
+Owner -> 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+Some("dina") => KittyData { parent: Dad(Tired), free_breedings: 1, dna: KittyDNA(0x6966efbf9f73cfc36724994dea537f9818701c0a22b939097e2cce75b24d8c15), num_breedings: 4, name: [100, 105, 110, 97] } ->
+--------------------------------------------------
+Owner -> 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+Some("tomy") => KittyData { parent: Dad(RearinToGo), free_breedings: 2, dna: KittyDNA(0x8a6d25fe23328d4c47a9ecd13b91b5aca2747708af65d27e2fbc83ae72415492), num_breedings: 0, name: [116, 111, 109, 121] } ->
+
+=-===================================================
+Owner -> 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+Some("limi") => TradableKittyData { kitty_basic_data: KittyData { parent: Mom(HadBirthRecently), free_breedings: 1, dna: KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815), num_breedings: 4, name: [108, 105, 109, 105] }, price: 200 } ->
+--------------------------------------------------
+=-===================================================
+
+```
+
+### buy kitty 
+We can buy the kitty from one user to another user.
+This involves 2 things as below :
+1. Kitty must be transferred from seller to buyer
+2. money i.e. coins should be transferred from buyer to seller .
+
+we have 2 users as below :
+
+
+```sh
+$
+seller : 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+Buyes : 0xf47c90b21c22b6b9312fc5cd65583b759f80288abe04b052bd49d2d727c5a600
+
+```
+The buyer has the money. i.e oxf47c90b21c22b6b9312fc5cd65583b759f80288abe04b052bd49d2d727c5a600 has a coin with id "0f338d55b02b10cc5b6804c5c649b46ba9e47e27102449d1af373036dd5b4f4500000000"
+
+```sh
+$ ./target/release/tuxedo-template-wallet show-all-outputs
+[2024-04-26T06:50:30Z INFO  tuxedo_template_wallet] cli from cmd args = Cli { endpoint: "http://localhost:9944", path: None, no_sync: false, tmp: false, dev: false, command: Some(ShowAllOutputs) }
+[2024-04-26T06:50:30Z INFO  tuxedo_template_wallet] Number of blocks in the db: 1477
+[2024-04-26T06:50:30Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 1480
+###### Unspent outputs ###########
+0398586cdbd3428bbf85d4a6662ee49043e3715cc53ac5c7e80bd74eaf1f244701000000: owner 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67, amount 200
+0f338d55b02b10cc5b6804c5c649b46ba9e47e27102449d1af373036dd5b4f4500000000: owner 0xf47c90b21c22b6b9312fc5cd65583b759f80288abe04b052bd49d2d727c5a600, amount 200
+a95362504966abd5ee55223d09e860bb1dd60eba1425b80fb05e1cc3ad66bf7100000000: owner 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67, amount 100
+
+```
+The seller has the kitty i.e. tradable kitty "limit". This is already shown in an earlier command.
+
+Now lets execute the buy kitty operation:
+
+```sh
+$ ./target/release/tuxedo-template-wallet buy-kitty --dna d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815 --input 0f338d55b02b10cc5b6804c5c649b46ba9e47e27102449d1af373036dd5b4f4500000000 --owner 0xf47c90b21c22b6b9312fc5cd65583b759f80288abe04b052bd49d2d727c5a600 --seller 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 --output-amount 200
+[2024-04-26T06:56:15Z INFO  tuxedo_template_wallet] cli from cmd args = Cli { endpoint: "http://localhost:9944", path: None, no_sync: false, tmp: false, dev: false, command: Some(BuyKitty(BuyKittyArgs { input: [OutputRef { tx_hash: 0x0f338d55b02b10cc5b6804c5c649b46ba9e47e27102449d1af373036dd5b4f45, index: 0 }], seller: 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67, owner: 0xf47c90b21c22b6b9312fc5cd65583b759f80288abe04b052bd49d2d727c5a600, dna: "d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815", output_amount: [200] })) }
+[2024-04-26T06:56:15Z INFO  tuxedo_template_wallet] Number of blocks in the db: 1580
+[2024-04-26T06:56:15Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 1595
+[2024-04-26T06:56:15Z INFO  tuxedo_template_wallet::kitty] The Buy kittyArgs are:: BuyKittyArgs { input: [OutputRef { tx_hash: 0x0f338d55b02b10cc5b6804c5c649b46ba9e47e27102449d1af373036dd5b4f45, index: 0 }], seller: 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67, owner: 0xf47c90b21c22b6b9312fc5cd65583b759f80288abe04b052bd49d2d727c5a600, dna: "d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815", output_amount: [200] }
+Owner  = 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 Dna : KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815)  -> output_ref OutputRef { tx_hash: 0xb474c81bcac92ccb2f19d0fef2ae0b06606b1251b5ec8e53a931101c1f438eee, index: 0 }
+ Name : KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815)  matched
+output_ref = OutputRef { tx_hash: 0xb474c81bcac92ccb2f19d0fef2ae0b06606b1251b5ec8e53a931101c1f438eee, index: 0 }
+kitty dna  KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815) found_status = Some(TradableKittyData { kitty_basic_data: KittyData { parent: Mom(HadBirthRecently), free_breedings: 1, dna: KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815), num_breedings: 4, name: [108, 105, 109, 105] }, price: 200 })
+Node's response to spawn transaction: Ok("0x05c105ffbcb423d3e6309ed43c4c73fc3623ef923f45b05767d64c8b58923c81")
+Created "c1c7e6b18a4da9035a4f488198afb54cc0849d165dcce20b684701f5ca63272700000000" TradableKitty 0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815. owned by 0xf47c…a600
+Created "c1c7e6b18a4da9035a4f488198afb54cc0849d165dcce20b684701f5ca63272701000000" worth 200. owned by 0xd2bf…df67
+
+```
+
+Now let's check if the kitty is transferred from seller to buyer or not.
+We can see kitty transferred from seller i.e 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67 to buyer i.e 0xf47c90b21c22b6b9312fc5cd65583b759f80288abe04b052bd49d2d727c5a600.
+
+```sh
+$ ./target/release/tuxedo-template-wallet show-all-kitties
+[2024-04-26T06:57:28Z INFO  tuxedo_template_wallet] cli from cmd args = Cli { endpoint: "http://localhost:9944", path: None, no_sync: false, tmp: false, dev: false, command: Some(ShowAllKitties) }
+[2024-04-26T06:57:28Z INFO  tuxedo_template_wallet] Number of blocks in the db: 1595
+in Tradable kitty:apply_transaction output_ref = OutputRef { tx_hash: 0xc1c7e6b18a4da9035a4f488198afb54cc0849d165dcce20b684701f5ca632727, index: 0 }
+[2024-04-26T06:57:28Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 1619
+Show All Kitty Summary
+==========================================
+Owner -> 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+Some("dina") => KittyData { parent: Dad(Tired), free_breedings: 1, dna: KittyDNA(0x6966efbf9f73cfc36724994dea537f9818701c0a22b939097e2cce75b24d8c15), num_breedings: 4, name: [100, 105, 110, 97] } ->
+--------------------------------------------------
+Owner -> 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+Some("tomy") => KittyData { parent: Dad(RearinToGo), free_breedings: 2, dna: KittyDNA(0x8a6d25fe23328d4c47a9ecd13b91b5aca2747708af65d27e2fbc83ae72415492), num_breedings: 0, name: [116, 111, 109, 121] } ->
+
+Owner -> 0xf47c90b21c22b6b9312fc5cd65583b759f80288abe04b052bd49d2d727c5a600
+Some("limi") => TradableKittyData { kitty_basic_data: KittyData { parent: Mom(HadBirthRecently), free_breedings: 1, dna: KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815), num_breedings: 4, name: [108, 105, 109, 105] }, price: 200 } ->
+--------------------------------------------------
+
+```
+Now let's check if the coin is transferred from the buyer to the seller or not.
+
+```sh
+$ ./target/release/tuxedo-template-wallet show-all-outputs
+[2024-04-26T06:59:35Z INFO  tuxedo_template_wallet] cli from cmd args = Cli { endpoint: "http://localhost:9944", path: None, no_sync: false, tmp: false, dev: false, command: Some(ShowAllOutputs) }
+[2024-04-26T06:59:35Z INFO  tuxedo_template_wallet] Number of blocks in the db: 1619
+[2024-04-26T06:59:35Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 1661
+###### Unspent outputs ###########
+a95362504966abd5ee55223d09e860bb1dd60eba1425b80fb05e1cc3ad66bf7100000000: owner 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67, amount 100
+c1c7e6b18a4da9035a4f488198afb54cc0849d165dcce20b684701f5ca63272701000000: owner 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67, amount 200
+
+```
+
+###  Delist kitty from sale
+When owner of the kitty decides not sell the kitty, he can de-list the kitty from sale making it unavailable for sale.
+With this operation tradable kitty is converted to basic kitty as below:
+
+```sh
+$ ./target/release/tuxedo-template-wallet delist-kitty-from-sale  --dna d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815 --owner 0xf47c90b21c22b6b9312fc5cd65583b759f80288abe04b052bd49d2d727c5a600
+[2024-04-26T07:03:29Z INFO  tuxedo_template_wallet] cli from cmd args = Cli { endpoint: "http://localhost:9944", path: None, no_sync: false, tmp: false, dev: false, command: Some(DelistKittyFromSale(DelistKittyFromSaleArgs { dna: "d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815", owner: 0xf47c90b21c22b6b9312fc5cd65583b759f80288abe04b052bd49d2d727c5a600 })) }
+[2024-04-26T07:03:29Z INFO  tuxedo_template_wallet] Number of blocks in the db: 1739
+[2024-04-26T07:03:29Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 1739
+[2024-04-26T07:03:29Z INFO  tuxedo_template_wallet::kitty] The list_kitty_for_sale args : DelistKittyFromSaleArgs { dna: "d3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815", owner: 0xf47c90b21c22b6b9312fc5cd65583b759f80288abe04b052bd49d2d727c5a600 }
+Owner  = 0xf47c90b21c22b6b9312fc5cd65583b759f80288abe04b052bd49d2d727c5a600 Dna : KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815)  -> output_ref OutputRef { tx_hash: 0xc1c7e6b18a4da9035a4f488198afb54cc0849d165dcce20b684701f5ca632727, index: 0 }
+ Name : KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815)  matched
+output_ref = OutputRef { tx_hash: 0xc1c7e6b18a4da9035a4f488198afb54cc0849d165dcce20b684701f5ca632727, index: 0 }
+kitty dna  KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815) found_status = Some(TradableKittyData { kitty_basic_data: KittyData { parent: Mom(HadBirthRecently), free_breedings: 1, dna: KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815), num_breedings: 4, name: [108, 105, 109, 105] }, price: 200 })
+Node's response to spawn transaction: Ok("0x4bf53d5c8781508550801a2faf18738322146c6d41946fa38f2d797329f022c6")
+Created "a058d2d3ecfadf74c58cab37c18c5ff4f05c36e39e8999fd31b3726498e4ed1800000000" basic Kitty 0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815. owned by 0xf47c…a600
+
+```
+
+Just cross whether the kitty "limi" is converted from tradable to the basic kitty or not.
+
+```sh
+$ ./target/release/tuxedo-template-wallet show-all-kitties
+[2024-04-26T07:03:39Z INFO  tuxedo_template_wallet] cli from cmd args = Cli { endpoint: "http://localhost:9944", path: None, no_sync: false, tmp: false, dev: false, command: Some(ShowAllKitties) }
+[2024-04-26T07:03:39Z INFO  tuxedo_template_wallet] Number of blocks in the db: 1741
+[2024-04-26T07:03:39Z INFO  tuxedo_template_wallet] Wallet database synchronized with node to height 1743
+Show All Kitty Summary
+==========================================
+Owner -> 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+Some("dina") => KittyData { parent: Dad(Tired), free_breedings: 1, dna: KittyDNA(0x6966efbf9f73cfc36724994dea537f9818701c0a22b939097e2cce75b24d8c15), num_breedings: 4, name: [100, 105, 110, 97] } ->
+--------------------------------------------------
+Owner -> 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67
+Some("tomy") => KittyData { parent: Dad(RearinToGo), free_breedings: 2, dna: KittyDNA(0x8a6d25fe23328d4c47a9ecd13b91b5aca2747708af65d27e2fbc83ae72415492), num_breedings: 0, name: [116, 111, 109, 121] } ->
+--------------------------------------------------
+Owner -> 0xf47c90b21c22b6b9312fc5cd65583b759f80288abe04b052bd49d2d727c5a600
+Some("limi") => KittyData { parent: Mom(HadBirthRecently), free_breedings: 1, dna: KittyDNA(0xd3471ef11bb1ca2871708e8adb8d8b4e6786fb433fb2cf8d26077132922f1815), num_breedings: 4, name: [108, 105, 109, 105] } ->
+
+```
+
